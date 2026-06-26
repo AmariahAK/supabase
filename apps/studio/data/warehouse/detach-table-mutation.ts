@@ -14,8 +14,8 @@ export type WarehouseDetachTableVariables = {
 
 /**
  * Detaches a table's Warehouse copy ("Detach Warehouse copy"). Server-side this removes the table
- * from the `supabase_warehouse_pipeline` publication and drops its DuckLake copy. The source table
- * in Postgres is unaffected.
+ * from the `supabase_warehouse_pipeline` publication so it stops syncing. For now the existing
+ * DuckLake data is left in place (data cleanup is deferred); the Postgres source table is unaffected.
  */
 export async function detachWarehouseTable({
   projectRef,

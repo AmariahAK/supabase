@@ -16,6 +16,11 @@ The Warehouse product reuses the existing replication/ETL machinery. Conceptuall
   project itself, plus a pipeline and a publication. Naming convention:
   - pipeline/destination name: `supabase_warehouse_pipeline`
   - publication name: `supabase_warehouse_publication`
+  - ✅ **Already implemented — do not re-build:** the "max one DuckLake destination per project"
+    rule is enforced by the platform in
+    [supabase/platform#34718](https://github.com/supabase/platform/pull/34718). The warehouse
+    endpoints can rely on it; the "ensure the pipeline exists" step just creates the destination on
+    first use and is a safe no-op afterwards — no singleton check needs to be added here.
 - **"Copy to Warehouse"** for a table = ensure that pipeline exists (create it lazily on first use),
   add the table to its publication, and ensure the pipeline is running.
 - **"Detach Warehouse copy"** = remove the table from the publication (and drop its DuckLake copy).
@@ -106,7 +111,9 @@ Server behavior (idempotent):
 1. Ensure the warehouse tenant + source exist (`tenants-sources`).
 2. Ensure the `supabase_warehouse_pipeline` destination + pipeline exist. If not, create the
    DuckLake destination (Supabase-managed, pointed at this project) + pipeline +
-   `supabase_warehouse_publication` via `destinations-pipelines`.
+   `supabase_warehouse_publication` via `destinations-pipelines`. The one-DuckLake-destination-per-
+   project limit is already enforced (supabase/platform#34718), so this step never has to guard
+   against duplicates — it just creates on first use.
 3. Add `{schema, name}` to `supabase_warehouse_publication` (create-or-update publication).
 4. Ensure the pipeline is running (`/start` if stopped).
 
@@ -120,9 +127,10 @@ Studio hook: `useWarehouseLinkTableMutation` (`link-table-mutation.ts`).
 Response `204`.
 
 Server behavior: remove `{schema, name}` from `supabase_warehouse_publication` (update publication)
-and drop the table's DuckLake copy. Leave the pipeline running for the remaining tables; if it was
-the last table, the pipeline may be stopped (implementation detail). The Postgres source table is
-untouched.
+so the table stops syncing. **For now the existing DuckLake data is left in place** — detach only
+removes the table from the catalog/publication; it does **not** delete the columnar copy (data
+cleanup is deferred). Leave the pipeline running for the remaining tables; if it was the last table,
+the pipeline may be stopped (implementation detail). The Postgres source table is untouched.
 
 Studio hook: `useWarehouseDetachTableMutation` (`detach-table-mutation.ts`).
 

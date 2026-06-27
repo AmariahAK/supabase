@@ -15,7 +15,7 @@ The Warehouse product reuses the existing replication/ETL machinery. Conceptuall
 - Each project has **at most one** "warehouse pipeline": a DuckLake destination plugged into the
   project itself, plus a pipeline and a publication. Naming convention:
   - pipeline/destination name: `supabase_warehouse_pipeline`
-  - publication name: `supabase_warehouse_publication`
+  - publication name: `_supabase_warehouse_pub`
   - ✅ **Already implemented — do not re-build:** the "max one DuckLake destination per project"
     rule is enforced by the platform in
     [supabase/platform#34718](https://github.com/supabase/platform/pull/34718). The warehouse
@@ -111,10 +111,10 @@ Server behavior (idempotent):
 1. Ensure the warehouse tenant + source exist (`tenants-sources`).
 2. Ensure the `supabase_warehouse_pipeline` destination + pipeline exist. If not, create the
    DuckLake destination (Supabase-managed, pointed at this project) + pipeline +
-   `supabase_warehouse_publication` via `destinations-pipelines`. The one-DuckLake-destination-per-
+   `_supabase_warehouse_pub` via `destinations-pipelines`. The one-DuckLake-destination-per-
    project limit is already enforced (supabase/platform#34718), so this step never has to guard
    against duplicates — it just creates on first use.
-3. Add `{schema, name}` to `supabase_warehouse_publication` (create-or-update publication).
+3. Add `{schema, name}` to `_supabase_warehouse_pub` (create-or-update publication).
 4. Ensure the pipeline is running (`/start` if stopped).
 
 Errors: `409` if the table can't be replicated (e.g. no primary key / replica identity), `402` if
@@ -126,7 +126,7 @@ Studio hook: `useWarehouseLinkTableMutation` (`link-table-mutation.ts`).
 
 Response `204`.
 
-Server behavior: remove `{schema, name}` from `supabase_warehouse_publication` (update publication)
+Server behavior: remove `{schema, name}` from `_supabase_warehouse_pub` (update publication)
 so the table stops syncing. **For now the existing DuckLake data is left in place** — detach only
 removes the table from the catalog/publication; it does **not** delete the columnar copy (data
 cleanup is deferred). Leave the pipeline running for the remaining tables; if it was the last table,

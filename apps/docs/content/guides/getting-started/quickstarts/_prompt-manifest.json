@@ -121,10 +121,11 @@
       "steps_count": 4,
       "generated_at": "2026-07-02T17:51:00.000Z",
       "last_test": {
-        "ran_at": "2026-07-02T17:55:00.000Z",
+        "ran_at": "2026-07-02T18:15:00.000Z",
         "structural_valid": true,
-        "sandbox_status": "skipped",
-        "run_id": "27d59387-0c3a-45ea-a953-4e4b59a56c48"
+        "sandbox_status": "error",
+        "run_id": "86c6ccc2-4eb7-43f5-babc-bcf9de9526e0",
+        "notes": "claude --print invoked MCP tools interactively; subprocess cannot approve — not a prompt quality issue"
       }
     },
     "nuxtjs": {

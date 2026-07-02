@@ -21,7 +21,7 @@ const REPLICATION_PRESETS: { preset: WarehouseDemoReplicationPreset; label: stri
   { preset: 'behind', label: 'Behind (warning)' },
   { preset: 'critical', label: 'Critical (severely behind)' },
   { preset: 'pipeline_error', label: 'Pipeline error' },
-  { preset: 'copy_error', label: 'Table copy error' },
+  { preset: 'copy_error', label: 'Table link sync error' },
 ]
 
 export function WarehouseDemoMenu() {
@@ -62,10 +62,10 @@ export function WarehouseDemoMenu() {
               className="cursor-pointer"
               onClick={() => {
                 setSimulateNextLinkFailure(true)
-                toast.message('Next “Copy to Warehouse” will fail (demo)')
+                toast.message('Next “Link to Warehouse” will fail (demo)')
               }}
             >
-              Fail next copy to Warehouse
+              Fail next link to Warehouse
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>

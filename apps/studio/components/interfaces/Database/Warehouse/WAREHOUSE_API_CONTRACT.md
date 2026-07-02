@@ -82,9 +82,9 @@ After API lands, `view=warehouse` becomes optional when the requested table OID 
 1. **Before Move**: `storage_mode = postgres_with_warehouse_copy`, postgres OID is primary, warehouse detail is a read-only lens.
 2. **After Move**: `storage_mode = warehouse_only`, postgres table removed, warehouse OID is primary. Postgres detail URL should 404 or redirect to warehouse detail.
 
-Detach (copy removed, postgres remains): `storage_mode` returns to `postgres`; warehouse schema row disappears from list.
+Detach (link removed, postgres remains): `storage_mode` returns to `postgres`; warehouse schema row disappears from list.
 
-## Copy enable flow (Studio UX)
+## Link enable flow (Studio UX)
 
 Linking a table and backfilling it are **two phases**:
 
@@ -99,10 +99,10 @@ Optional future fields for richer progress (not required for MVP): `warehouse_ba
 
 ### Session notifications (MVP)
 
-| Event                                      | Toast                                                                                | Suppressed when                                                                                |
-| ------------------------------------------ | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| Link accepted (copy started)               | `"Warehouse copy started"`                                                           | —                                                                                              |
-| Backfill complete (`backfilling` → `live`) | `"Warehouse copy is live"` + qualified name; action **View copy** → warehouse detail | User is on that table's **Settings** tab or **warehouse detail** view (status already visible) |
+| Event                                      | Toast                                                      | Suppressed when                                                                                |
+| ------------------------------------------ | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Link accepted                              | `"Warehouse link started"`                                 | -                                                                                              |
+| Backfill complete (`backfilling` → `live`) | `"Warehouse link is live"` + qualified name in description | User is on that table's **Settings** tab or **warehouse detail** view (status already visible) |
 
 Long-running work does not use a notifications inbox in MVP; in-session sonner toasts cover start and completion when the user is elsewhere in Studio.
 

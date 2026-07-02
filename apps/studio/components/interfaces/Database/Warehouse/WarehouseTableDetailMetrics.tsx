@@ -113,7 +113,7 @@ export function WarehouseTableDetailMetrics({ table }: WarehouseTableDetailMetri
           <MetricTile
             label="Warehouse size"
             value={sizeLabel}
-            tooltip="On-disk size of the Warehouse copy"
+            tooltip="On-disk size of the linked Warehouse table"
             data={chartData}
             dataKey="table_size_bytes"
             config={TABLE_SIZE_CHART_CONFIG}
@@ -122,7 +122,7 @@ export function WarehouseTableDetailMetrics({ table }: WarehouseTableDetailMetri
           <MetricTile
             label="Columns"
             value={columnCount.toLocaleString()}
-            tooltip="Number of columns on this Warehouse copy"
+            tooltip="Number of columns on this linked Warehouse table"
             data={chartData}
             dataKey="column_count"
             config={TABLE_COLUMN_COUNT_CHART_CONFIG}

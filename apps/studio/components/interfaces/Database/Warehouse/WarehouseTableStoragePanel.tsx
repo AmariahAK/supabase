@@ -9,7 +9,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
   Tooltip,
   TooltipContent,
@@ -27,6 +26,7 @@ import {
 } from './warehouseDemoStore'
 import { WarehouseDetachModal } from './WarehouseDetachModal'
 import { WarehouseEnablementModal } from './WarehouseEnablementModal'
+import { WarehouseLinkedTableStatus } from './WarehouseLinkedTableStatus'
 import {
   buildSqlEditorWarehouseUrl,
   getSourceTableKey,
@@ -37,10 +37,13 @@ import {
   buildReplicationLogsUrl,
   buildWarehouseObservabilityUrl,
 } from './warehouseObservability.utils'
-import { getReplicationLagDisplay } from './warehouseReplication.utils'
-import { getCopyStatusTooltip, WarehouseSyncChip } from './WarehouseSyncChip'
 import { buildTableDetailUrl, WAREHOUSE_TABLE_DETAIL_VIEW } from './warehouseTableEditor.utils'
 import { DiscardChangesConfirmationDialog } from '@/components/ui-patterns/Dialogs/DiscardChangesConfirmationDialog'
+
+function SizeValue({ size }: { size?: string }) {
+  if (size) return <>{size}</>
+  return <span className="text-foreground-muted">—</span>
+}
 
 const TYPE_LABELS: Record<WarehouseMode, string> = {
   postgres: 'Postgres',
@@ -117,14 +120,12 @@ function TableCopyRow({
     <MetaRow
       label={
         <MetaRowLabel tooltip={tooltip}>
-          <span className="inline-flex items-center gap-2">
-            {label}
-            {isCurrent && <Badge variant="default">Current</Badge>}
-          </span>
+          <span>{label}</span>
         </MetaRowLabel>
       }
     >
       <div className="flex items-center justify-end gap-1.5">
+        {isCurrent && <Badge variant="default">This</Badge>}
         <code className="text-code-inline break-all">{name}</code>
         {detailUrl !== undefined && (
           <RowIconLink
@@ -164,7 +165,11 @@ export function WarehouseTableStoragePanel({
     isWarehouseView: viewContext === 'warehouse',
   })
   const { mode } = state
-  const warehouseSizeLabel = warehouseSize ?? formatWarehouseSize(state.warehouseSizeBytes)
+  const warehouseSizeLabel =
+    warehouseSize ??
+    (state.warehouseSizeBytes !== undefined
+      ? formatWarehouseSize(state.warehouseSizeBytes)
+      : undefined)
   const warehouseQualifiedName = state.copyName ?? getWarehouseQualifiedTableName(sourceTableKey)
 
   const [enablementModalOpen, setEnablementModalOpen] = useState(false)
@@ -193,16 +198,6 @@ export function WarehouseTableStoragePanel({
     projectRef !== undefined ? buildWarehouseObservabilityUrl(projectRef) : undefined
   const replicationLogsUrl =
     projectRef !== undefined ? buildReplicationLogsUrl(projectRef) : undefined
-  const lagDisplay =
-    projectReplication !== null
-      ? getReplicationLagDisplay(projectReplication, state.copyStatus)
-      : null
-  const lagValueClassName =
-    lagDisplay?.tone === 'destructive'
-      ? 'text-destructive'
-      : lagDisplay?.tone === 'warning'
-        ? 'text-warning'
-        : 'text-foreground-light'
 
   return (
     <>
@@ -210,32 +205,43 @@ export function WarehouseTableStoragePanel({
         <div className="divide-y rounded-md border bg-surface-75 text-sm">
           <MetaRow label="Type">{TYPE_LABELS[mode]}</MetaRow>
 
-          {mode === 'postgres' && <MetaRow label="Size">{postgresSize ?? '—'}</MetaRow>}
+          {mode === 'postgres' && (
+            <MetaRow label="Size">
+              <SizeValue size={postgresSize} />
+            </MetaRow>
+          )}
 
           {mode === 'has_warehouse_copy' && (
             <>
               {state.copyStatus && (
-                <MetaRow
-                  label={
-                    <MetaRowLabel tooltip={getCopyStatusTooltip(state.copyStatus)}>
-                      Sync status
-                    </MetaRowLabel>
-                  }
-                >
-                  <WarehouseSyncChip copyStatus={state.copyStatus} />
+                <MetaRow label="Status">
+                  <div className="inline-flex flex-wrap items-center justify-end gap-2">
+                    <WarehouseLinkedTableStatus
+                      tableKey={sourceTableKey}
+                      isWarehouseView={viewContext === 'warehouse'}
+                    />
+                    {projectReplication && observabilityUrl && (
+                      <RowIconLink
+                        href={observabilityUrl}
+                        icon={ExternalLink}
+                        tooltip="View in Observability"
+                        ariaLabel="View in Observability"
+                      />
+                    )}
+                  </div>
                 </MetaRow>
               )}
               {state.copyStatus === 'error' && (
                 <Admonition
                   type="destructive"
                   layout="responsive"
-                  title="Warehouse copy sync failed"
-                  description="This table’s Warehouse copy could not stay in sync with Postgres. Your Postgres table is unaffected."
+                  title="Warehouse link sync failed"
+                  description="This linked Warehouse table could not stay in sync with Postgres. Your Postgres table is unaffected."
                   className="mb-0 rounded-none border-x-0 border-t-0 border-b-1 border-border"
                   actions={
                     replicationLogsUrl ? (
                       <Button variant="default" asChild>
-                        <Link href={replicationLogsUrl}>View replication logs</Link>
+                        <Link href={replicationLogsUrl}>View logs</Link>
                       </Button>
                     ) : undefined
                   }
@@ -246,37 +252,16 @@ export function WarehouseTableStoragePanel({
                   type="destructive"
                   layout="responsive"
                   title="Warehouse replication failed"
-                  description="The project Warehouse pipeline encountered an error. Query results from Warehouse copies may be stale."
+                  description="The project Warehouse pipeline encountered an error. Linked Warehouse tables may be stale."
                   className="mb-0 rounded-none border-x-0 border-t-0 border-b-1 border-border"
                   actions={
                     replicationLogsUrl ? (
                       <Button variant="default" asChild>
-                        <Link href={replicationLogsUrl}>View replication logs</Link>
+                        <Link href={replicationLogsUrl}>View logs</Link>
                       </Button>
                     ) : undefined
                   }
                 />
-              )}
-              {projectReplication && lagDisplay && (
-                <MetaRow
-                  label={<MetaRowLabel tooltip={lagDisplay.tooltip}>Replication</MetaRowLabel>}
-                >
-                  <div className="inline-flex items-center justify-end gap-1.5">
-                    <span className={lagValueClassName}>
-                      {lagDisplay.lagAmount !== undefined
-                        ? `${lagDisplay.headline} · ${lagDisplay.lagAmount}`
-                        : lagDisplay.headline}
-                    </span>
-                    {observabilityUrl && (
-                      <RowIconLink
-                        href={observabilityUrl}
-                        icon={ExternalLink}
-                        tooltip="View in Observability"
-                        ariaLabel="View in Observability"
-                      />
-                    )}
-                  </div>
-                </MetaRow>
               )}
               <TableCopyRow
                 label="Postgres table"
@@ -288,12 +273,16 @@ export function WarehouseTableStoragePanel({
               <TableCopyRow
                 label="Warehouse table"
                 name={warehouseQualifiedName}
-                tooltip="Read-only Warehouse copy. Query this explicitly for Warehouse-stored data."
+                tooltip="Read-only linked Warehouse table. Query this explicitly for Warehouse-stored data."
                 detailUrl={warehouseDetailUrl}
                 isCurrent={viewContext === 'warehouse'}
               />
-              <MetaRow label="Postgres size">{postgresSize ?? '—'}</MetaRow>
-              <MetaRow label="Warehouse size">{warehouseSizeLabel}</MetaRow>
+              {postgresSize !== undefined && (
+                <MetaRow label="Postgres size">{postgresSize}</MetaRow>
+              )}
+              {warehouseSizeLabel !== undefined && (
+                <MetaRow label="Warehouse size">{warehouseSizeLabel}</MetaRow>
+              )}
             </>
           )}
         </div>
@@ -305,7 +294,7 @@ export function WarehouseTableStoragePanel({
             className="w-fit"
             onClick={() => setEnablementModalOpen(true)}
           >
-            Copy to Warehouse
+            Link to Warehouse
           </Button>
         )}
 
@@ -336,17 +325,18 @@ export function WarehouseTableStoragePanel({
                 />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={openCatalogConnect}>Connect externally</DropdownMenuItem>
+                {viewContext === 'warehouse' && (
+                  <DropdownMenuItem onClick={openCatalogConnect}>
+                    Connect Warehouse externally
+                  </DropdownMenuItem>
+                )}
                 {viewContext === 'source' && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onClick={() => setDetachConfirm(true)}
-                    >
-                      Detach Warehouse copy
-                    </DropdownMenuItem>
-                  </>
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setDetachConfirm(true)}
+                  >
+                    Unlink from Warehouse
+                  </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -372,15 +362,15 @@ export function WarehouseTableStoragePanel({
           setDetachProgress(true)
           setDetachConfirm(false)
         }}
-        title="Detach Warehouse copy"
+        title="Unlink from Warehouse"
         description={
           <>
-            Detaching deletes the Warehouse copy{' '}
+            Unlinking removes the linked Warehouse table{' '}
             <code className="text-code-inline break-keep">{warehouseQualifiedName}</code>. Your
             Postgres table and its data are unaffected.
           </>
         }
-        confirmLabel="Detach"
+        confirmLabel="Unlink"
         cancelLabel="Cancel"
       />
 

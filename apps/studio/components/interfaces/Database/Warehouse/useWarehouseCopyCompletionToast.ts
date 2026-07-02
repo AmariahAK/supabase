@@ -7,7 +7,7 @@ import { useSnapshot } from 'valtio'
 import type { CopyStatus } from './warehouseDemoStore'
 import { warehouseDemoStore } from './warehouseDemoStore'
 import { getWarehouseQualifiedTableName } from './warehouseNaming.utils'
-import { buildTableDetailUrl, WAREHOUSE_TABLE_DETAIL_VIEW } from './warehouseTableEditor.utils'
+import { WAREHOUSE_TABLE_DETAIL_VIEW } from './warehouseTableEditor.utils'
 
 function getTableIdFromPath(path: string): number | undefined {
   const match = path.match(/\/database\/tables\/(\d+)/)
@@ -37,9 +37,8 @@ export function shouldSuppressWarehouseCopyCompletionToast({
 }
 
 /**
- * When a table's Warehouse copy finishes backfilling, toast with a View copy CTA
- * unless the user is already on a surface that shows completion (Settings or
- * warehouse detail).
+ * When a table's Warehouse link finishes backfilling, toast unless the user is already on a
+ * surface that shows completion (Settings or warehouse detail).
  */
 export function useWarehouseCopyCompletionToast() {
   const router = useRouter()
@@ -71,22 +70,8 @@ export function useWarehouseCopyCompletionToast() {
         ) {
           const qualifiedName = getWarehouseQualifiedTableName(tableKey)
 
-          toast.success('Warehouse copy is live', {
+          toast.success('Warehouse link is live', {
             description: qualifiedName,
-            ...(sourceTableId !== undefined
-              ? {
-                  action: {
-                    label: 'View copy',
-                    onClick: () => {
-                      void router.push(
-                        buildTableDetailUrl(projectRef, sourceTableId, {
-                          view: WAREHOUSE_TABLE_DETAIL_VIEW,
-                        })
-                      )
-                    },
-                  },
-                }
-              : undefined),
           })
         }
       }

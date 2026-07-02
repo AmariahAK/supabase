@@ -45,7 +45,7 @@ export function getReplicationLagDisplay(
       health: 'error',
       headline: 'Sync error',
       compactSuffix: 'Sync error',
-      tooltip: 'This table’s Warehouse copy could not stay in sync with Postgres.',
+      tooltip: 'This linked Warehouse table could not stay in sync with Postgres.',
       tone: 'destructive',
     }
   }
@@ -79,7 +79,7 @@ export function getReplicationLagDisplay(
     return {
       health: 'healthy',
       headline: 'Backfilling',
-      tooltip: 'This table’s Warehouse copy is still catching up.',
+      tooltip: 'This linked Warehouse table is still catching up.',
       tone: 'default',
     }
   }
@@ -87,7 +87,7 @@ export function getReplicationLagDisplay(
   if (health === 'healthy') {
     return {
       health,
-      headline: 'In sync',
+      headline: 'Caught up',
       tooltip: 'Warehouse replication is caught up with Postgres.',
       tone: 'default',
     }
@@ -111,5 +111,37 @@ export function getReplicationLagDisplay(
     compactSuffix: `${lagFormatted} behind`,
     tooltip: `Warehouse replication is severely behind (${lagFormatted}). Query results may be stale.`,
     tone: 'destructive',
+  }
+}
+
+/** Unified table status for Settings — project lag supersedes a calm "Live" when reads may be stale. */
+export type WarehouseLinkedTableStatus =
+  | { type: 'copy'; copyStatus: CopyStatus }
+  | {
+      type: 'project'
+      text: string
+      tooltip: string
+      tone: ReplicationLagDisplay['tone']
+    }
+
+export function getWarehouseLinkedTableStatus(
+  lagDisplay: ReplicationLagDisplay | null,
+  copyStatus: CopyStatus | undefined
+): WarehouseLinkedTableStatus | null {
+  if (!copyStatus) return null
+
+  if (copyStatus === 'backfilling' || copyStatus === 'error') {
+    return { type: 'copy', copyStatus }
+  }
+
+  if (!lagDisplay || (lagDisplay.health === 'healthy' && lagDisplay.headline === 'Caught up')) {
+    return { type: 'copy', copyStatus: 'live' }
+  }
+
+  return {
+    type: 'project',
+    text: lagDisplay.compactSuffix ?? lagDisplay.headline,
+    tooltip: lagDisplay.tooltip,
+    tone: lagDisplay.tone,
   }
 }

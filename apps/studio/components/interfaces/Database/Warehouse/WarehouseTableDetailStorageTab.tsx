@@ -29,18 +29,6 @@ export function WarehouseTableDetailStorageTab({ table }: WarehouseTableDetailSt
 
   return (
     <>
-      <Admonition
-        type="default"
-        layout="responsive"
-        title="Manage settings from the main table"
-        description="This table is a Warehouse copy of a Postgres table. Manage settings for both from the main table’s Settings page."
-        actions={
-          <Button variant="default" asChild>
-            <Link href={postgresSettingsUrl}>Table settings</Link>
-          </Button>
-        }
-      />
-
       <PageSection>
         <PageSectionMeta>
           <PageSectionSummary>
@@ -55,6 +43,19 @@ export function WarehouseTableDetailStorageTab({ table }: WarehouseTableDetailSt
             viewContext="warehouse"
           />
         </PageSectionContent>
+      </PageSection>
+      <PageSection>
+        <Admonition
+          type="default"
+          layout="responsive"
+          title="Manage settings from the main table"
+          description="This is a linked Warehouse table for a Postgres table. Manage general settings from that table’s Settings page."
+          actions={
+            <Button variant="default" asChild>
+              <Link href={postgresSettingsUrl}>Table settings</Link>
+            </Button>
+          }
+        />
       </PageSection>
     </>
   )

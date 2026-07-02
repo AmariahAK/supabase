@@ -1,7 +1,6 @@
 import { PermissionAction } from '@supabase/shared-types/out/constants'
 import { useParams } from 'common'
-import { TableEditor } from 'icons'
-import { Check, Edit, X } from 'lucide-react'
+import { Edit } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import React, { type PropsWithChildren } from 'react'
@@ -33,19 +32,24 @@ import { useSnapshot } from 'valtio'
 
 import DatabaseLayout from './DatabaseLayout'
 import { buildTableEditorUrl } from '@/components/grid/SupabaseGrid.utils'
+import { buildTableDetailSqlEditorUrl } from '@/components/interfaces/Database/Tables/tableDetailActions.utils'
+import { TableDetailSplitLinkButton } from '@/components/interfaces/Database/Tables/TableDetailSplitLinkButton'
 import {
   formatWarehouseSize,
-  getWarehouseStorageSummaryLabel,
+  getWarehouseLensSizeTooltip,
+  getWarehouseStorageDisplay,
+  getWarehouseStorageTooltip,
   resolveWarehouseTableState,
   warehouseDemoStore,
 } from '@/components/interfaces/Database/Warehouse/warehouseDemoStore'
+import { WarehouseLinkedTableStatus } from '@/components/interfaces/Database/Warehouse/WarehouseLinkedTableStatus'
 import {
   getSourceSchemaName,
   getSourceTableKey,
   getWarehouseCopyTooltip,
   getWarehouseSchemaName,
 } from '@/components/interfaces/Database/Warehouse/warehouseNaming.utils'
-import { WarehouseSyncChip } from '@/components/interfaces/Database/Warehouse/WarehouseSyncChip'
+import { WarehouseStatusText } from '@/components/interfaces/Database/Warehouse/WarehouseSyncChip'
 import {
   buildTableDetailUrl,
   WAREHOUSE_TABLE_DETAIL_VIEW,
@@ -65,6 +69,30 @@ import { useTableEditorStateSnapshot } from '@/state/table-editor'
 import { TableEditorTableStateContextProvider } from '@/state/table-editor-table'
 
 export type { TableDetailSection } from '@/components/interfaces/Database/Warehouse/warehouseTableEditor.utils'
+
+function TableHeaderFeatureStatus({
+  label,
+  enabled,
+  tooltip,
+}: {
+  label: string
+  enabled: boolean
+  tooltip: string
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-sm text-foreground-light">
+      <span
+        aria-hidden
+        className={
+          enabled
+            ? 'size-1.5 shrink-0 rounded-full bg-brand'
+            : 'size-1.5 shrink-0 rounded-full bg-foreground-muted'
+        }
+      />
+      <WarehouseStatusText text={label} tooltip={tooltip} />
+    </span>
+  )
+}
 
 interface TableDetailLayoutProps {
   section: TableDetailSection
@@ -125,17 +153,11 @@ export function TableDetailLayout({
       : selectedTable?.schema
   const showPoliciesTab = isTable && !isWarehouseDetailView
   const showSettingsTab = isTable && !isWarehouseDetailView
-  const storageSyncError = warehouseState?.copyStatus === 'error'
   const hasWarehouseStorage = warehouseState?.mode === 'has_warehouse_copy'
-  const tableSizeLabel =
-    isWarehouseDetailView && isTable
-      ? (selectedTable.size ?? formatWarehouseSize(warehouseState?.warehouseSizeBytes))
-      : isTable && selectedTable.size !== undefined
-        ? (getWarehouseStorageSummaryLabel(warehouseState, selectedTable.size) ??
-          selectedTable.size)
-        : isTable
-          ? getWarehouseStorageSummaryLabel(warehouseState, selectedTable.size)
-          : null
+  const warehouseStorageDisplay =
+    isTable && hasWarehouseStorage && !isWarehouseDetailView
+      ? getWarehouseStorageDisplay(warehouseState, selectedTable.size)
+      : null
 
   const warehouseEditorSchema =
     selectedTable !== undefined && isWarehouseDetailView
@@ -149,6 +171,25 @@ export function TableDetailLayout({
           tableId: selectedTable.id,
           schema: warehouseEditorSchema ?? selectedTable.schema,
         })
+      : undefined
+
+  const sqlEditorUrl =
+    selectedTable !== undefined && ref !== undefined
+      ? buildTableDetailSqlEditorUrl(ref, selectedTable.schema, selectedTable.name, {
+          isWarehouseView: isWarehouseDetailView,
+        })
+      : undefined
+
+  const qualifiedTableName =
+    selectedTable !== undefined ? `${selectedTable.schema}.${selectedTable.name}` : undefined
+  const schemaTooltip = qualifiedTableName
+  const warehouseSizeLabel =
+    isTable && isWarehouseDetailView
+      ? (selectedTable.size ?? formatWarehouseSize(warehouseState?.warehouseSizeBytes))
+      : undefined
+  const warehouseSizeTooltip =
+    warehouseSizeLabel && tableKey
+      ? getWarehouseLensSizeTooltip(warehouseSizeLabel, tableKey)
       : undefined
 
   const navigationItems =
@@ -242,71 +283,75 @@ export function TableDetailLayout({
                 <PageHeaderTitle>
                   {isLoading ? <ShimmeringLoader className="w-40" /> : (selectedTable?.name ?? '')}
                 </PageHeaderTitle>
-                {storageSyncError && <WarehouseSyncChip copyStatus="error" />}
-                {hasWarehouseStorage && warehouseState?.copyStatus === 'backfilling' && (
-                  <WarehouseSyncChip copyStatus="backfilling" />
-                )}
-                {isWarehouseDetailView && warehouseState?.copyStatus === 'live' && (
-                  <WarehouseSyncChip copyStatus="live" />
-                )}
               </div>
 
               {selectedTable && !isLoading && (
                 <PageHeaderDescription className="flex flex-col gap-1 text-sm!">
                   <div className="flex flex-row flex-wrap items-center gap-x-4 gap-y-1 text-foreground-light">
-                    <code className="text-code-inline">{displaySchema}</code>
+                    {displaySchema !== undefined && schemaTooltip !== undefined && (
+                      <WarehouseStatusText text={displaySchema} tooltip={schemaTooltip} />
+                    )}
                     {isTable && selectedTable.live_rows_estimate !== undefined && (
                       <span>{selectedTable.live_rows_estimate.toLocaleString()} rows</span>
                     )}
-                    {tableSizeLabel && <span>{tableSizeLabel}</span>}
+                    {isTable &&
+                      (isWarehouseDetailView && warehouseSizeLabel && warehouseSizeTooltip ? (
+                        <WarehouseStatusText
+                          text={warehouseSizeLabel}
+                          tooltip={warehouseSizeTooltip}
+                        />
+                      ) : warehouseStorageDisplay?.postgresSize ? (
+                        <WarehouseStatusText
+                          text={warehouseStorageDisplay.postgresSize}
+                          tooltip={getWarehouseStorageTooltip(warehouseStorageDisplay)}
+                        />
+                      ) : (
+                        selectedTable.size
+                      ))}
                     {isTable && !isWarehouseDetailView && (
-                      <span className="inline-flex items-center gap-1">
-                        RLS
-                        {selectedTable.rls_enabled ? (
-                          <Check size={14} className="text-brand-link" />
-                        ) : (
-                          <X size={14} className="text-foreground-muted" />
-                        )}
-                      </span>
+                      <TableHeaderFeatureStatus
+                        label="RLS"
+                        enabled={selectedTable.rls_enabled}
+                        tooltip={
+                          selectedTable.rls_enabled
+                            ? 'Row Level Security is enabled. Row access is controlled by policies.'
+                            : 'Row Level Security is disabled.'
+                        }
+                      />
                     )}
-                    {isTable && !isWarehouseDetailView && (
-                      <span className="inline-flex items-center gap-1">
-                        Realtime
-                        {realtimeEnabled ? (
-                          <Check size={14} className="text-brand-link" />
-                        ) : (
-                          <X size={14} className="text-foreground-muted" />
-                        )}
-                      </span>
+                    {isTable && !isWarehouseDetailView && realtimeEnabled && (
+                      <TableHeaderFeatureStatus
+                        label="Realtime"
+                        enabled
+                        tooltip="Published to supabase_realtime. Clients can subscribe to row changes."
+                      />
                     )}
-                    {isTable && !isWarehouseDetailView && hasWarehouseStorage && (
-                      <span className="inline-flex items-center gap-1">
-                        Warehouse
-                        <Check size={14} className="text-brand-link" />
-                      </span>
+                    {tableKey && hasWarehouseStorage && (
+                      <WarehouseLinkedTableStatus
+                        tableKey={tableKey}
+                        isWarehouseView={isWarehouseDetailView}
+                      />
                     )}
                   </div>
                 </PageHeaderDescription>
               )}
             </PageHeaderSummary>
 
-            {isTable && tableEditorUrl && (
+            {isTable && tableEditorUrl && sqlEditorUrl && (
               <PageHeaderAside>
                 <div className="flex items-center gap-2">
                   {!isWarehouseDetailView && canUpdateTables && (
                     <Button variant="default" icon={<Edit />} onClick={() => snap.onEditTable()}>
-                      Edit
+                      Edit definitions
                     </Button>
                   )}
-                  <Button
-                    variant="default"
-                    icon={<TableEditor size={16} strokeWidth={1.5} />}
-                    asChild
-                  >
-                    <Link href={tableEditorUrl}>
-                      {isWarehouseDetailView ? 'View in Table Editor' : 'View'}
-                    </Link>
-                  </Button>
+                  <TableDetailSplitLinkButton
+                    primaryHref={tableEditorUrl}
+                    primaryLabel="View in Table Editor"
+                    menuItemHref={sqlEditorUrl}
+                    menuItemLabel="Query in SQL Editor"
+                    menuAriaLabel="More table actions"
+                  />
                 </div>
               </PageHeaderAside>
             )}

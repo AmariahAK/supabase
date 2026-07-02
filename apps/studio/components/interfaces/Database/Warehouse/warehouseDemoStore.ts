@@ -38,7 +38,7 @@ export const warehouseDemoStore = proxy<{
   tables: Record<string, WarehouseTableState>
   catalogEnabled: boolean
   projectReplication: WarehouseProjectReplicationStatus | null
-  /** Demo: next Copy to Warehouse fails instead of linking the table. */
+  /** Demo: next Link to Warehouse fails instead of linking the table. */
   simulateNextLinkFailure: boolean
 }>({
   tables: {},
@@ -290,24 +290,41 @@ export function getWarehouseStorageDisplay(
   const mode = state?.mode ?? 'postgres'
   if (mode === 'postgres') return null
 
+  const warehouseCopySize = postgresSize ?? formatWarehouseSize(state?.warehouseSizeBytes)
+
   return {
     postgresSize: postgresSize ?? null,
-    warehouseCopySize: formatWarehouseSize(state?.warehouseSizeBytes),
+    warehouseCopySize,
   }
 }
 
-export function formatWarehouseStorageSummaryLabel(display: WarehouseStorageDisplay): string {
-  const copyLabel = `Copy: ${display.warehouseCopySize}`
-
+export function getWarehouseStorageTooltip(display: WarehouseStorageDisplay): string {
   if (display.postgresSize) {
-    return `${display.postgresSize} (${copyLabel})`
+    return `Postgres: ${display.postgresSize} · Warehouse: ${display.warehouseCopySize}`
   }
 
-  return `(${copyLabel})`
+  return `Warehouse: ${display.warehouseCopySize}`
+}
+
+export function getWarehouseLensSizeTooltip(
+  warehouseSize: string,
+  sourceTableKey: string,
+  postgresSize?: string | null
+): string {
+  if (postgresSize) {
+    return `Postgres: ${postgresSize} · Warehouse: ${warehouseSize}`
+  }
+
+  return `Warehouse: ${warehouseSize}. Postgres source: ${sourceTableKey}`
+}
+
+/** @deprecated Prefer postgres size in UI with getWarehouseStorageTooltip on a Linked hint. */
+export function formatWarehouseStorageSummaryLabel(display: WarehouseStorageDisplay): string {
+  return display.postgresSize ?? display.warehouseCopySize
 }
 
 export const WAREHOUSE_STORAGE_CELL_TOOLTIP =
-  'This table has a Postgres heap for writes and a separate Warehouse copy for analytics.'
+  'This table has a Postgres heap for writes and a linked Warehouse table for analytics.'
 
 export function getWarehouseStorageSummaryLabel(
   state: Pick<WarehouseTableState, 'mode' | 'warehouseSizeBytes'> | undefined,

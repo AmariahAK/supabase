@@ -58,7 +58,7 @@ function LinkedTablesMetric({ count }: { count: number }) {
       <ChartMetric
         label="Linked tables"
         value={count.toLocaleString()}
-        tooltip="Postgres tables with an active Warehouse copy in this project."
+        tooltip="Postgres tables linked to Warehouse in this project."
         className="[&_span]:text-sm"
       />
     </div>
@@ -158,10 +158,10 @@ export function WarehouseObservabilityPanel() {
     return (
       <div className="flex flex-col items-start gap-4 rounded-md border bg-surface-75 px-6 py-8">
         <div className="flex flex-col gap-1">
-          <h3 className="text-sm font-medium">No Warehouse copies yet</h3>
+          <h3 className="text-sm font-medium">No linked Warehouse tables yet</h3>
           <p className="max-w-md text-sm text-foreground-light">
-            Copy a table to Warehouse to see project-wide replication metrics here. Lag and pipeline
-            phase are shared across all Warehouse tables.
+            Link a table to Warehouse to see project-wide replication metrics here. Lag and pipeline
+            phase are shared across all linked Warehouse tables.
           </p>
         </div>
         {tablesUrl && (

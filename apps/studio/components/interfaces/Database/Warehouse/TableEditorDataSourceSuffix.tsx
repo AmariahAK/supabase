@@ -33,7 +33,7 @@ function getTableEditorDataSourceSuffix(
 
     if (!projectReplication) {
       return {
-        label: 'Warehouse copy',
+        label: 'Linked Warehouse table',
         labelTooltip,
       }
     }
@@ -41,7 +41,7 @@ function getTableEditorDataSourceSuffix(
     const lagDisplay = getReplicationLagDisplay(projectReplication, tableState?.copyStatus)
 
     return {
-      label: 'Warehouse copy',
+      label: 'Linked Warehouse table',
       labelTooltip,
       lagSuffix: lagDisplay.compactSuffix,
       lagTooltip: lagDisplay.compactSuffix !== undefined ? lagDisplay.tooltip : undefined,

@@ -3,12 +3,7 @@ import { useRouter } from 'next/router'
 import { useEffect } from 'react'
 import { ShimmeringLoader } from 'ui-patterns/ShimmeringLoader'
 
-import { buildTableEditorUrl } from '@/components/grid/SupabaseGrid.utils'
 import { TableDetailOverviewTab } from '@/components/interfaces/Database/Tables/TableDetailOverviewTab'
-import {
-  getSourceSchemaName,
-  getWarehouseSchemaName,
-} from '@/components/interfaces/Database/Warehouse/warehouseNaming.utils'
 import { WarehouseTableDetailPage } from '@/components/interfaces/Database/Warehouse/WarehouseTableDetailPage'
 import { TableDetailLayout } from '@/components/layouts/DatabaseLayout/TableDetailLayout'
 import { DefaultLayout } from '@/components/layouts/DefaultLayout'
@@ -47,19 +42,11 @@ const TableDetailOverviewPage: NextPageWithLayout = () => {
     return <ShimmeringLoader />
   }
 
-  const warehouseEditorSchema = getWarehouseSchemaName(getSourceSchemaName(selectedTable.schema))
-
-  const tableEditorUrl = buildTableEditorUrl({
-    projectRef: ref,
-    tableId: selectedTable.id,
-    schema: isWarehouseDetailView ? warehouseEditorSchema : selectedTable.schema,
-  })
-
   if (isWarehouseDetailView) {
-    return <WarehouseTableDetailPage table={selectedTable} tableEditorUrl={tableEditorUrl} />
+    return <WarehouseTableDetailPage table={selectedTable} />
   }
 
-  return <TableDetailOverviewTab table={selectedTable} tableEditorUrl={tableEditorUrl} />
+  return <TableDetailOverviewTab table={selectedTable} />
 }
 
 TableDetailOverviewPage.getLayout = (page) => (

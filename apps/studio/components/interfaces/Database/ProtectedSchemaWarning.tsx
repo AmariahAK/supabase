@@ -76,7 +76,7 @@ export const ProtectedSchemaWarning = ({
       <Admonition
         showIcon={false}
         type="note"
-        title="Viewing Warehouse copy"
+        title="Viewing linked Warehouse table"
         description={
           <p>
             The <code className="text-code-inline">{schema}</code> schema contains read-only copies

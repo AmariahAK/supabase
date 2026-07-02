@@ -52,7 +52,7 @@ export function WarehouseEnablementModal({
     }
   }, [open])
 
-  const startCopy = async () => {
+  const startLink = async () => {
     setIsSubmitting(true)
     setSubmitError(null)
 
@@ -69,11 +69,11 @@ export function WarehouseEnablementModal({
       })
 
       setTableMode(tableKey, 'has_warehouse_copy', { sourceTableId })
-      toast.success('Warehouse copy started')
+      toast.success('Warehouse link started')
       onOpenChange(false)
     } catch {
       setSubmitError(SETUP_ERROR_MESSAGE)
-      toast.error('Failed to start Warehouse copy')
+      toast.error('Failed to link table to Warehouse')
     } finally {
       setIsSubmitting(false)
     }
@@ -88,14 +88,14 @@ export function WarehouseEnablementModal({
     >
       <DialogContent size="small">
         <DialogHeader>
-          <DialogTitle>Copy table to Warehouse</DialogTitle>
+          <DialogTitle>Link table to Warehouse</DialogTitle>
         </DialogHeader>
 
         <DialogSectionSeparator />
         <DialogSection className="flex flex-col gap-4">
           <p className="text-sm text-foreground-light">
-            The Postgres heap will remain the source of truth. A Warehouse copy will be created for
-            analytical queries.
+            The Postgres heap will remain the source of truth. A linked Warehouse table will be
+            created.
           </p>
 
           <div className="rounded-lg border bg-surface-75 text-sm">
@@ -104,7 +104,7 @@ export function WarehouseEnablementModal({
               <code className="text-code-inline">{tableKey}</code>
             </div>
             <div className="flex items-center justify-between gap-4 border-t px-4 py-2.5">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <span className="text-foreground-lighter">Warehouse</span>
                 <Badge variant="success">New</Badge>
               </div>
@@ -115,20 +115,18 @@ export function WarehouseEnablementModal({
           {submitError && <p className="text-sm text-destructive">{submitError}</p>}
         </DialogSection>
 
-        <DialogFooter className="gap-2 sm:justify-between">
+        <DialogFooter>
           {submitError && replicationLogsUrl && (
             <Button variant="default" asChild className="mr-auto">
               <Link href={replicationLogsUrl}>View logs</Link>
             </Button>
           )}
-          <div className="flex gap-2">
-            <Button variant="default" disabled={isSubmitting} onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" loading={isSubmitting} onClick={() => void startCopy()}>
-              Start copy
-            </Button>
-          </div>
+          <Button variant="default" disabled={isSubmitting} onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" loading={isSubmitting} onClick={() => void startLink()}>
+            Link to Warehouse
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

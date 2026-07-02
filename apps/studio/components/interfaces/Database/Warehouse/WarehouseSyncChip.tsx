@@ -1,8 +1,9 @@
 import { Check, Loader2, X } from 'lucide-react'
 import type { ComponentType } from 'react'
-import { cn } from 'ui'
+import { Badge, cn, Tooltip, TooltipContent, TooltipTrigger } from 'ui'
 
 import type { CopyStatus } from './warehouseDemoStore'
+import { DotPing } from '@/components/ui/DotPing'
 
 const COPY_STATUS_LABELS: Record<CopyStatus, string> = {
   backfilling: 'Backfilling',
@@ -12,67 +13,186 @@ const COPY_STATUS_LABELS: Record<CopyStatus, string> = {
 
 const COPY_STATUS_TOOLTIPS: Record<CopyStatus, string> = {
   backfilling:
-    'Initial Warehouse copy in progress. Postgres remains the source of truth for writes.',
-  live: 'Warehouse copy is caught up with the project replication stream.',
-  error: 'Warehouse copy failed to sync. Check replication logs for details.',
+    'Initial Warehouse link in progress. Postgres remains the source of truth for writes.',
+  live: 'Linked Warehouse table is caught up with the project replication stream.',
+  error: 'Warehouse link failed to sync. Check replication logs for details.',
 }
 
-type CopyStatusTone = 'positive' | 'destructive' | 'neutral'
+type CopyStatusBadgeVariant = 'success' | 'default' | 'destructive'
 
-const statusSegmentClassName =
-  'inline-flex items-center justify-center rounded-md text-center font-mono uppercase whitespace-nowrap font-medium tracking-[0.06em] text-[11px] leading-[1.1] px-[5.5px] py-[3px] transition-all border'
-
-const toneClassNames: Record<CopyStatusTone, string> = {
-  positive: 'bg-brand bg-opacity-10 text-brand-600 border-brand-500',
-  destructive: 'bg-destructive bg-opacity-10 text-destructive-600 border-destructive-500',
-  neutral: 'bg-surface-75 text-foreground-light border-strong',
+const COPY_STATUS_BADGE_VARIANT: Record<CopyStatus, CopyStatusBadgeVariant> = {
+  backfilling: 'default',
+  live: 'success',
+  error: 'destructive',
 }
 
-const COPY_STATUS_CONFIG: Record<
-  CopyStatus,
-  { tone: CopyStatusTone; icon: ComponentType<{ className?: string }> | 'spinner' }
+const COPY_STATUS_ICONS: Record<
+  Exclude<CopyStatus, 'backfilling'>,
+  ComponentType<{ className?: string }>
 > = {
-  backfilling: { tone: 'neutral', icon: 'spinner' },
-  live: { tone: 'positive', icon: Check },
-  error: { tone: 'destructive', icon: X },
+  live: Check,
+  error: X,
+}
+
+const badgeHoverClassNames: Record<CopyStatusBadgeVariant, string> = {
+  success: 'hover:bg-brand/15',
+  destructive: 'hover:bg-destructive/15',
+  default: 'hover:bg-surface-100',
 }
 
 export function getCopyStatusTooltip(copyStatus: CopyStatus): string {
   return COPY_STATUS_TOOLTIPS[copyStatus]
 }
 
+export type WarehouseCopyStatusAppearance = 'badge' | 'inline'
+
 interface WarehouseCopyStatusProps {
   copyStatus: CopyStatus
+  appearance?: WarehouseCopyStatusAppearance
   className?: string
+  dotSize?: 'default' | 'lg'
+  tooltip?: string
 }
 
-/**
- * Segmented copy-status indicator (icon + label). Matches StatusBadge from #44211;
- * uses a spinner while backfilling. Swap to StatusBadge when that PR merges.
- */
-export function WarehouseCopyStatus({ copyStatus, className }: WarehouseCopyStatusProps) {
-  const { tone, icon: IconOrSpinner } = COPY_STATUS_CONFIG[copyStatus]
-  const toneClassName = toneClassNames[tone]
-  const label = COPY_STATUS_LABELS[copyStatus]
+function CopyStatusLeadingIndicator({
+  copyStatus,
+  mode,
+  dotSize = 'default',
+}: {
+  copyStatus: CopyStatus
+  mode: WarehouseCopyStatusAppearance
+  dotSize?: 'default' | 'lg'
+}) {
+  if (copyStatus === 'backfilling') {
+    return (
+      <Loader2
+        className={cn(
+          'size-3 shrink-0 animate-spin',
+          mode === 'inline' ? 'text-foreground-muted' : undefined
+        )}
+      />
+    )
+  }
 
-  return (
-    <div
-      className={cn('inline-flex items-center whitespace-nowrap', className)}
-      data-copy-status={copyStatus}
-      aria-label={`Warehouse copy status: ${label}`}
-    >
+  if (mode === 'inline') {
+    if (copyStatus === 'live') {
+      return <DotPing animate variant="primary" size={dotSize} />
+    }
+
+    return (
       <span
         aria-hidden="true"
-        className={cn(statusSegmentClassName, toneClassName, 'rounded-r-none border-r-0')}
-      >
-        {IconOrSpinner === 'spinner' ? (
-          <Loader2 className="size-3 shrink-0 animate-spin" />
-        ) : (
-          <IconOrSpinner className="size-3 shrink-0" />
+        className={cn(
+          'shrink-0 rounded-full bg-destructive',
+          dotSize === 'lg' ? 'size-2.5' : 'size-1.5'
         )}
-      </span>
-      <span className={cn(statusSegmentClassName, toneClassName, 'rounded-l-none')}>{label}</span>
-    </div>
+      />
+    )
+  }
+
+  const Icon = COPY_STATUS_ICONS[copyStatus]
+  return <Icon className="size-3 shrink-0" aria-hidden="true" />
+}
+
+export function WarehouseCopyStatus({
+  copyStatus,
+  appearance = 'badge',
+  className,
+  dotSize = 'default',
+  tooltip,
+}: WarehouseCopyStatusProps) {
+  const label = COPY_STATUS_LABELS[copyStatus]
+  const statusTooltip = tooltip ?? COPY_STATUS_TOOLTIPS[copyStatus]
+  const badgeVariant = COPY_STATUS_BADGE_VARIANT[copyStatus]
+
+  if (appearance === 'inline') {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className={cn(
+              'group inline-flex cursor-default items-center gap-1 text-sm text-foreground-light transition-colors hover:text-foreground',
+              className
+            )}
+            data-copy-status={copyStatus}
+            aria-label={`Warehouse link sync status: ${label}`}
+          >
+            <CopyStatusLeadingIndicator copyStatus={copyStatus} mode="inline" dotSize={dotSize} />
+            <span className="border-b border-dotted border-current/40 transition-colors group-hover:border-current/70">
+              {label}
+            </span>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-72">
+          {statusTooltip}
+        </TooltipContent>
+      </Tooltip>
+    )
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge
+          variant={badgeVariant}
+          className={cn(
+            'cursor-default transition-colors',
+            badgeHoverClassNames[badgeVariant],
+            className
+          )}
+          data-copy-status={copyStatus}
+          aria-label={`Warehouse link sync status: ${label}`}
+        >
+          <CopyStatusLeadingIndicator copyStatus={copyStatus} mode="badge" />
+          {label}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-72">
+        {statusTooltip}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+type WarehouseStatusTextTone = 'default' | 'warning' | 'destructive'
+
+const statusTextToneClassNames: Record<WarehouseStatusTextTone, string> = {
+  default: 'text-foreground-light hover:text-foreground',
+  warning: 'text-warning hover:text-warning-600',
+  destructive: 'text-destructive hover:text-destructive-600',
+}
+
+/** Dotted-underline status text for secondary Warehouse states (e.g. project replication lag). */
+export function WarehouseStatusText({
+  text,
+  tooltip,
+  tone = 'default',
+  className,
+}: {
+  text: string
+  tooltip: string
+  tone?: WarehouseStatusTextTone
+  className?: string
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className={cn(
+            'group inline-flex cursor-default text-sm transition-colors',
+            statusTextToneClassNames[tone],
+            className
+          )}
+        >
+          <span className="border-b border-dotted border-current/40 transition-colors group-hover:border-current/70">
+            {text}
+          </span>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-72">
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
   )
 }
 

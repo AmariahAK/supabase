@@ -13,7 +13,8 @@ import {
   TABLE_SIZE_CHART_CONFIG,
 } from './TableDetailOverview.utils'
 import {
-  getWarehouseStorageSummaryLabel,
+  getWarehouseStorageDisplay,
+  getWarehouseStorageTooltip,
   warehouseDemoStore,
 } from '@/components/interfaces/Database/Warehouse/warehouseDemoStore'
 import { getSourceTableKey } from '@/components/interfaces/Database/Warehouse/warehouseNaming.utils'
@@ -24,7 +25,7 @@ const DATE_TIME_FORMAT = 'MMM D'
 
 interface TableOverviewMetricTileProps {
   label: string
-  value: string
+  value: ReactNode
   tooltip: string
   data: ChartLineTick[]
   dataKey: string
@@ -77,26 +78,21 @@ export function TableDetailOverviewMetrics({ table }: TableDetailOverviewMetrics
   const rowCount = table.live_rows_estimate ?? 0
   const columnCount = table.columns?.length ?? 0
   const postgresSizeBytes = parseTableSizeLabelToBytes(table.size)
-  const warehouseSizeBytes = warehouseState?.warehouseSizeBytes ?? 0
-  const warehouseMode = warehouseState?.mode ?? 'postgres'
-  const sizeBytes =
-    warehouseMode === 'has_warehouse_copy'
-      ? postgresSizeBytes + warehouseSizeBytes
-      : postgresSizeBytes
-  const sizeLabel =
-    getWarehouseStorageSummaryLabel(warehouseState, table.size) ??
-    table.size ??
-    formatBytes(sizeBytes)
+  const warehouseStorageDisplay = getWarehouseStorageDisplay(warehouseState, table.size)
+  const sizeLabel = table.size ?? formatBytes(postgresSizeBytes)
+  const sizeTooltip = warehouseStorageDisplay
+    ? getWarehouseStorageTooltip(warehouseStorageDisplay)
+    : 'On-disk size including indexes'
 
   const chartData = useMemo(
     () =>
       buildTableOverviewSparklineData({
         tableId: table.id,
         rowCount,
-        sizeBytes: sizeBytes || postgresSizeBytes || 1024,
+        sizeBytes: postgresSizeBytes || 1024,
         columnCount: columnCount || 1,
       }),
-    [columnCount, rowCount, sizeBytes, postgresSizeBytes, table.id]
+    [columnCount, rowCount, postgresSizeBytes, table.id]
   )
 
   const tiles: ReactNode[] = [
@@ -114,7 +110,7 @@ export function TableDetailOverviewMetrics({ table }: TableDetailOverviewMetrics
       key="size"
       label="Table size"
       value={sizeLabel}
-      tooltip="On-disk size including indexes. Warehouse copy size is included when present."
+      tooltip={sizeTooltip}
       data={chartData}
       dataKey="table_size_bytes"
       config={TABLE_SIZE_CHART_CONFIG}

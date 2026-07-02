@@ -3,7 +3,6 @@ import { useDebounce, useIntersectionObserver } from '@uidotdev/usehooks'
 import { useParams } from 'common'
 import { noop } from 'lodash'
 import {
-  Check,
   ChevronRight,
   Copy,
   Edit,
@@ -14,12 +13,11 @@ import {
   Search,
   Settings,
   Trash,
-  X,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { parseAsString, useQueryState } from 'nuqs'
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Button,
   Card,
@@ -50,19 +48,15 @@ import { GenericSkeletonLoader } from 'ui-patterns/ShimmeringLoader'
 import { useSnapshot } from 'valtio'
 
 import { ProtectedSchemaWarning } from '../ProtectedSchemaWarning'
-import {
-  getWarehouseStorageDisplay,
-  WAREHOUSE_STORAGE_CELL_TOOLTIP,
-  warehouseDemoStore,
-  type WarehouseMode,
-} from '../Warehouse/warehouseDemoStore'
+import { TableListWarehouseStatusCell } from '../Warehouse/TableListWarehouseStatusCell'
+import { TableListWarehouseStorageCell } from '../Warehouse/TableListWarehouseStorageCell'
+import { warehouseDemoStore } from '../Warehouse/warehouseDemoStore'
 import {
   getSourceSchemaName,
   getSourceTableKey,
   getWarehouseCopyTooltip,
   isWarehouseSchema,
 } from '../Warehouse/warehouseNaming.utils'
-import { WarehouseSyncChip } from '../Warehouse/WarehouseSyncChip'
 import {
   buildTableDetailUrl,
   getActiveWarehouseSchemas,
@@ -533,6 +527,7 @@ export const TableList = ({
                       Realtime
                     </TableHeadSort>
                   </TableHead>
+                  <TableHead key="warehouse">Warehouse</TableHead>
                   <TableHead key="buttons"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -540,7 +535,7 @@ export const TableList = ({
                 <>
                   {entities.length === 0 && filterString.length === 0 && (
                     <TableRow key={selectedSchema}>
-                      <TableCell colSpan={7}>
+                      <TableCell colSpan={8}>
                         {visibleTypes.length === 0 ? (
                           <>
                             <p className="text-sm text-foreground">
@@ -575,7 +570,7 @@ export const TableList = ({
                   )}
                   {entities.length === 0 && filterString.length > 0 && (
                     <TableRow key={selectedSchema}>
-                      <TableCell colSpan={7}>
+                      <TableCell colSpan={8}>
                         <p className="text-sm text-foreground">No results found</p>
                         <p className="text-sm text-foreground-light">
                           Your search for "{filterString}" did not return any results
@@ -652,76 +647,37 @@ export const TableList = ({
                             {x.rows !== undefined ? (
                               <p className="text-foreground-light">{x.rows.toLocaleString()}</p>
                             ) : (
-                              <p className="text-foreground-muted">–</p>
+                              <p className="text-foreground-muted">—</p>
                             )}
                           </TableCell>
                           <TableCell>
                             {x.type === ENTITY_TYPE.TABLE ? (
-                              (() => {
-                                const tableKey = `${getSourceSchemaName(selectedSchema)}.${x.name}`
-                                const wState = warehouseSnap.tables[tableKey] ?? {
-                                  mode: 'postgres',
-                                }
-                                const mode = wState.mode as WarehouseMode
-                                const storageDisplay = getWarehouseStorageDisplay(wState, x.size)
-                                const storageUrl = isWarehouseSchema(selectedSchema)
-                                  ? buildTableDetailUrl(ref!, x.id, {
-                                      view: WAREHOUSE_TABLE_DETAIL_VIEW,
-                                      section: 'storage',
-                                    })
-                                  : buildTableDetailUrl(ref!, x.id, {
-                                      section: 'settings',
-                                    })
-                                const showSyncChip =
-                                  wState.copyStatus === 'backfilling' ||
-                                  wState.copyStatus === 'error'
-
-                                if (mode === 'postgres' || !storageDisplay) {
-                                  return (
-                                    <p className="text-sm text-foreground-light">{x.size ?? '—'}</p>
-                                  )
-                                }
-
-                                return (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span className="inline-flex max-w-full items-center gap-2 text-sm text-foreground-light">
-                                        <span>{storageDisplay.postgresSize ?? '—'}</span>
-                                        <Link
-                                          href={storageUrl}
-                                          onClick={(event: MouseEvent) => event.stopPropagation()}
-                                          className="text-link-table-cell text-foreground-lighter hover:text-foreground duration-100"
-                                        >
-                                          (Copy: {storageDisplay.warehouseCopySize})
-                                        </Link>
-                                        {showSyncChip && (
-                                          <WarehouseSyncChip copyStatus={wState.copyStatus!} />
-                                        )}
-                                      </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top" className="max-w-xs">
-                                      {WAREHOUSE_STORAGE_CELL_TOOLTIP}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                )
-                              })()
+                              <TableListWarehouseStorageCell
+                                tableKey={`${getSourceSchemaName(selectedSchema)}.${x.name}`}
+                                tableSize={x.size}
+                                isWarehouseSchemaView={isWarehouseSchema(selectedSchema)}
+                              />
                             ) : (
-                              <p className="text-foreground-muted">–</p>
+                              <p className="text-foreground-muted">—</p>
                             )}
                           </TableCell>
                           <TableCell>
                             {(realtimePublication?.tables ?? []).find(
                               (table) => table.id === x.id
                             ) ? (
-                              <div className="flex items-center gap-x-2">
-                                <Check size={16} strokeWidth={2} className="text-brand-link" />
-                                <p className="text-foreground-light">Enabled</p>
-                              </div>
+                              <p className="text-foreground-light">Enabled</p>
                             ) : (
-                              <div className="flex items-center gap-x-2">
-                                <X size={16} strokeWidth={2} className="text-foreground-muted" />
-                                <p className="text-foreground-lighter">Disabled</p>
-                              </div>
+                              <p className="text-foreground-muted">—</p>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {x.type === ENTITY_TYPE.TABLE ? (
+                              <TableListWarehouseStatusCell
+                                tableKey={`${getSourceSchemaName(selectedSchema)}.${x.name}`}
+                                isWarehouseSchemaView={isWarehouseSchema(selectedSchema)}
+                              />
+                            ) : (
+                              <p className="text-foreground-muted">—</p>
                             )}
                           </TableCell>
                           <TableCell>
@@ -761,7 +717,7 @@ export const TableList = ({
                                     <p>View in Table Editor</p>
                                   </DropdownMenuItem>
 
-                                  {x.type === ENTITY_TYPE.TABLE && (
+                                  {x.type === ENTITY_TYPE.TABLE && !isWarehouseEntity && (
                                     <>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItemTooltip
@@ -813,17 +769,19 @@ export const TableList = ({
 
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItemTooltip
-                                        disabled={!canUpdateTables || isReadOnlySchema}
+                                        disabled={!canUpdateTables || isProtectedSchemaLocked}
                                         className="gap-x-2"
                                         onClick={() => {
-                                          if (canUpdateTables && !isReadOnlySchema) {
+                                          if (canUpdateTables && !isProtectedSchemaLocked) {
                                             onDeleteTable({ ...x, schema: selectedSchema })
                                           }
                                         }}
                                         tooltip={{
                                           content: {
                                             side: 'left',
-                                            text: 'You need additional permissions to delete tables',
+                                            text: isProtectedSchemaLocked
+                                              ? 'Tables in this schema cannot be deleted from the dashboard'
+                                              : 'You need additional permissions to delete tables',
                                           },
                                         }}
                                       >
@@ -848,7 +806,7 @@ export const TableList = ({
               </TableBody>
               <TableFooter className="font-normal">
                 <TableRow ref={sentinelRef} className="border-b-0">
-                  <TableCell colSpan={7} className="text-foreground-muted hover:bg-inherit">
+                  <TableCell colSpan={8} className="text-foreground-muted hover:bg-inherit">
                     {isFetchingNextTablesPage
                       ? 'Loading more tables…'
                       : `${footerCount} ${footerCount === 1 ? 'table' : 'tables'}${

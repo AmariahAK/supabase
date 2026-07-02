@@ -8,7 +8,7 @@ import SectionContainer from '~/components/Layouts/SectionContainer'
 import { type ListingDetail, type Partner } from '~/types/partners'
 import { useBreakpoint } from 'common'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronLeft, ExternalLink } from 'lucide-react'
+import { ArrowUpRight, ChevronLeft, ExternalLink } from 'lucide-react'
 import type { SerializeResult as MDXRemoteSerializeResult } from 'next-mdx-remote-client'
 import { MDXClient } from 'next-mdx-remote-client/csr'
 import Image from 'next/image'
@@ -137,7 +137,7 @@ export default function PartnerCatalogDetail({ partner, serializedListings }: Pr
                 </h1>
               </div>
               {installHref && (
-                <Button asChild size="medium">
+                <Button asChild size="medium" iconRight={<ArrowUpRight strokeWidth={1.5} />}>
                   <a href={installHref} target="_blank" rel="noreferrer">
                     {activeListing.publishedInMarketplace
                       ? 'Install integration'

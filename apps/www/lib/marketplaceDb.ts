@@ -204,9 +204,12 @@ async function getPartnersFromMarketplace(): Promise<Partner[]> {
 /**
  * Derives a human-readable tab label from a listing's metadata.
  * Priority: one-click install → Foreign Data Wrapper → plain integration → guide/overview.
+ * FDW listings use their own title (e.g. "BigQuery Wrapper") rather than the generic
+ * "Foreign Data Wrapper" string, so partners with more than one FDW (e.g. Amazon's S3 and
+ * Redshift wrappers) get distinct, identifiable tabs instead of two identical labels.
  */
 function getLabelForListing(listing: Listing): string {
-  if (isFdwListing(listing)) return 'Foreign Data Wrapper'
+  if (isFdwListing(listing)) return listing.title || 'Foreign Data Wrapper'
   if (GUIDE_SLUGS.has(listing.slug)) return 'Guide'
   if (!!listing.published_in_marketplace_at && !PLAIN_INTEGRATION_SLUGS.has(listing.slug))
     return 'Dashboard Integration'

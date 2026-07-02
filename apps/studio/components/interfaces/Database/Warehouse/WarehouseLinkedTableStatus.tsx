@@ -13,6 +13,7 @@ interface WarehouseLinkedTableStatusProps {
   tableKey: string
   isWarehouseView?: boolean
   className?: string
+  showLeadingIndicator?: boolean
 }
 
 /** Single amalgamated Warehouse link status (table copy + project replication). */
@@ -20,6 +21,7 @@ export function WarehouseLinkedTableStatus({
   tableKey,
   isWarehouseView = false,
   className,
+  showLeadingIndicator = true,
 }: WarehouseLinkedTableStatusProps) {
   const storedState = useWarehouseTableState(tableKey)
   const projectReplication = useProjectReplication()
@@ -40,6 +42,7 @@ export function WarehouseLinkedTableStatus({
         copyStatus={linkedTableStatus.copyStatus}
         appearance="inline"
         className={className}
+        showLeadingIndicator={showLeadingIndicator}
       />
     )
   }

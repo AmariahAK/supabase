@@ -18,8 +18,8 @@ import {
 
 const REPLICATION_PRESETS: { preset: WarehouseDemoReplicationPreset; label: string }[] = [
   { preset: 'healthy', label: 'Healthy (in sync)' },
-  { preset: 'behind', label: 'Behind (warning)' },
-  { preset: 'critical', label: 'Critical (severely behind)' },
+  { preset: 'behind', label: 'Catching up (behind)' },
+  { preset: 'critical', label: 'Degraded (critical)' },
   { preset: 'pipeline_error', label: 'Pipeline error' },
   { preset: 'copy_error', label: 'Table link sync error' },
 ]

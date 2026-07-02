@@ -40,6 +40,10 @@ import {
   getWarehouseCopyTooltip,
   isWarehouseSchema,
 } from '@/components/interfaces/Database/Warehouse/warehouseNaming.utils'
+import {
+  buildTableDetailUrl,
+  WAREHOUSE_TABLE_DETAIL_VIEW,
+} from '@/components/interfaces/Database/Warehouse/warehouseTableEditor.utils'
 import { getEntityLintDetails } from '@/components/interfaces/TableGridEditor/TableEntity.utils'
 import { EntityTypeIcon } from '@/components/ui/EntityTypeIcon'
 import { InlineLink } from '@/components/ui/InlineLink'
@@ -99,7 +103,9 @@ export const EntityListItem = ({
   const isPreview = tabs.previewTabId === tabId
 
   const isActive = Number(id) === entity.id
-  const canEdit = isActive && !isLocked
+  const isWarehouseEntity = isWarehouseSchema(entity.schema)
+  const showOverflowMenu = isActive && (!isLocked || isWarehouseEntity)
+  const canMutateTable = isActive && !isLocked && !isWarehouseEntity
 
   const { filters } = useTableFilter()
   const roleImpersonationState = useRoleImpersonationStateSnapshot()
@@ -163,7 +169,6 @@ export const EntityListItem = ({
 
   const apiAccessData = apiAccessMap?.[entity.name]
 
-  const isWarehouseEntity = isWarehouseSchema(entity.schema)
   const entityIconType = isWarehouseEntity ? ENTITY_TYPE.WAREHOUSE_TABLE : entity.type
 
   const formatTooltipText = (entityType: string) => {
@@ -252,7 +257,7 @@ export const EntityListItem = ({
           />
         </div>
 
-        {canEdit && (
+        {showOverflowMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger
               asChild
@@ -357,7 +362,24 @@ export const EntityListItem = ({
                 </DropdownMenuItem>
               )}
 
-              {entity.type === ENTITY_TYPE.TABLE && (
+              {isWarehouseEntity && isTableLikeEntityListItem(entity) && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem key="warehouse-settings" className="space-x-2" asChild>
+                    <Link
+                      href={buildTableDetailUrl(projectRef, entity.id, {
+                        view: WAREHOUSE_TABLE_DETAIL_VIEW,
+                        section: 'storage',
+                      })}
+                    >
+                      <Settings size={12} className="shrink-0" />
+                      <span>Edit settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
+
+              {entity.type === ENTITY_TYPE.TABLE && canMutateTable && (
                 <>
                   <DropdownMenuSeparator />
 

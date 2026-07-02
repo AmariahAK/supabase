@@ -52,17 +52,22 @@ interface WarehouseCopyStatusProps {
   className?: string
   dotSize?: 'default' | 'lg'
   tooltip?: string
+  /** When false, omits the leading dot/spinner (e.g. compact Table Editor footer). */
+  showLeadingIndicator?: boolean
 }
 
 function CopyStatusLeadingIndicator({
   copyStatus,
   mode,
   dotSize = 'default',
+  showLeadingIndicator = true,
 }: {
   copyStatus: CopyStatus
   mode: WarehouseCopyStatusAppearance
   dotSize?: 'default' | 'lg'
+  showLeadingIndicator?: boolean
 }) {
+  if (!showLeadingIndicator) return null
   if (copyStatus === 'backfilling') {
     return (
       <Loader2
@@ -94,12 +99,19 @@ function CopyStatusLeadingIndicator({
   return <Icon className="size-3 shrink-0" aria-hidden="true" />
 }
 
+const inlineCopyStatusClassNames: Record<CopyStatus, string> = {
+  backfilling: 'text-foreground-light hover:text-foreground',
+  live: 'text-foreground-light hover:text-foreground',
+  error: 'text-destructive hover:text-destructive-600',
+}
+
 export function WarehouseCopyStatus({
   copyStatus,
   appearance = 'badge',
   className,
   dotSize = 'default',
   tooltip,
+  showLeadingIndicator = true,
 }: WarehouseCopyStatusProps) {
   const label = COPY_STATUS_LABELS[copyStatus]
   const statusTooltip = tooltip ?? COPY_STATUS_TOOLTIPS[copyStatus]
@@ -111,13 +123,19 @@ export function WarehouseCopyStatus({
         <TooltipTrigger asChild>
           <span
             className={cn(
-              'group inline-flex cursor-default items-center gap-1 text-sm text-foreground-light transition-colors hover:text-foreground',
+              'group inline-flex cursor-default items-center gap-1 text-sm transition-colors',
+              inlineCopyStatusClassNames[copyStatus],
               className
             )}
             data-copy-status={copyStatus}
             aria-label={`Warehouse link sync status: ${label}`}
           >
-            <CopyStatusLeadingIndicator copyStatus={copyStatus} mode="inline" dotSize={dotSize} />
+            <CopyStatusLeadingIndicator
+              copyStatus={copyStatus}
+              mode="inline"
+              dotSize={dotSize}
+              showLeadingIndicator={showLeadingIndicator}
+            />
             <span className="border-b border-dotted border-current/40 transition-colors group-hover:border-current/70">
               {label}
             </span>

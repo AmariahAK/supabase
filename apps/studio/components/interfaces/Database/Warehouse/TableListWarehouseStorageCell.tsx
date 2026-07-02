@@ -1,8 +1,7 @@
 import {
   formatWarehouseSize,
-  getWarehouseLensSizeTooltip,
+  getWarehouseLinkedStorageTooltip,
   getWarehouseStorageDisplay,
-  getWarehouseStorageTooltip,
   resolveWarehouseTableState,
   useWarehouseTableState,
 } from './warehouseDemoStore'
@@ -11,12 +10,15 @@ import { WarehouseStatusText } from './WarehouseSyncChip'
 interface TableListWarehouseStorageCellProps {
   tableKey: string
   tableSize?: string
+  /** Postgres heap size when viewing the warehouse schema lens. */
+  linkedPostgresSize?: string
   isWarehouseSchemaView: boolean
 }
 
 export function TableListWarehouseStorageCell({
   tableKey,
   tableSize,
+  linkedPostgresSize,
   isWarehouseSchemaView,
 }: TableListWarehouseStorageCellProps) {
   const storedState = useWarehouseTableState(tableKey)
@@ -34,18 +36,15 @@ export function TableListWarehouseStorageCell({
 
   const storageDisplay = getWarehouseStorageDisplay(
     state,
-    isWarehouseSchemaView ? undefined : tableSize
+    isWarehouseSchemaView ? linkedPostgresSize : tableSize,
+    isWarehouseSchemaView ? tableSize : undefined
   )
   const sizeLabel = isWarehouseSchemaView
     ? (tableSize ?? formatWarehouseSize(state.warehouseSizeBytes))
     : storageDisplay?.postgresSize
-  const sizeTooltip = isWarehouseSchemaView
-    ? sizeLabel
-      ? getWarehouseLensSizeTooltip(sizeLabel, tableKey)
-      : undefined
-    : storageDisplay
-      ? getWarehouseStorageTooltip(storageDisplay)
-      : undefined
+  const sizeTooltip = storageDisplay
+    ? getWarehouseLinkedStorageTooltip(storageDisplay, isWarehouseSchemaView)
+    : undefined
 
   if (!sizeLabel) {
     return <span className="text-sm text-foreground-muted">—</span>

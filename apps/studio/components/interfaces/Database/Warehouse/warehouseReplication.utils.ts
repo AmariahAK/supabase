@@ -35,7 +35,9 @@ export function resolveReplicationHealth(
 export interface ReplicationLagDisplay {
   health: ReplicationHealth
   headline: string
+  /** Bytes formatted for Observability only — not shown in everyday Studio surfaces. */
   lagAmount?: string
+  /** Short user-facing health label (no lag amounts). */
   compactSuffix?: string
   tooltip: string
   tone: 'default' | 'warning' | 'destructive'
@@ -49,7 +51,7 @@ export function getReplicationLagDisplay(
     return {
       health: 'error',
       headline: 'Sync error',
-      compactSuffix: 'Sync error',
+      compactSuffix: 'Error',
       tooltip: 'This linked Warehouse table could not stay in sync with Postgres.',
       tone: 'destructive',
     }
@@ -59,13 +61,10 @@ export function getReplicationLagDisplay(
   const lagFormatted = getFormattedLagValue('bytes', replication.replicationLagBytes).display
 
   if (health === 'error') {
-    const hasSignificantLag =
-      replication.replicationLagBytes >= REPLICATION_LAG_BEHIND_THRESHOLD_BYTES
-
     return {
       health,
       headline: 'Replication error',
-      compactSuffix: hasSignificantLag ? `${lagFormatted} behind` : 'Replication error',
+      compactSuffix: 'Error',
       tooltip: 'Warehouse replication pipeline encountered an error. Check replication logs.',
       tone: 'destructive',
     }
@@ -75,6 +74,7 @@ export function getReplicationLagDisplay(
     return {
       health: 'healthy',
       headline: 'Initial sync',
+      compactSuffix: 'Catching up',
       tooltip: 'Running the first full sync for this project’s Warehouse pipeline.',
       tone: 'default',
     }
@@ -103,8 +103,9 @@ export function getReplicationLagDisplay(
       health,
       headline: 'Replication behind',
       lagAmount: lagFormatted,
-      compactSuffix: `${lagFormatted} behind`,
-      tooltip: `Warehouse is ${lagFormatted} behind Postgres for all tables in this project.`,
+      compactSuffix: 'Catching up',
+      tooltip:
+        'Warehouse replication is catching up. Recent writes may not appear in linked tables yet.',
       tone: 'warning',
     }
   }
@@ -113,8 +114,8 @@ export function getReplicationLagDisplay(
     health,
     headline: 'Severely behind',
     lagAmount: lagFormatted,
-    compactSuffix: `${lagFormatted} behind`,
-    tooltip: `Warehouse replication is severely behind (${lagFormatted}). Query results may be stale.`,
+    compactSuffix: 'Degraded',
+    tooltip: 'Warehouse replication is degraded. Query results may be stale.',
     tone: 'destructive',
   }
 }

@@ -58,6 +58,7 @@ import {
   isWarehouseSchema,
 } from '../Warehouse/warehouseNaming.utils'
 import { getWarehouseTableStatusSortRank } from '../Warehouse/warehouseReplication.utils'
+import { WarehouseStatusText } from '../Warehouse/WarehouseSyncChip'
 import {
   buildTableDetailUrl,
   getActiveWarehouseSchemas,
@@ -88,7 +89,14 @@ import type { SafePostgresTable } from '@/lib/postgres-types'
 import { SHORTCUT_IDS } from '@/state/shortcuts/registry'
 import { useShortcut } from '@/state/shortcuts/useShortcut'
 
-type TableListSortColumn = 'name' | 'columns' | 'rows' | 'storage' | 'realtime' | 'warehouse'
+type TableListSortColumn =
+  | 'name'
+  | 'columns'
+  | 'rows'
+  | 'rls'
+  | 'storage'
+  | 'realtime'
+  | 'warehouse'
 type TableListSort = `${TableListSortColumn}:asc` | `${TableListSortColumn}:desc`
 
 interface TableListProps {
@@ -144,6 +152,34 @@ export const TableList = ({
   })
 
   const tables = tablesData?.pages.flat() ?? []
+
+  const sourceSchemaForSizes = isWarehouseSchema(selectedSchema)
+    ? getSourceSchemaName(selectedSchema)
+    : undefined
+
+  const { data: sourceTablesForSizesData } = useInfiniteTablesQuery(
+    {
+      projectRef: project?.ref,
+      connectionString: project?.connectionString,
+      schema: sourceSchemaForSizes,
+      includeColumns: false,
+      pageSize: 50,
+      nameFilter: debouncedFilterString,
+    },
+    {
+      enabled: Boolean(project?.ref && sourceSchemaForSizes),
+    }
+  )
+
+  const postgresSizeByTableName = useMemo(() => {
+    const sizes = new Map<string, string>()
+    for (const table of sourceTablesForSizesData?.pages.flat() ?? []) {
+      if (table.size) {
+        sizes.set(table.name, table.size)
+      }
+    }
+    return sizes
+  }, [sourceTablesForSizesData?.pages])
 
   const [sentinelRef, sentinelEntry] = useIntersectionObserver({
     threshold: 0,
@@ -265,6 +301,9 @@ export const TableList = ({
     const getBytes = (entity: (typeof entities)[number]) =>
       'bytes' in entity && typeof entity.bytes === 'number' ? entity.bytes : undefined
 
+    const isRlsEnabled = (entity: (typeof entities)[number]) =>
+      entity.type === ENTITY_TYPE.TABLE && 'rls_enabled' in entity && entity.rls_enabled === true
+
     const getWarehouseSortRank = (entity: (typeof entities)[number]) => {
       if (entity.type !== ENTITY_TYPE.TABLE) return -1
 
@@ -295,6 +334,8 @@ export const TableList = ({
         } else {
           comparison = a.rows - b.rows
         }
+      } else if (sortColumn === 'rls') {
+        comparison = Number(isRlsEnabled(a)) - Number(isRlsEnabled(b))
       } else if (sortColumn === 'storage') {
         const bytesA = getBytes(a)
         const bytesB = getBytes(b)
@@ -525,6 +566,11 @@ export const TableList = ({
                       Rows (Est)
                     </TableHeadSort>
                   </TableHead>
+                  <TableHead key="rls" aria-sort={getAriaSort('rls')}>
+                    <TableHeadSort column="rls" currentSort={sort} onSortChange={handleSortChange}>
+                      RLS
+                    </TableHeadSort>
+                  </TableHead>
                   <TableHead key="storage" aria-sort={getAriaSort('storage')}>
                     <TableHeadSort
                       column="storage"
@@ -559,7 +605,7 @@ export const TableList = ({
                 <>
                   {entities.length === 0 && filterString.length === 0 && (
                     <TableRow key={selectedSchema}>
-                      <TableCell colSpan={8}>
+                      <TableCell colSpan={9}>
                         {visibleTypes.length === 0 ? (
                           <>
                             <p className="text-sm text-foreground">
@@ -594,7 +640,7 @@ export const TableList = ({
                   )}
                   {entities.length === 0 && filterString.length > 0 && (
                     <TableRow key={selectedSchema}>
-                      <TableCell colSpan={8}>
+                      <TableCell colSpan={9}>
                         <p className="text-sm text-foreground">No results found</p>
                         <p className="text-sm text-foreground-light">
                           Your search for "{filterString}" did not return any results
@@ -675,10 +721,35 @@ export const TableList = ({
                             )}
                           </TableCell>
                           <TableCell>
+                            {x.type === ENTITY_TYPE.TABLE && 'rls_enabled' in x ? (
+                              x.rls_enabled ? (
+                                <span className="inline-flex items-center gap-1.5 text-sm text-foreground-light">
+                                  <span
+                                    aria-hidden
+                                    className="size-1.5 shrink-0 rounded-full bg-brand"
+                                  />
+                                  <WarehouseStatusText
+                                    text="Enabled"
+                                    tooltip="Row Level Security is enabled. Row access is controlled by policies."
+                                  />
+                                </span>
+                              ) : (
+                                <p className="text-foreground-muted">—</p>
+                              )
+                            ) : (
+                              <p className="text-foreground-muted">—</p>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             {x.type === ENTITY_TYPE.TABLE ? (
                               <TableListWarehouseStorageCell
                                 tableKey={`${getSourceSchemaName(selectedSchema)}.${x.name}`}
                                 tableSize={x.size}
+                                linkedPostgresSize={
+                                  isWarehouseSchema(selectedSchema)
+                                    ? postgresSizeByTableName.get(x.name)
+                                    : undefined
+                                }
                                 isWarehouseSchemaView={isWarehouseSchema(selectedSchema)}
                               />
                             ) : (
@@ -830,7 +901,7 @@ export const TableList = ({
               </TableBody>
               <TableFooter className="font-normal">
                 <TableRow ref={sentinelRef} className="border-b-0">
-                  <TableCell colSpan={8} className="text-foreground-muted hover:bg-inherit">
+                  <TableCell colSpan={9} className="text-foreground-muted hover:bg-inherit">
                     {isFetchingNextTablesPage
                       ? 'Loading more tables…'
                       : `${footerCount} ${footerCount === 1 ? 'table' : 'tables'}${

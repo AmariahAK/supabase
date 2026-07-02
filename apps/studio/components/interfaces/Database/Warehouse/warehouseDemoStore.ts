@@ -102,19 +102,20 @@ export function hasWarehouseTables(): boolean {
 
 export function resolveWarehouseTableState(
   tableKey: string,
-  storedState: WarehouseTableState,
+  storedState: WarehouseTableState | undefined,
   { isWarehouseView }: { isWarehouseView: boolean }
 ): WarehouseTableState {
-  const hasWarehouseCopy = storedState.mode === 'has_warehouse_copy' || isWarehouseView
-  if (!hasWarehouseCopy) return storedState
+  const resolved = storedState ?? { mode: 'postgres' }
+  const hasWarehouseCopy = resolved.mode === 'has_warehouse_copy' || isWarehouseView
+  if (!hasWarehouseCopy) return resolved
 
   return {
     mode: 'has_warehouse_copy',
-    copyStatus: storedState.copyStatus ?? DEFAULT_WAREHOUSE_COPY_FIELDS.copyStatus,
+    copyStatus: resolved.copyStatus ?? DEFAULT_WAREHOUSE_COPY_FIELDS.copyStatus,
     warehouseSizeBytes:
-      storedState.warehouseSizeBytes ?? DEFAULT_WAREHOUSE_COPY_FIELDS.warehouseSizeBytes,
-    lastSyncedAt: storedState.lastSyncedAt,
-    copyName: storedState.copyName ?? getWarehouseQualifiedTableName(tableKey),
+      resolved.warehouseSizeBytes ?? DEFAULT_WAREHOUSE_COPY_FIELDS.warehouseSizeBytes,
+    lastSyncedAt: resolved.lastSyncedAt,
+    copyName: resolved.copyName ?? getWarehouseQualifiedTableName(tableKey),
   }
 }
 
@@ -285,37 +286,52 @@ export interface WarehouseStorageDisplay {
 
 export function getWarehouseStorageDisplay(
   state: Pick<WarehouseTableState, 'mode' | 'warehouseSizeBytes'> | undefined,
-  postgresSize?: string
+  postgresSize?: string,
+  warehouseSize?: string
 ): WarehouseStorageDisplay | null {
   const mode = state?.mode ?? 'postgres'
   if (mode === 'postgres') return null
 
-  const warehouseCopySize = postgresSize ?? formatWarehouseSize(state?.warehouseSizeBytes)
+  const resolvedPostgres = postgresSize ?? null
+  const warehouseCopySize =
+    warehouseSize ?? postgresSize ?? formatWarehouseSize(state?.warehouseSizeBytes)
 
   return {
-    postgresSize: postgresSize ?? null,
+    postgresSize: resolvedPostgres,
     warehouseCopySize,
   }
 }
 
-export function getWarehouseStorageTooltip(display: WarehouseStorageDisplay): string {
-  if (display.postgresSize) {
-    return `Postgres: ${display.postgresSize} · Warehouse: ${display.warehouseCopySize}`
+/** Linked-table storage tooltip. Order matches the active lens (postgres or warehouse). */
+export function getWarehouseLinkedStorageTooltip(
+  display: WarehouseStorageDisplay,
+  isWarehouseView: boolean
+): string {
+  const { postgresSize, warehouseCopySize } = display
+
+  if (postgresSize) {
+    return isWarehouseView
+      ? `Warehouse: ${warehouseCopySize} · Postgres: ${postgresSize}`
+      : `Postgres: ${postgresSize} · Warehouse: ${warehouseCopySize}`
   }
 
-  return `Warehouse: ${display.warehouseCopySize}`
+  return `Warehouse: ${warehouseCopySize}`
 }
 
+export function getWarehouseStorageTooltip(display: WarehouseStorageDisplay): string {
+  return getWarehouseLinkedStorageTooltip(display, false)
+}
+
+/** @deprecated Use getWarehouseLinkedStorageTooltip with a full WarehouseStorageDisplay */
 export function getWarehouseLensSizeTooltip(
   warehouseSize: string,
-  sourceTableKey: string,
+  _sourceTableKey: string,
   postgresSize?: string | null
 ): string {
-  if (postgresSize) {
-    return `Postgres: ${postgresSize} · Warehouse: ${warehouseSize}`
-  }
-
-  return `Warehouse: ${warehouseSize}. Postgres source: ${sourceTableKey}`
+  return getWarehouseLinkedStorageTooltip(
+    { postgresSize: postgresSize ?? null, warehouseCopySize: warehouseSize },
+    true
+  )
 }
 
 /** @deprecated Prefer postgres size in UI with getWarehouseStorageTooltip on a Linked hint. */

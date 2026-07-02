@@ -36,7 +36,7 @@ import { buildTableDetailSqlEditorUrl } from '@/components/interfaces/Database/T
 import { TableDetailSplitLinkButton } from '@/components/interfaces/Database/Tables/TableDetailSplitLinkButton'
 import {
   formatWarehouseSize,
-  getWarehouseLensSizeTooltip,
+  getWarehouseLinkedStorageTooltip,
   getWarehouseStorageDisplay,
   getWarehouseStorageTooltip,
   resolveWarehouseTableState,
@@ -62,6 +62,7 @@ import { useDatabasePublicationsQuery } from '@/data/database-publications/datab
 import { ENTITY_TYPE } from '@/data/entity-types/entity-type-constants'
 import { useTableEditorQuery } from '@/data/table-editor/table-editor-query'
 import { isTableLike } from '@/data/table-editor/table-editor-types'
+import { useTablesQuery } from '@/data/tables/tables-query'
 import { useAsyncCheckPermissions } from '@/hooks/misc/useCheckPermissions'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
 import { useTableDetailWarehouseView } from '@/hooks/misc/useTableDetailWarehouseView'
@@ -115,6 +116,26 @@ export function TableDetailLayout({
   })
 
   const { isWarehouseDetailView } = useTableDetailWarehouseView(selectedTable?.schema)
+
+  const sourceSchemaForSizes =
+    selectedTable !== undefined && isWarehouseDetailView
+      ? getSourceSchemaName(selectedTable.schema)
+      : undefined
+
+  const { data: sourceSchemaTables } = useTablesQuery(
+    {
+      projectRef: project?.ref,
+      connectionString: project?.connectionString,
+      schema: sourceSchemaForSizes,
+      includeColumns: false,
+    },
+    { enabled: Boolean(project?.ref && sourceSchemaForSizes) }
+  )
+
+  const linkedPostgresSize =
+    selectedTable !== undefined && isWarehouseDetailView
+      ? sourceSchemaTables?.find((table) => table.name === selectedTable.name)?.size
+      : undefined
 
   const { data: publications } = useDatabasePublicationsQuery({
     projectRef: project?.ref,
@@ -187,10 +208,13 @@ export function TableDetailLayout({
     isTable && isWarehouseDetailView
       ? (selectedTable.size ?? formatWarehouseSize(warehouseState?.warehouseSizeBytes))
       : undefined
-  const warehouseSizeTooltip =
-    warehouseSizeLabel && tableKey
-      ? getWarehouseLensSizeTooltip(warehouseSizeLabel, tableKey)
-      : undefined
+  const warehouseLensStorageDisplay =
+    isTable && isWarehouseDetailView && warehouseState?.mode === 'has_warehouse_copy'
+      ? getWarehouseStorageDisplay(warehouseState, linkedPostgresSize, warehouseSizeLabel)
+      : null
+  const warehouseSizeTooltip = warehouseLensStorageDisplay
+    ? getWarehouseLinkedStorageTooltip(warehouseLensStorageDisplay, true)
+    : undefined
 
   const navigationItems =
     id && ref

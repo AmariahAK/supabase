@@ -1,68 +1,43 @@
-import { cn, Tooltip, TooltipContent, TooltipTrigger } from 'ui'
 import { useSnapshot } from 'valtio'
 
 import {
+  resolveWarehouseTableState,
   useProjectReplication,
   warehouseDemoStore,
-  type WarehouseProjectReplicationStatus,
-  type WarehouseTableState,
 } from './warehouseDemoStore'
+import { WarehouseLinkedTableStatus } from './WarehouseLinkedTableStatus'
+import { getSourceTableKey, isWarehouseSchema } from './warehouseNaming.utils'
 import {
-  getSourceTableKey,
-  getWarehouseCopyTooltip,
-  isWarehouseSchema,
-} from './warehouseNaming.utils'
-import { getReplicationLagDisplay } from './warehouseReplication.utils'
+  getReplicationLagDisplay,
+  getWarehouseLinkedTableStatus,
+} from './warehouseReplication.utils'
+import { WarehouseStatusText } from './WarehouseSyncChip'
 
-function getTableEditorDataSourceSuffix(
-  schema: string,
-  table: string,
-  warehouseTables: Record<string, WarehouseTableState>,
-  projectReplication: WarehouseProjectReplicationStatus | null
-): {
-  label: string
-  labelTooltip: string
-  lagSuffix?: string
-  lagTooltip?: string
-  lagTone?: 'warning' | 'destructive'
-} | null {
-  if (isWarehouseSchema(schema)) {
-    const sourceTableKey = getSourceTableKey(schema, table)
-    const tableState = warehouseTables[sourceTableKey]
-    const labelTooltip = getWarehouseCopyTooltip(sourceTableKey)
+export const WAREHOUSE_TABLE_EDITOR_TOOLTIP =
+  'This is a linked Warehouse table. Rows replicate from Postgres. Recent writes may not appear here yet.'
 
-    if (!projectReplication) {
-      return {
-        label: 'Linked Warehouse table',
-        labelTooltip,
-      }
-    }
+const footerTextSizeClassName = 'text-xs'
+const footerLabelClassName = 'text-xs text-foreground-light'
 
-    const lagDisplay = getReplicationLagDisplay(projectReplication, tableState?.copyStatus)
+function shouldShowWarehouseEditorStatus(
+  tableKey: string,
+  isWarehouseView: boolean,
+  projectReplication: ReturnType<typeof useProjectReplication>,
+  storedState: (typeof warehouseDemoStore.tables)[string] | undefined
+): boolean {
+  const state = resolveWarehouseTableState(tableKey, storedState, { isWarehouseView })
 
-    return {
-      label: 'Linked Warehouse table',
-      labelTooltip,
-      lagSuffix: lagDisplay.compactSuffix,
-      lagTooltip: lagDisplay.compactSuffix !== undefined ? lagDisplay.tooltip : undefined,
-      lagTone:
-        lagDisplay.tone === 'warning'
-          ? 'warning'
-          : lagDisplay.tone === 'destructive'
-            ? 'destructive'
-            : undefined,
-    }
-  }
+  if (state.mode !== 'has_warehouse_copy' || !state.copyStatus) return false
 
-  const tableKey = getSourceTableKey(schema, table)
-  if (warehouseTables[tableKey]?.mode === 'has_warehouse_copy') {
-    return {
-      label: 'Postgres (live)',
-      labelTooltip: 'Live Postgres rows',
-    }
-  }
+  const lagDisplay = projectReplication
+    ? getReplicationLagDisplay(projectReplication, state.copyStatus)
+    : null
+  const linkedStatus = getWarehouseLinkedTableStatus(lagDisplay, state.copyStatus)
 
-  return null
+  if (!linkedStatus) return false
+  if (linkedStatus.type === 'copy' && linkedStatus.copyStatus === 'live') return false
+
+  return true
 }
 
 interface TableEditorDataSourceSuffixProps {
@@ -73,42 +48,80 @@ interface TableEditorDataSourceSuffixProps {
 export function TableEditorDataSourceSuffix({ schema, table }: TableEditorDataSourceSuffixProps) {
   const warehouseSnap = useSnapshot(warehouseDemoStore)
   const projectReplication = useProjectReplication()
-  const suffix = getTableEditorDataSourceSuffix(
-    schema,
-    table,
-    warehouseSnap.tables,
-    projectReplication
+
+  if (isWarehouseSchema(schema)) {
+    const tableKey = getSourceTableKey(schema, table)
+    const showStatus = shouldShowWarehouseEditorStatus(
+      tableKey,
+      true,
+      projectReplication,
+      warehouseSnap.tables[tableKey]
+    )
+
+    return (
+      <>
+        <span className="mx-1.5">·</span>
+        <span
+          className={`inline-flex min-w-0 items-center gap-1 truncate ${footerTextSizeClassName}`}
+        >
+          <WarehouseStatusText
+            text="Linked Warehouse table"
+            tooltip={WAREHOUSE_TABLE_EDITOR_TOOLTIP}
+            className={footerLabelClassName}
+          />
+          {showStatus ? (
+            <>
+              <span className="shrink-0 text-foreground-muted">·</span>
+              <WarehouseLinkedTableStatus
+                tableKey={tableKey}
+                isWarehouseView
+                className={footerTextSizeClassName}
+                showLeadingIndicator={false}
+              />
+            </>
+          ) : null}
+        </span>
+      </>
+    )
+  }
+
+  const tableKey = getSourceTableKey(schema, table)
+  const storedState = warehouseSnap.tables[tableKey]
+  const state = resolveWarehouseTableState(tableKey, storedState, { isWarehouseView: false })
+
+  if (state.mode !== 'has_warehouse_copy') {
+    return null
+  }
+
+  const showStatus = shouldShowWarehouseEditorStatus(
+    tableKey,
+    false,
+    projectReplication,
+    storedState
   )
-
-  if (!suffix) return null
-
-  const lagClassName =
-    suffix.lagTone === 'destructive'
-      ? 'text-destructive'
-      : suffix.lagTone === 'warning'
-        ? 'text-warning'
-        : 'text-foreground-lighter'
 
   return (
     <>
       <span className="mx-1.5">·</span>
-      <span className="inline-flex min-w-0 items-baseline truncate text-foreground">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="cursor-default truncate">{suffix.label}</span>
-          </TooltipTrigger>
-          <TooltipContent className="max-w-xs">{suffix.labelTooltip}</TooltipContent>
-        </Tooltip>
-        {suffix.lagSuffix !== undefined && suffix.lagTooltip !== undefined && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className={cn('ml-1 shrink-0 cursor-help', lagClassName)}>
-                ({suffix.lagSuffix})
-              </span>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">{suffix.lagTooltip}</TooltipContent>
-          </Tooltip>
-        )}
+      <span
+        className={`inline-flex min-w-0 items-center gap-1 truncate ${footerTextSizeClassName}`}
+      >
+        <WarehouseStatusText
+          text="Postgres (live)"
+          tooltip="Live Postgres rows"
+          className={footerLabelClassName}
+        />
+        {showStatus ? (
+          <>
+            <span className="shrink-0 text-foreground-muted">·</span>
+            <WarehouseLinkedTableStatus
+              tableKey={tableKey}
+              isWarehouseView={false}
+              className={footerTextSizeClassName}
+              showLeadingIndicator={false}
+            />
+          </>
+        ) : null}
       </span>
     </>
   )

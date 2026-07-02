@@ -27,9 +27,60 @@ interface WarehouseProjectReplicationStatus {
 }
 ```
 
-Platform may also expose `lag_ms` on linked-table responses; prefer **bytes** for user-facing copy (time-based flush lag is often NULL for logical slots). Studio only surfaces lag amounts when `replication_health` is `behind` or `critical`.
+Platform may also expose `lag_ms` on linked-table responses; prefer **bytes** for operator surfaces (Observability). Everyday Studio UI uses `replication_health` buckets only — do not show lag amounts in table list, detail, storage panel, or table editor.
 
 Consumed by **Observability → Warehouse** (mock sparklines in prototype; real monitor API later).
+
+## Replication health and Studio display
+
+Studio derives a **single amalgamated status** per linked table from two inputs:
+
+| Input               | Scope       | API field                                                                                           |
+| ------------------- | ----------- | --------------------------------------------------------------------------------------------------- |
+| Table copy progress | Per table   | `warehouse_copy_status`                                                                             |
+| Replication health  | Per project | `replication_health` (derived from `replication_lag_bytes`, `pipeline_status`, `replication_phase`) |
+
+Implementation: `warehouseReplication.utils.ts` (`resolveReplicationHealth`, `getWarehouseLinkedTableStatus`).
+
+### Project `replication_health` buckets
+
+Derived from WAL backlog (`replication_lag_bytes`) and pipeline state. Thresholds are an implementation detail; users never see byte amounts outside Observability.
+
+| Bucket     | Condition (prototype)                          | User-facing label                 |
+| ---------- | ---------------------------------------------- | --------------------------------- |
+| `healthy`  | Lag &lt; 50 MB, pipeline live, phase streaming | **Live** (when copy is also live) |
+| `behind`   | 50 MB ≤ lag &lt; 500 MB                        | **Catching up**                   |
+| `critical` | Lag ≥ 500 MB                                   | **Degraded**                      |
+| `error`    | Pipeline or phase error                        | **Error**                         |
+
+`initial_sync` phase maps to **Catching up** at project scope.
+
+### Table `warehouse_copy_status` labels
+
+| Copy status   | User-facing label | Leading indicator                       |
+| ------------- | ----------------- | --------------------------------------- |
+| `backfilling` | **Backfilling**   | Spinner                                 |
+| `live`        | **Live**          | Pulsing dot                             |
+| `error`       | **Error**         | Red dot (hidden in Table Editor footer) |
+
+### Amalgamation rules (one status shown)
+
+1. **Table copy wins** for `backfilling` or `error` on the table.
+2. Otherwise, if project replication is not caught up, **project health supersedes Live** (`Catching up`, `Degraded`, `Error`).
+3. Otherwise **Live** when copy is `live` and project is healthy.
+
+### Where labels appear
+
+| Surface                                    | What users see                                                              |
+| ------------------------------------------ | --------------------------------------------------------------------------- |
+| Tables list → Warehouse column             | Amalgamated status                                                          |
+| Table detail header / Storage panel Status | Same                                                                        |
+| Table Editor footer                        | Expectation tooltip on label; amalgamated status only when not healthy Live |
+| Observability                              | Byte lag, sparklines, operator detail                                       |
+
+### Table Editor expectation copy
+
+Warehouse lens footer always explains that rows replicate from Postgres and recent writes may not appear yet. This sets expectations; it does not replace health status when replication is unhealthy.
 
 ## Proposed fields on table metadata
 

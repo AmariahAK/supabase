@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { parseAsBoolean, parseAsString, useQueryState } from 'nuqs'
 import { useState, type ReactNode } from 'react'
 import {
-  Badge,
   Button,
   DropdownMenu,
   DropdownMenuContent,
@@ -116,16 +115,17 @@ function TableCopyRow({
   detailUrl?: string
   isCurrent?: boolean
 }) {
+  const labelTooltip = isCurrent ? `This table. ${tooltip}` : tooltip
+
   return (
     <MetaRow
       label={
-        <MetaRowLabel tooltip={tooltip}>
+        <MetaRowLabel tooltip={labelTooltip}>
           <span>{label}</span>
         </MetaRowLabel>
       }
     >
       <div className="flex items-center justify-end gap-1.5">
-        {isCurrent && <Badge variant="default">This</Badge>}
         <code className="text-code-inline break-all">{name}</code>
         {detailUrl !== undefined && (
           <RowIconLink

@@ -173,8 +173,8 @@ const BranchesPage: NextPageWithLayout = () => {
         loading={isDeleting}
         title="Delete branch"
         confirmLabel="Delete branch"
-        confirmPlaceholder="Type in name of branch"
-        confirmString={selectedBranchToDelete?.name ?? ''}
+      confirmAction="delete"
+      confirmSubject="branch"
         alert={{
           title: 'You cannot recover this branch once deleted',
         }}

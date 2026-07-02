@@ -38,13 +38,16 @@ export default function TextConfirmDialogDemo() {
         size="small"
         variant="destructive"
         title="Delete bucket"
-        confirmPlaceholder={bucketName}
-        confirmString={bucketName}
+        confirmAction="delete"
+        confirmSubject="bucket"
         confirmLabel="Delete bucket"
         onConfirm={() => setVisible(false)}
         onCancel={() => setVisible(false)}
       >
-        {/* Optional body content */}
+        <p className="text-sm">
+          Your bucket <span className="font-medium text-foreground">{bucketName}</span> and all of
+          its contents will be permanently deleted. This action cannot be undone.
+        </p>
       </TextConfirmModal>
     </>
   )
@@ -53,8 +56,10 @@ export default function TextConfirmDialogDemo() {
 
 ## Props
 
-- `confirmString`: The exact string the user must type to enable the confirm action (leading/trailing whitespace is trimmed)
-- `confirmPlaceholder`: Placeholder text shown in the confirmation input
+- `confirmAction`: Preset action verb (`delete`, `purge`, `disable`, `re-enable`, `proceed`) that sets the required confirmation string and label copy. Use `custom` (default when using `confirmString`) for identity verification or other bespoke strings.
+- `confirmSubject`: Noun phrase for preset label copy, e.g. `"organization"` → “Type DELETE to delete this organization.”
+- `confirmString`: The exact string the user must type when using `confirmAction="custom"` (leading/trailing whitespace is trimmed)
+- `confirmPlaceholder`: Placeholder text shown in the confirmation input when using custom confirmation
 - `variant`: Visual intent of the dialog (`default`, `destructive`, or `warning`)
 - Other standard modal props inherited from the underlying [Dialog](../components/dialog) component
 

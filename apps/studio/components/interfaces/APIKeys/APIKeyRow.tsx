@@ -116,9 +116,8 @@ export const APIKeyRow = ({
         onCancel={() => setKeyToDelete(null)}
         onConfirm={onDelete}
         title={`Delete ${apiKey.type} API key: ${apiKey.name}`}
-        confirmString={apiKey.name}
-        confirmLabel="Yes, irreversibly delete this API key"
-        confirmPlaceholder="Type the name of the API key to confirm"
+        confirmAction="delete"
+        confirmSubject="API key"
         loading={isDeleting}
         variant="destructive"
         alert={{
@@ -127,7 +126,12 @@ export const APIKeyRow = ({
             ? `This API key was used ${lastSeen.timestamp}. Make sure all backend components using it have been updated. Deletion will cause them to receive HTTP 401 Unauthorized status codes on all Supabase APIs.`
             : `This API key has not been used in the past 24 hours. Make sure you've updated all backend components using it before deletion.`,
         }}
-      />
+      >
+        <p className="text-sm">
+          This will permanently delete the API key{' '}
+          <span className="font-medium text-foreground">{apiKey.name}</span>.
+        </p>
+      </TextConfirmModal>
     </>
   )
 }

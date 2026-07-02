@@ -87,12 +87,12 @@ export const deleteBucket = async (page: Page, ref: string, bucketName: string) 
   // Click "Delete bucket" option from dropdown
   await page.getByRole('menuitem', { name: 'Delete bucket' }).click()
 
-  // Type bucket name in the confirmation textbox (placeholder: "Type bucket name")
-  const confirmInput = page.getByPlaceholder('Type bucket name')
+  // Type DELETE in the confirmation textbox
+  const confirmInput = page.getByPlaceholder('DELETE')
   await expect(confirmInput, 'Confirmation input should be visible').toBeVisible({
     timeout: 15_000,
   })
-  await confirmInput.fill(bucketName)
+  await confirmInput.fill('DELETE')
 
   // Wait for API call and click Delete bucket button
   const apiPromise = waitForApiResponse(page, 'storage', ref, `buckets/${bucketName}`, {

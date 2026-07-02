@@ -30,16 +30,29 @@ import { DialogHeader } from 'ui/src/components/shadcn/ui/dialog'
 import { z } from 'zod'
 
 import { Admonition } from './../admonition'
+import {
+  type ConfirmAction,
+  getConfirmPlaceholderFromAction,
+  getConfirmStringFromAction,
+} from './confirm-actions'
 
-export interface TextConfirmModalProps {
+const CONFIRM_ACTION_LABEL_SUFFIX: Record<Exclude<ConfirmAction, 'custom'>, string> = {
+  delete: 'delete',
+  purge: 'purge',
+  disable: 'disable',
+  're-enable': 're-enable',
+  proceed: 'proceed with',
+}
+
+export type { ConfirmAction } from './confirm-actions'
+
+type TextConfirmModalBaseProps = {
   loading: boolean
   visible: boolean
   title: string
   size?: React.ComponentProps<typeof DialogContent>['size']
   cancelLabel?: string
   confirmLabel?: string
-  confirmPlaceholder: string
-  confirmString: string
   text?: string | ReactNode
   onConfirm: () => void
   onCancel: () => void
@@ -58,6 +71,22 @@ export interface TextConfirmModalProps {
   enableCopy?: boolean
 }
 
+type TextConfirmModalPresetProps = TextConfirmModalBaseProps & {
+  confirmAction: Exclude<ConfirmAction, 'custom'>
+  confirmSubject?: string
+  confirmString?: never
+  confirmPlaceholder?: never
+}
+
+type TextConfirmModalCustomProps = TextConfirmModalBaseProps & {
+  confirmAction?: 'custom'
+  confirmSubject?: never
+  confirmString: string
+  confirmPlaceholder: string
+}
+
+export type TextConfirmModalProps = TextConfirmModalPresetProps | TextConfirmModalCustomProps
+
 export const TextConfirmModal = forwardRef<
   React.ElementRef<typeof DialogContent>,
   React.ComponentPropsWithoutRef<typeof Dialog> & TextConfirmModalProps
@@ -74,6 +103,8 @@ export const TextConfirmModal = forwardRef<
       confirmLabel = 'Submit',
       confirmPlaceholder,
       confirmString,
+      confirmAction,
+      confirmSubject,
       alert,
       input,
       label,
@@ -91,16 +122,21 @@ export const TextConfirmModal = forwardRef<
   ) => {
     const [showCopied, setShowCopied] = useState(false)
 
+    const resolvedConfirmString = getConfirmStringFromAction(confirmAction, confirmString)
+    const resolvedConfirmPlaceholder = getConfirmPlaceholderFromAction(
+      confirmAction,
+      confirmPlaceholder
+    )
+
     const formSchema = z.object({
       confirmValue: z.preprocess(
         (val) => (typeof val === 'string' ? val.trim() : val),
-        z.literal(confirmString.trim(), {
+        z.literal(resolvedConfirmString.trim(), {
           errorMap: () => ({ message: errorMessage }),
         })
       ),
     })
 
-    // 1. Define your form.
     const form = useForm<z.infer<typeof formSchema>>({
       resolver: zodResolver(formSchema),
       reValidateMode: 'onChange',
@@ -111,16 +147,13 @@ export const TextConfirmModal = forwardRef<
 
     const isFormValid = form.formState.isValid
 
-    // 2. Define a submit handler.
     function onSubmit(_values: z.infer<typeof formSchema>) {
-      // Do something with the form values.
-      // ✅ This will be type-safe and validated.
       onConfirm()
     }
 
     useEffect(() => {
-      if (confirmString) form.reset()
-    }, [confirmString])
+      if (resolvedConfirmString) form.reset()
+    }, [resolvedConfirmString])
 
     useEffect(() => {
       if (!showCopied) return
@@ -191,22 +224,24 @@ export const TextConfirmModal = forwardRef<
                           }
                           onClick={() => {
                             setShowCopied(true)
-                            copyToClipboard(confirmString)
+                            copyToClipboard(resolvedConfirmString)
                           }}
                         >
-                          {confirmString}
+                          {resolvedConfirmString}
                         </Button>
                       ) : (
                         <span className="text-foreground break-all whitespace-pre">
-                          {confirmString}
+                          {resolvedConfirmString}
                         </span>
                       )}{' '}
-                      to confirm.
+                      {confirmAction && confirmAction !== 'custom' && confirmSubject
+                        ? `to ${CONFIRM_ACTION_LABEL_SUFFIX[confirmAction]} this ${confirmSubject}.`
+                        : 'to confirm.'}
                     </FormLabel>
                     <FormControl>
                       <Input
                         autoComplete="off"
-                        placeholder={confirmPlaceholder}
+                        placeholder={resolvedConfirmPlaceholder}
                         {...input}
                         {...field}
                       />

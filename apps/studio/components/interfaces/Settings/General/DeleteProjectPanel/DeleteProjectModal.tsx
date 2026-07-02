@@ -128,8 +128,8 @@ export const DeleteProjectModal = ({
           ? `This will permanently delete the ${project?.name} project and all of its data.`
           : undefined
       }
-      confirmPlaceholder="Type the project name in here"
-      confirmString={project?.name || ''}
+      confirmAction="delete"
+      confirmSubject="project"
       confirmLabel="I understand, delete this project"
       onConfirm={handleDeleteProject}
       onCancel={() => {

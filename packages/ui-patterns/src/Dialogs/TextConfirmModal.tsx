@@ -31,9 +31,9 @@ import { z } from 'zod'
 
 import { Admonition } from './../admonition'
 import {
-  type ConfirmAction,
   getConfirmPlaceholderFromAction,
   getConfirmStringFromAction,
+  type ConfirmAction,
 } from './confirm-actions'
 
 const CONFIRM_ACTION_LABEL_SUFFIX: Record<Exclude<ConfirmAction, 'custom'>, string> = {
@@ -218,7 +218,7 @@ export const TextConfirmModal = forwardRef<
                       {enableCopy ? (
                         <Button
                           variant="default"
-                          className="h-[23px] px-1.5 py-0 border-muted text-sm whitespace-pre break-all"
+                          className="h-[23px] px-1.5 py-0 border-muted text-sm font-medium text-foreground whitespace-pre break-all"
                           iconRight={
                             showCopied ? <Check strokeWidth={2} className="text-brand" /> : <Copy />
                           }
@@ -230,7 +230,7 @@ export const TextConfirmModal = forwardRef<
                           {resolvedConfirmString}
                         </Button>
                       ) : (
-                        <span className="text-foreground break-all whitespace-pre">
+                        <span className="font-medium text-foreground break-all whitespace-pre">
                           {resolvedConfirmString}
                         </span>
                       )}{' '}

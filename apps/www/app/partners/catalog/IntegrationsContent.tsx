@@ -6,6 +6,7 @@ import Panel from '~/components/Panel'
 import { searchCatalogPartners } from '~/lib/marketplaceDb'
 import type { Partner } from '~/types/partners'
 import { getCategoryIcon } from 'common/marketplace-categories'
+import { useInfiniteScrollWithFetch } from 'hooks/useInfiniteScroll'
 import { ArrowRight, ArrowUpRight, Filter, LayoutGrid, List, Loader, Search } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -16,7 +17,7 @@ import {
   parseAsStringEnum,
   useQueryStates,
 } from 'nuqs'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Badge,
   Button,
@@ -40,6 +41,9 @@ interface Props {
 }
 
 type ViewMode = 'grid' | 'list'
+
+const OFFICIAL_PARTNER_SLUGS = new Set(['grafana', 'stripe', 'aikido', 'doppler', 'resend'])
+const PARTNERS_PAGE_SIZE = 24
 
 export default function IntegrationsContent({
   initialPartners,
@@ -95,29 +99,54 @@ export default function IntegrationsContent({
         : [...selectedCategories, slug],
     })
 
-  const OFFICIAL_PARTNER_SLUGS = new Set(['grafana', 'stripe', 'aikido', 'doppler', 'resend'])
-
   const HAS_ACTIVE_FILTERS = search.trim() !== '' || selectedCategories.length > 0 || partnerOnly
   const activeFilterCount = selectedCategories.length + (partnerOnly ? 1 : 0)
 
-  const categoryFiltered =
-    selectedCategories.length > 0
-      ? partners.filter((p) => p.categories.some((c) => selectedCategories.includes(c.slug)))
-      : partners
+  const filtered = useMemo(() => {
+    const categoryFiltered =
+      selectedCategories.length > 0
+        ? partners.filter((p) => p.categories.some((c) => selectedCategories.includes(c.slug)))
+        : partners
 
-  const partnerFiltered = partnerOnly
-    ? categoryFiltered.filter((p) => OFFICIAL_PARTNER_SLUGS.has(p.slug))
-    : categoryFiltered
+    return partnerOnly
+      ? categoryFiltered.filter((p) => OFFICIAL_PARTNER_SLUGS.has(p.slug))
+      : categoryFiltered
+  }, [partners, selectedCategories, partnerOnly])
 
-  const filtered = partnerFiltered
-
-  const featuredPartners = filtered
-    .filter((p) => p.featured)
-    .sort((a, b) => a.title.localeCompare(b.title))
-  const listPartners = HAS_ACTIVE_FILTERS
-    ? [...filtered.filter((p) => p.featured), ...filtered.filter((p) => !p.featured)]
-    : filtered.filter((p) => !p.featured)
+  const featuredPartners = useMemo(
+    () => filtered.filter((p) => p.featured).sort((a, b) => a.title.localeCompare(b.title)),
+    [filtered]
+  )
+  const listPartners = useMemo(
+    () =>
+      HAS_ACTIVE_FILTERS
+        ? [...filtered.filter((p) => p.featured), ...filtered.filter((p) => !p.featured)]
+        : filtered.filter((p) => !p.featured),
+    [filtered, HAS_ACTIVE_FILTERS]
+  )
   const showFeatured = !HAS_ACTIVE_FILTERS && featuredPartners.length > 0
+
+  // Only render the first page of the (already-fetched, in-memory) partner list up front,
+  // then reveal more as the sentinel below the grid/list scrolls into view — avoids mounting
+  // every partner card (and its logo <Image>) on initial load.
+  const initialVisiblePartners = useMemo(
+    () => listPartners.slice(0, PARTNERS_PAGE_SIZE),
+    [listPartners]
+  )
+  const fetchMoreVisiblePartners = useCallback(
+    async (offset: number, limit: number) => listPartners.slice(offset, offset + limit),
+    [listPartners]
+  )
+  const {
+    items: visiblePartners,
+    hasMore: hasMorePartners,
+    loadMoreRef: partnersLoadMoreRef,
+  } = useInfiniteScrollWithFetch({
+    initialItems: initialVisiblePartners,
+    totalItems: listPartners.length,
+    pageSize: PARTNERS_PAGE_SIZE,
+    fetchMore: fetchMoreVisiblePartners,
+  })
 
   // Shared filter UI — rendered in both the desktop sidebar and the mobile bottom sheet.
   // Uses wrapping <label> elements (no id/htmlFor) to avoid duplicate HTML IDs in the DOM.
@@ -311,7 +340,7 @@ export default function IntegrationsContent({
             {viewMode === 'grid' &&
               (listPartners.length ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4">
-                  {listPartners.map((p) => (
+                  {visiblePartners.map((p) => (
                     <Link
                       key={p.slug}
                       href={`/partners/catalog/${p.slug}`}
@@ -359,7 +388,7 @@ export default function IntegrationsContent({
             {viewMode === 'list' &&
               (listPartners.length ? (
                 <div className="border bg-background rounded-xl overflow-hidden divide-y">
-                  {listPartners.map((p) => (
+                  {visiblePartners.map((p) => (
                     <Link
                       key={p.slug}
                       href={`/partners/catalog/${p.slug}`}
@@ -399,6 +428,16 @@ export default function IntegrationsContent({
                   No partners found with these filters.
                 </p>
               ))}
+
+            {hasMorePartners && (
+              <div
+                ref={partnersLoadMoreRef}
+                className="flex justify-center py-4"
+                aria-hidden="true"
+              >
+                <Loader size={16} className="animate-spin text-foreground-lighter" />
+              </div>
+            )}
           </div>
         </div>
       </SectionContainer>

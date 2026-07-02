@@ -1,10 +1,11 @@
-import type { ChangelogLabel, ChangelogTimelineIndexItem } from '~/lib/changelog-github'
-import { changelogLabelDisplayName, changelogTagFilterUrl } from '~/lib/changelog.utils'
+import { changelogTagFilterUrl, type ChangelogTimelineIndexItem } from '~/lib/changelog.utils'
 import dayjs from 'dayjs'
 import { GitCommit } from 'lucide-react'
 import Link from 'next/link'
-import type { MouseEvent } from 'react'
+import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { Badge, cn } from 'ui'
+
+const DEFAULT_PAGE_SIZE = 40
 
 function groupChangelogIndexByYear(
   items: ChangelogTimelineIndexItem[]
@@ -18,24 +19,24 @@ function groupChangelogIndexByYear(
   return [...map.entries()].sort((a, b) => b[0] - a[0])
 }
 
-export function LabelBadges({
-  labels,
+export function ProductBadges({
+  products,
   onBadgeClick,
   tiny,
   className,
 }: {
-  labels: ChangelogLabel[]
+  products: string[]
   onBadgeClick?: (e: MouseEvent) => void
   tiny?: boolean
   className?: string
 }) {
-  if (labels.length === 0) return null
+  if (products.length === 0) return null
   return (
     <div className={cn('flex flex-wrap items-center', tiny ? 'gap-0.5' : 'gap-1', className)}>
-      {labels.map((label) => (
+      {products.map((product) => (
         <a
-          key={label.name}
-          href={changelogTagFilterUrl(label.name)}
+          key={product}
+          href={changelogTagFilterUrl(product)}
           className={
             tiny
               ? 'inline-flex shrink-0 no-underline focus-visible:ring-brand-default rounded-sm focus-visible:ring-1 focus-visible:ring-offset-1 focus-visible:outline-hidden'
@@ -52,7 +53,7 @@ export function LabelBadges({
                 : 'text-foreground-light hover:text-foreground rounded-full border px-1.5 py-px text-[11px] font-medium leading-tight'
             )}
           >
-            {changelogLabelDisplayName(label.name)}
+            {product}
           </Badge>
         </a>
       ))}
@@ -62,23 +63,26 @@ export function LabelBadges({
 
 function TimelineRow({ item, href }: { item: ChangelogTimelineIndexItem; href: string }) {
   const dateLabel = dayjs(item.sortDate).format('MMM D')
-  const labels = item.labels ?? []
 
   return (
     <div
       className="group border-default flex w-full flex-col gap-0.5 border-b py-3 text-left scroll-mt-16"
-      id={item.number.toString()}
+      id={item.slug}
     >
       <div className="min-w-0">
         <Link href={href} prefetch={false} className="min-w-0 text-left">
           <h3 className="text-foreground text-lg leading-snug hover:underline">{item.title}</h3>
         </Link>
       </div>
+      {item.summary && <p className="text-foreground-lighter text-sm">{item.summary}</p>}
       <div className="flex min-w-0 gap-2 pt-0.5">
-        <time dateTime={item.sortDate} className="text-foreground-lighter text-xs tracking-normal">
+        <time
+          dateTime={item.sortDate}
+          className="text-foreground-lighter text-xs font-mono tracking-normal"
+        >
           {dateLabel}
         </time>
-        <LabelBadges labels={labels} onBadgeClick={(e) => e.stopPropagation()} />
+        <ProductBadges products={item.affectedProducts} onBadgeClick={(e) => e.stopPropagation()} />
       </div>
     </div>
   )
@@ -87,11 +91,37 @@ function TimelineRow({ item, href }: { item: ChangelogTimelineIndexItem; href: s
 type Props = {
   items: ChangelogTimelineIndexItem[]
   omitOuterTimelineBorder?: boolean
+  pageSize?: number
 }
 
 export function ChangelogTimelineList(props: Props) {
-  const { items, omitOuterTimelineBorder } = props
-  const yearGroups = groupChangelogIndexByYear(items)
+  const { items, omitOuterTimelineBorder, pageSize = DEFAULT_PAGE_SIZE } = props
+  const [visibleCount, setVisibleCount] = useState(() => Math.min(pageSize, items.length))
+  const sentinelRef = useRef<HTMLDivElement>(null)
+
+  // Reset the window whenever the underlying item set changes (e.g. a new search/filter).
+  useEffect(() => {
+    setVisibleCount(Math.min(pageSize, items.length))
+  }, [items, pageSize])
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel || visibleCount >= items.length) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + pageSize, items.length))
+        }
+      },
+      { rootMargin: '600px 0px' }
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [items.length, pageSize, visibleCount])
+
+  const visibleItems = items.slice(0, visibleCount)
+  const yearGroups = groupChangelogIndexByYear(visibleItems)
 
   return (
     <div
@@ -141,12 +171,13 @@ export function ChangelogTimelineList(props: Props) {
 
             <div className="min-w-0 lg:col-span-10 [&>*:last-child]:border-b-0">
               {yearItems.map((item) => (
-                <TimelineRow key={item.number} item={item} href={`/changelog/${item.slug}`} />
+                <TimelineRow key={item.slug} item={item} href={`/changelog/${item.slug}`} />
               ))}
             </div>
           </div>
         </section>
       ))}
+      {visibleCount < items.length && <div ref={sentinelRef} aria-hidden className="h-1" />}
     </div>
   )
 }

@@ -16,22 +16,15 @@ import { ChangelogLlmMarkdownButton } from '@/components/Changelog/ChangelogLlmM
 import { ChangelogTimelineList } from '@/components/Changelog/ChangelogTimelineList'
 import CTABanner from '@/components/CTABanner'
 import DefaultLayout from '@/components/Layouts/Default'
-import changelogProductTags from '@/data/changelog-product-tags.json'
-import {
-  createChangelogOctokit,
-  fetchChangelogDiscussionByNumber,
-  getChangelogTimelineSortedIndex,
-  type ChangelogLabel,
-  type ChangelogTimelineIndexItem,
-} from '@/lib/changelog-github'
+import { getChangelogEntries } from '@/lib/changelog-repo'
 import {
   CHANGELOG_PRODUCT_TAGS,
-  changelogLabelDisplayName,
   changelogTagFilterUrl,
-  discussionDisplayDate,
   isChangelogProductSlug,
   itemMatchesChangelogSearch,
   itemMatchesChangelogSelectedTags,
+  toChangelogTimelineIndexItem,
+  type ChangelogTimelineIndexItem,
 } from '@/lib/changelog.utils'
 import mdxComponents from '@/lib/mdx/mdxComponents'
 import { mdxSerialize } from '@/lib/mdx/mdxSerialize'
@@ -39,13 +32,12 @@ import { mdxSerialize } from '@/lib/mdx/mdxSerialize'
 const FEATURED_COUNT = 3
 
 type FeaturedEntry = {
-  number: number
   slug: string
   title: string
-  url: string
   created_at: string
   source: MDXRemoteSerializeResult
-  labels: ChangelogLabel[]
+  changeType: ChangelogTimelineIndexItem['changeType']
+  affectedProducts: string[]
 }
 
 type PageProps = {
@@ -56,55 +48,26 @@ type PageProps = {
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async ({ res }) => {
   try {
-    const changelogIndex = await getChangelogTimelineSortedIndex()
-    const visible = changelogIndex.filter((item) => !item.title.includes('[d]'))
-    const allIndex = visible
-    const firstMeta = visible.slice(0, FEATURED_COUNT)
-    const restIndex = visible.slice(FEATURED_COUNT)
+    const entries = await getChangelogEntries()
+    const allIndex = entries.map(toChangelogTimelineIndexItem)
+    const firstEntries = entries.slice(0, FEATURED_COUNT)
+    const restIndex = allIndex.slice(FEATURED_COUNT)
 
-    const octokit = createChangelogOctokit()
-    const featuredResults = await Promise.all(
-      firstMeta.map(
-        async (meta): Promise<FeaturedEntry | { failedMeta: ChangelogTimelineIndexItem }> => {
-          try {
-            const discussion = await fetchChangelogDiscussionByNumber(
-              octokit,
-              'supabase',
-              'supabase',
-              meta.number
-            )
-            if (!discussion) return { failedMeta: meta }
-            const source = await mdxSerialize(discussion.body)
-            const created_at =
-              discussionDisplayDate({
-                title: discussion.title,
-                createdAt: discussion.createdAt,
-              }) ?? discussion.createdAt
-            return {
-              number: meta.number,
-              slug: meta.slug,
-              title: discussion.title,
-              url: discussion.url ?? '',
-              created_at,
-              source,
-              labels: meta.labels,
-            }
-          } catch (e) {
-            console.error(e)
-            return { failedMeta: meta }
-          }
-        }
+    const featured = await Promise.all(
+      firstEntries.map(
+        async (entry): Promise<FeaturedEntry> => ({
+          slug: entry.slug,
+          title: entry.frontmatter.title,
+          created_at: entry.sortDate,
+          source: await mdxSerialize(entry.bodySection),
+          changeType: entry.frontmatter.change_type,
+          affectedProducts: entry.frontmatter.affected_products ?? [],
+        })
       )
     )
 
-    const featured = featuredResults.filter((e): e is FeaturedEntry => !('failedMeta' in e))
-    const fallbackItems = featuredResults
-      .filter((e): e is { failedMeta: ChangelogTimelineIndexItem } => 'failedMeta' in e)
-      .map((e) => e.failedMeta)
-    const restIndexWithFallbacks = fallbackItems.concat(restIndex)
-
     res.setHeader('Cache-Control', 'public, max-age=900, stale-while-revalidate=900')
-    return { props: { featured, restIndex: restIndexWithFallbacks, allIndex } }
+    return { props: { featured, restIndex, allIndex } }
   } catch (e) {
     console.error(e)
     res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate')
@@ -245,7 +208,7 @@ function ChangelogIndex({ featured, restIndex, allIndex }: PageProps) {
                     }
                   >
                     {isSingleQueryTag &&
-                      changelogProductTags.find((tag) => tag.slug === queryTags?.[0])?.label +
+                      CHANGELOG_PRODUCT_TAGS.find((tag) => tag.slug === queryTags?.[0])?.label +
                         ' '}{' '}
                     RSS
                   </Link>
@@ -353,8 +316,8 @@ function ChangelogIndex({ featured, restIndex, allIndex }: PageProps) {
               <div className="grid">
                 {featured.map((entry) => (
                   <div
-                    key={entry.number}
-                    id={entry.number.toString()}
+                    key={entry.slug}
+                    id={entry.slug}
                     className="grid pb-12 lg:grid-cols-12 lg:gap-8 lg:pb-36 scroll-mt-32"
                   >
                     <div className="col-span-12 lg:ml-[-31px] mb-8 lg:mb-0 self-start z-10 sticky top-[65px] lg:top-32 lg:col-span-4">
@@ -373,16 +336,16 @@ function ChangelogIndex({ featured, restIndex, allIndex }: PageProps) {
                           <p className="text-foreground-lighter font-mono text-xs">
                             {dayjs(entry.created_at).format('MMM D, YYYY')}
                           </p>
-                          {entry.labels && entry.labels.length > 0 && (
+                          {entry.affectedProducts.length > 0 && (
                             <div className="flex flex-wrap gap-1.5 pt-1.5">
-                              {entry.labels.map((label) => (
+                              {entry.affectedProducts.map((product) => (
                                 <a
-                                  key={`${entry.number}-${label.name}`}
-                                  href={changelogTagFilterUrl(label.name)}
+                                  key={`${entry.slug}-${product}`}
+                                  href={changelogTagFilterUrl(product)}
                                   className="group inline-flex no-underline focus-visible:ring-brand-default rounded-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden"
                                 >
                                   <Badge className="group-hover:text-foreground-light text-foreground-lighter group-hover:border-foreground-muted px-1.5 py-px text-[11px] tracking-normal lowercase">
-                                    {changelogLabelDisplayName(label.name)}
+                                    {product}
                                   </Badge>
                                 </a>
                               ))}

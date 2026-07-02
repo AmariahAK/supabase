@@ -1,0 +1,128 @@
+/**
+ * Parsing + fetch helpers for supabase/changelog `entries/*.md` files, shared by:
+ *  - lib/changelog-repo.ts (page rendering, via GitHub App fetch)
+ *  - scripts/generateStaticContent.mjs (RSS + changelog.md static generation)
+ *
+ * Plain .mjs (no TypeScript syntax) so both a TS Next.js module and a plain
+ * `node` build script can import it directly.
+ */
+import matter from 'gray-matter'
+import { Readable } from 'stream'
+import * as tarStream from 'tar-stream'
+import zlib from 'zlib'
+
+/**
+ * Fetches the whole repo as a single tarball and extracts `entries/*.md` in
+ * memory. One API call regardless of entry count — fetching each file
+ * individually (one request per entry) trips GitHub's secondary rate limit
+ * once the entries directory grows past a couple hundred files.
+ *
+ * @param {import('@octokit/core').Octokit} octokit - already authenticated
+ * @param {{ owner: string, repo: string, entriesPath?: string }} options
+ * @returns {Promise<{ filename: string, content: string }[]>}
+ */
+export async function fetchChangelogEntryFilesFromTarball(octokit, { owner, repo, entriesPath = 'entries' }) {
+  const tarballRes = await octokit.request('GET /repos/{owner}/{repo}/tarball/{ref}', {
+    owner,
+    repo,
+    ref: 'HEAD',
+  })
+
+  const gunzipped = zlib.gunzipSync(Buffer.from(tarballRes.data))
+  const entryPathRe = new RegExp(`/${entriesPath}/([^/]+\\.md)$`)
+  const extract = tarStream.extract()
+  const files = []
+
+  extract.on('entry', (header, stream, next) => {
+    const match = header.type === 'file' ? header.name.match(entryPathRe) : null
+    if (!match) {
+      stream.resume()
+      next()
+      return
+    }
+    const chunks = []
+    stream.on('data', (chunk) => chunks.push(chunk))
+    stream.on('end', () => {
+      files.push({ filename: match[1], content: Buffer.concat(chunks).toString('utf8') })
+      next()
+    })
+    stream.resume()
+  })
+
+  await new Promise((resolve, reject) => {
+    extract.on('finish', resolve)
+    extract.on('error', reject)
+    Readable.from(gunzipped).pipe(extract)
+  })
+
+  return files
+}
+
+export function stripInternalBlock(body) {
+  return body.replace(/<!--\s*internal\s*-->[\s\S]*?<!--\s*\/internal\s*-->/gi, '').trim()
+}
+
+/**
+ * Extracts the content under a `## <heading>` line.
+ * By default stops at the next `##` line of any kind — fine for `Summary`
+ * and `Migration steps`, which are single, unnested sections. `Body` needs
+ * `stopAtHeadings` since it commonly contains its own nested `##` sub-headings
+ * (e.g. "## Vastly improved usage summary") that are still part of Body, not
+ * separate top-level sections — only an explicit `## Migration steps` (or the
+ * end of the already internal-stripped content) should end it.
+ * @param {string[]} [stopAtHeadings] - exact heading names that terminate this section; omit to stop at any `##` line
+ */
+export function extractSection(markdown, heading, stopAtHeadings) {
+  const stopClause = stopAtHeadings?.length
+    ? stopAtHeadings.map((h) => `##\\s+${h}\\s*$`).join('|')
+    : '##\\s+.*$'
+  const regex = new RegExp(`^##\\s+${heading}\\s*\\n([\\s\\S]*?)(?=^(?:${stopClause})|(?![\\s\\S]))`, 'im')
+  const match = markdown.match(regex)
+  return match ? match[1].trim() : ''
+}
+
+function resolveDateFromFilename(filename) {
+  const m = filename.match(/^(\d{4})(\d{2})(\d{2})-/)
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : null
+}
+
+/** `legacy_gh_discussion-suffix` for backfilled entries (preserves old supabase.com/changelog URLs), else the filename suffix. */
+export function computeChangelogEntrySlug(filename, frontmatter) {
+  const base = filename.replace(/\.md$/, '')
+  const suffixMatch = base.match(/^\d{8}-(.+)$/)
+  const suffix = suffixMatch ? suffixMatch[1] : base
+  if (frontmatter.legacy_gh_discussion) {
+    return `${frontmatter.legacy_gh_discussion}-${suffix}`
+  }
+  return suffix
+}
+
+/** @param {string} filename @param {string} raw */
+export function parseChangelogEntryFile(filename, raw) {
+  const { data: frontmatter, content } = matter(raw)
+  const publicBody = stripInternalBlock(content)
+
+  return {
+    slug: computeChangelogEntrySlug(filename, frontmatter),
+    filename,
+    frontmatter,
+    sortDate: frontmatter.publish_date ?? resolveDateFromFilename(filename) ?? '',
+    summary: extractSection(publicBody, 'Summary'),
+    bodySection: extractSection(publicBody, 'Body', ['Migration steps']),
+    migrationSteps: extractSection(publicBody, 'Migration steps'),
+  }
+}
+
+/** `public: true` and not scheduled for a future `publish_date`. */
+export function isPublished(entry) {
+  if (entry.frontmatter.public !== true) return false
+  if (!entry.sortDate) return true
+  return new Date(entry.sortDate).getTime() <= Date.now()
+}
+
+export function getPublishedChangelogEntries(files) {
+  return files
+    .map(({ filename, content }) => parseChangelogEntryFile(filename, content))
+    .filter(isPublished)
+    .sort((a, b) => (a.sortDate < b.sortDate ? 1 : a.sortDate > b.sortDate ? -1 : 0))
+}

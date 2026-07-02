@@ -1,5 +1,10 @@
 import { getFormattedLagValue } from '../Replication/ReplicationPipelineStatus/ReplicationPipelineStatus.utils'
-import type { CopyStatus, WarehouseProjectReplicationStatus } from './warehouseDemoStore'
+import {
+  resolveWarehouseTableState,
+  type CopyStatus,
+  type WarehouseProjectReplicationStatus,
+  type WarehouseTableState,
+} from './warehouseDemoStore'
 
 export type ReplicationHealth = 'healthy' | 'behind' | 'critical' | 'error'
 
@@ -144,4 +149,44 @@ export function getWarehouseLinkedTableStatus(
     tooltip: lagDisplay.tooltip,
     tone: lagDisplay.tone,
   }
+}
+
+const COPY_STATUS_SORT_RANK: Record<CopyStatus, number> = {
+  error: 0,
+  backfilling: 2,
+  live: 4,
+}
+
+const REPLICATION_HEALTH_SORT_RANK: Record<ReplicationHealth, number> = {
+  error: 0,
+  critical: 1,
+  behind: 2,
+  healthy: 3,
+}
+
+/** Higher rank = healthier. Unlinked tables return -1. */
+export function getWarehouseTableStatusSortRank(
+  tableKey: string,
+  storedState: WarehouseTableState | undefined,
+  projectReplication: WarehouseProjectReplicationStatus | null,
+  isWarehouseView: boolean
+): number {
+  const state = resolveWarehouseTableState(tableKey, storedState, { isWarehouseView })
+
+  if (state.mode !== 'has_warehouse_copy' || !state.copyStatus) {
+    return -1
+  }
+
+  const lagDisplay = projectReplication
+    ? getReplicationLagDisplay(projectReplication, state.copyStatus)
+    : null
+  const linkedStatus = getWarehouseLinkedTableStatus(lagDisplay, state.copyStatus)
+
+  if (!linkedStatus) return -1
+
+  if (linkedStatus.type === 'copy') {
+    return COPY_STATUS_SORT_RANK[linkedStatus.copyStatus]
+  }
+
+  return lagDisplay ? REPLICATION_HEALTH_SORT_RANK[lagDisplay.health] : 2
 }

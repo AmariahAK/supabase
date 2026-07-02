@@ -57,6 +57,7 @@ import {
   getWarehouseCopyTooltip,
   isWarehouseSchema,
 } from '../Warehouse/warehouseNaming.utils'
+import { getWarehouseTableStatusSortRank } from '../Warehouse/warehouseReplication.utils'
 import {
   buildTableDetailUrl,
   getActiveWarehouseSchemas,
@@ -87,7 +88,7 @@ import type { SafePostgresTable } from '@/lib/postgres-types'
 import { SHORTCUT_IDS } from '@/state/shortcuts/registry'
 import { useShortcut } from '@/state/shortcuts/useShortcut'
 
-type TableListSortColumn = 'name' | 'columns' | 'rows' | 'storage' | 'realtime'
+type TableListSortColumn = 'name' | 'columns' | 'rows' | 'storage' | 'realtime' | 'warehouse'
 type TableListSort = `${TableListSortColumn}:asc` | `${TableListSortColumn}:desc`
 
 interface TableListProps {
@@ -264,6 +265,19 @@ export const TableList = ({
     const getBytes = (entity: (typeof entities)[number]) =>
       'bytes' in entity && typeof entity.bytes === 'number' ? entity.bytes : undefined
 
+    const getWarehouseSortRank = (entity: (typeof entities)[number]) => {
+      if (entity.type !== ENTITY_TYPE.TABLE) return -1
+
+      const tableKey = `${getSourceSchemaName(selectedSchema)}.${entity.name}`
+
+      return getWarehouseTableStatusSortRank(
+        tableKey,
+        warehouseSnap.tables[tableKey],
+        warehouseSnap.projectReplication,
+        isWarehouseSchema(selectedSchema)
+      )
+    }
+
     items.sort((a, b) => {
       let comparison = 0
 
@@ -296,6 +310,8 @@ export const TableList = ({
         }
       } else if (sortColumn === 'realtime') {
         comparison = Number(isRealtimeEnabled(a)) - Number(isRealtimeEnabled(b))
+      } else if (sortColumn === 'warehouse') {
+        comparison = getWarehouseSortRank(a) - getWarehouseSortRank(b)
       }
 
       if (comparison !== 0) {
@@ -306,7 +322,7 @@ export const TableList = ({
     })
 
     return items
-  }, [entities, sortColumn, sortDirection, realtimePublication])
+  }, [entities, selectedSchema, sortColumn, sortDirection, realtimePublication, warehouseSnap])
 
   const footerCount = hasNextTablesPage ? tables.length : entities.length
 
@@ -527,7 +543,15 @@ export const TableList = ({
                       Realtime
                     </TableHeadSort>
                   </TableHead>
-                  <TableHead key="warehouse">Warehouse</TableHead>
+                  <TableHead key="warehouse" aria-sort={getAriaSort('warehouse')}>
+                    <TableHeadSort
+                      column="warehouse"
+                      currentSort={sort}
+                      onSortChange={handleSortChange}
+                    >
+                      Warehouse
+                    </TableHeadSort>
+                  </TableHead>
                   <TableHead key="buttons"></TableHead>
                 </TableRow>
               </TableHeader>

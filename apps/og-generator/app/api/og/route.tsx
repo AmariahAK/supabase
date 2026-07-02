@@ -281,11 +281,30 @@ export async function GET(req: Request) {
     // Grid-snap (§4): phase the pattern so a grid line lands on the safe-area
     // inset, anchoring the composition's left/top edges to the background grid.
     const gridUnit = PATTERN_SCALE_PX[cfg.scale] * s
+
+    // padY / H-padY mark the invisible LAYOUT BOX edge, but CSS line-height
+    // leading means the visible glyph ink sits a bit inside that edge — the
+    // grid should snap to where the text actually LOOKS like it starts/ends,
+    // not the box. Derived from the real Manrope metrics (already loaded for
+    // the auto-fit measurement above), not a guessed pixel constant, so it
+    // stays correct across every font size auto-fit picks.
+    const unitsPerEm = headlineFont.unitsPerEm
+    const ascentPx = (headlineFont.ascent / unitsPerEm) * headlineSize
+    const descentPx = (Math.abs(headlineFont.descent) / unitsPerEm) * headlineSize
+    const capHeightPx = (headlineFont.capHeight / unitsPerEm) * headlineSize
+    const halfLeading = (headlineLineHeight - (ascentPx + descentPx)) / 2
+    const visualTopInset = halfLeading + ascentPx - capHeightPx // box top -> cap-height top
+    const visualBottomInset = halfLeading + descentPx // box bottom -> baseline
+
     // Grid-snap on BOTH axes: align a grid line to where THIS template's content
     // actually sits (left/center × top/center/bottom), not just the top-left.
     const anchorPxX = template.anchorX === 'center' ? W / 2 : padX
     const anchorPxY =
-      template.anchorY === 'center' ? H / 2 : template.anchorY === 'bottom' ? H - padY : padY
+      template.anchorY === 'center'
+        ? H / 2
+        : template.anchorY === 'bottom'
+          ? H - padY - visualBottomInset
+          : padY + visualTopInset
     const patternOffX = ((anchorPxX % gridUnit) + gridUnit) % gridUnit
     const patternOffY = ((anchorPxY % gridUnit) + gridUnit) % gridUnit
 

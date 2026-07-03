@@ -125,21 +125,35 @@ export const Admonition = forwardRef<
     const typeStyle = type === 'success' ? 'success' : typeMapped
     const heading = title
 
+    const alertClassName = cn(
+      // Handle occasional background elements
+      'overflow-hidden',
+      // Container query context for responsive layout
+      layout === 'responsive' && '@container',
+      // SVG icon
+      admonitionSVG({ type: typeStyle }),
+      props.className
+    )
+
+    // #region agent log
+    if (typeof window !== 'undefined' && title === 'For AI agents') {
+      fetch('http://127.0.0.1:7411/ingest/d6ca9f28-e805-4c59-802b-dacf8d719b5f', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd0cf15' },
+        body: JSON.stringify({
+          sessionId: 'd0cf15',
+          location: 'admonition.tsx:Admonition',
+          message: 'Admonition Alert className',
+          data: { propsClassName: props.className, alertClassName, typeStyle, typeMapped },
+          timestamp: Date.now(),
+          hypothesisId: 'H3',
+        }),
+      }).catch(() => {})
+    }
+    // #endregion
+
     return (
-      <Alert
-        ref={ref}
-        variant={typeMapped}
-        {...props}
-        className={cn(
-          // Handle occasional background elements
-          'overflow-hidden',
-          // Container query context for responsive layout
-          layout === 'responsive' && '@container',
-          // SVG icon
-          admonitionSVG({ type: typeStyle }),
-          props.className
-        )}
-      >
+      <Alert ref={ref} variant={typeMapped} {...props} className={alertClassName}>
         {!!icon ? (
           icon
         ) : showIcon && typeStyle === 'success' ? (

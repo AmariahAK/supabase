@@ -4,7 +4,12 @@ subtitle: 'Learn how to create a Supabase project, add some sample data to your 
 breadcrumb: 'Framework Quickstarts'
 ---
 
-<Admonition className="[&>svg]:text-brand! [&_h5]:text-base font-semibold" icon={<Sparkles size={16} className="text-brand" />} title="For AI agents">
+<Admonition
+  className="[&>svg]:!bg-brand/15 [&>svg]:!text-brand dark:[&>svg]:!bg-brand/20"
+  icon={<Sparkles size={16} />}
+  title="For AI agents"
+  childProps={{ title: { className: 'text-base font-semibold' } }}
+>
 
 <$Partial path="ai/quickstart_prompt_sveltekit.mdx" />
 

@@ -66,14 +66,30 @@ provision() {
   # (docker/docker-compose.yml's ${POSTGRES_PASSWORD}) were baked in with
   # different, unknown passwords. Reset just those to the demo password.
   #
+  # docker/docker-compose.yml hardcodes pg-meta to connect as `postgres`, and
+  # Studio's extension UI runs through pg-meta. The supabase/postgres image
+  # deliberately makes `postgres` non-superuser (supabase_admin holds real
+  # superuser, mirroring the production security model), so CREATE EXTENSION
+  # for anything not explicitly "trusted" (pg_cron, hypopg, ...) fails with
+  # permission denied. On the old vanilla postgres:17.7 base, `postgres` was
+  # the initdb bootstrap superuser, so this worked by accident. Restore that
+  # same privilege level here since this is a throwaway e2e database.
+  #
   # Note: the `realtime` service is expected to crash-loop here (both before
   # and after this change) — it needs a separate `_supabase` database for its
   # own migration bookkeeping, and Multigres's gateway doesn't support CREATE
   # DATABASE ("CREATE DATABASE is not supported through the connection
   # pooler"). Pre-existing Multigres limitation, not something this script
   # can provision around.
+  #
+  # Also known-broken: pg_cron and pg_net (they load via shared_preload_libraries,
+  # which needs to be set before Postgres starts — a superuser grant here can't
+  # provide that). Multigres's cluster-entrypoint.sh supports injecting this via
+  # MULTIGRES_PG_EXTRA_CONF, but its docker-compose.yml never forwards that env
+  # var into the container (unlike MULTIGRES_PG_MAX_CONNECTIONS, which is wired
+  # through) — a gap in Multigres itself, not fixable from this script.
   psql_mg <<'SQL'
-ALTER ROLE postgres WITH LOGIN PASSWORD 'postgres';
+ALTER ROLE postgres WITH LOGIN SUPERUSER PASSWORD 'postgres';
 ALTER ROLE authenticator WITH LOGIN PASSWORD 'postgres';
 ALTER ROLE supabase_auth_admin WITH LOGIN PASSWORD 'postgres';
 ALTER ROLE supabase_storage_admin WITH LOGIN PASSWORD 'postgres';

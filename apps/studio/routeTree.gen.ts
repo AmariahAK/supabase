@@ -145,6 +145,7 @@ import { Route as ProjectRefDatabaseTriggersRouteImport } from './routes/project
 import { Route as ProjectRefDatabaseSettingsRouteImport } from './routes/project/$ref/database/settings'
 import { Route as ProjectRefDatabaseSchemasRouteImport } from './routes/project/$ref/database/schemas'
 import { Route as ProjectRefDatabaseRolesRouteImport } from './routes/project/$ref/database/roles'
+import { Route as ProjectRefDatabasePoliciesRouteImport } from './routes/project/$ref/database/policies'
 import { Route as ProjectRefDatabaseMigrationsRouteImport } from './routes/project/$ref/database/migrations'
 import { Route as ProjectRefDatabaseIndexesRouteImport } from './routes/project/$ref/database/indexes'
 import { Route as ProjectRefDatabaseFunctionsRouteImport } from './routes/project/$ref/database/functions'
@@ -159,7 +160,6 @@ import { Route as ProjectRefAuthSessionsRouteImport } from './routes/project/$re
 import { Route as ProjectRefAuthRateLimitsRouteImport } from './routes/project/$ref/auth/rate-limits'
 import { Route as ProjectRefAuthProvidersRouteImport } from './routes/project/$ref/auth/providers'
 import { Route as ProjectRefAuthProtectionRouteImport } from './routes/project/$ref/auth/protection'
-import { Route as ProjectRefAuthPoliciesRouteImport } from './routes/project/$ref/auth/policies'
 import { Route as ProjectRefAuthPerformanceRouteImport } from './routes/project/$ref/auth/performance'
 import { Route as ProjectRefAuthPasskeysRouteImport } from './routes/project/$ref/auth/passkeys'
 import { Route as ProjectRefAuthOverviewRouteImport } from './routes/project/$ref/auth/overview'
@@ -1044,6 +1044,12 @@ const ProjectRefDatabaseRolesRoute = ProjectRefDatabaseRolesRouteImport.update({
   path: '/roles',
   getParentRoute: () => ProjectRefDatabaseRoute,
 } as any)
+const ProjectRefDatabasePoliciesRoute =
+  ProjectRefDatabasePoliciesRouteImport.update({
+    id: '/policies',
+    path: '/policies',
+    getParentRoute: () => ProjectRefDatabaseRoute,
+  } as any)
 const ProjectRefDatabaseMigrationsRoute =
   ProjectRefDatabaseMigrationsRouteImport.update({
     id: '/migrations',
@@ -1124,11 +1130,6 @@ const ProjectRefAuthProtectionRoute =
     path: '/protection',
     getParentRoute: () => ProjectRefAuthRoute,
   } as any)
-const ProjectRefAuthPoliciesRoute = ProjectRefAuthPoliciesRouteImport.update({
-  id: '/policies',
-  path: '/policies',
-  getParentRoute: () => ProjectRefAuthRoute,
-} as any)
 const ProjectRefAuthPerformanceRoute =
   ProjectRefAuthPerformanceRouteImport.update({
     id: '/performance',
@@ -2135,7 +2136,6 @@ export interface FileRoutesByFullPath {
   '/project/$ref/auth/overview': typeof ProjectRefAuthOverviewRoute
   '/project/$ref/auth/passkeys': typeof ProjectRefAuthPasskeysRoute
   '/project/$ref/auth/performance': typeof ProjectRefAuthPerformanceRoute
-  '/project/$ref/auth/policies': typeof ProjectRefAuthPoliciesRoute
   '/project/$ref/auth/protection': typeof ProjectRefAuthProtectionRoute
   '/project/$ref/auth/providers': typeof ProjectRefAuthProvidersRoute
   '/project/$ref/auth/rate-limits': typeof ProjectRefAuthRateLimitsRoute
@@ -2150,6 +2150,7 @@ export interface FileRoutesByFullPath {
   '/project/$ref/database/functions': typeof ProjectRefDatabaseFunctionsRoute
   '/project/$ref/database/indexes': typeof ProjectRefDatabaseIndexesRoute
   '/project/$ref/database/migrations': typeof ProjectRefDatabaseMigrationsRoute
+  '/project/$ref/database/policies': typeof ProjectRefDatabasePoliciesRoute
   '/project/$ref/database/roles': typeof ProjectRefDatabaseRolesRoute
   '/project/$ref/database/schemas': typeof ProjectRefDatabaseSchemasRoute
   '/project/$ref/database/settings': typeof ProjectRefDatabaseSettingsRoute
@@ -2432,7 +2433,6 @@ export interface FileRoutesByTo {
   '/project/$ref/auth/overview': typeof ProjectRefAuthOverviewRoute
   '/project/$ref/auth/passkeys': typeof ProjectRefAuthPasskeysRoute
   '/project/$ref/auth/performance': typeof ProjectRefAuthPerformanceRoute
-  '/project/$ref/auth/policies': typeof ProjectRefAuthPoliciesRoute
   '/project/$ref/auth/protection': typeof ProjectRefAuthProtectionRoute
   '/project/$ref/auth/providers': typeof ProjectRefAuthProvidersRoute
   '/project/$ref/auth/rate-limits': typeof ProjectRefAuthRateLimitsRoute
@@ -2447,6 +2447,7 @@ export interface FileRoutesByTo {
   '/project/$ref/database/functions': typeof ProjectRefDatabaseFunctionsRoute
   '/project/$ref/database/indexes': typeof ProjectRefDatabaseIndexesRoute
   '/project/$ref/database/migrations': typeof ProjectRefDatabaseMigrationsRoute
+  '/project/$ref/database/policies': typeof ProjectRefDatabasePoliciesRoute
   '/project/$ref/database/roles': typeof ProjectRefDatabaseRolesRoute
   '/project/$ref/database/schemas': typeof ProjectRefDatabaseSchemasRoute
   '/project/$ref/database/settings': typeof ProjectRefDatabaseSettingsRoute
@@ -2738,7 +2739,6 @@ export interface FileRoutesById {
   '/project/$ref/auth/overview': typeof ProjectRefAuthOverviewRoute
   '/project/$ref/auth/passkeys': typeof ProjectRefAuthPasskeysRoute
   '/project/$ref/auth/performance': typeof ProjectRefAuthPerformanceRoute
-  '/project/$ref/auth/policies': typeof ProjectRefAuthPoliciesRoute
   '/project/$ref/auth/protection': typeof ProjectRefAuthProtectionRoute
   '/project/$ref/auth/providers': typeof ProjectRefAuthProvidersRoute
   '/project/$ref/auth/rate-limits': typeof ProjectRefAuthRateLimitsRoute
@@ -2753,6 +2753,7 @@ export interface FileRoutesById {
   '/project/$ref/database/functions': typeof ProjectRefDatabaseFunctionsRoute
   '/project/$ref/database/indexes': typeof ProjectRefDatabaseIndexesRoute
   '/project/$ref/database/migrations': typeof ProjectRefDatabaseMigrationsRoute
+  '/project/$ref/database/policies': typeof ProjectRefDatabasePoliciesRoute
   '/project/$ref/database/roles': typeof ProjectRefDatabaseRolesRoute
   '/project/$ref/database/schemas': typeof ProjectRefDatabaseSchemasRoute
   '/project/$ref/database/settings': typeof ProjectRefDatabaseSettingsRoute
@@ -3046,7 +3047,6 @@ export interface FileRouteTypes {
     | '/project/$ref/auth/overview'
     | '/project/$ref/auth/passkeys'
     | '/project/$ref/auth/performance'
-    | '/project/$ref/auth/policies'
     | '/project/$ref/auth/protection'
     | '/project/$ref/auth/providers'
     | '/project/$ref/auth/rate-limits'
@@ -3061,6 +3061,7 @@ export interface FileRouteTypes {
     | '/project/$ref/database/functions'
     | '/project/$ref/database/indexes'
     | '/project/$ref/database/migrations'
+    | '/project/$ref/database/policies'
     | '/project/$ref/database/roles'
     | '/project/$ref/database/schemas'
     | '/project/$ref/database/settings'
@@ -3343,7 +3344,6 @@ export interface FileRouteTypes {
     | '/project/$ref/auth/overview'
     | '/project/$ref/auth/passkeys'
     | '/project/$ref/auth/performance'
-    | '/project/$ref/auth/policies'
     | '/project/$ref/auth/protection'
     | '/project/$ref/auth/providers'
     | '/project/$ref/auth/rate-limits'
@@ -3358,6 +3358,7 @@ export interface FileRouteTypes {
     | '/project/$ref/database/functions'
     | '/project/$ref/database/indexes'
     | '/project/$ref/database/migrations'
+    | '/project/$ref/database/policies'
     | '/project/$ref/database/roles'
     | '/project/$ref/database/schemas'
     | '/project/$ref/database/settings'
@@ -3648,7 +3649,6 @@ export interface FileRouteTypes {
     | '/project/$ref/auth/overview'
     | '/project/$ref/auth/passkeys'
     | '/project/$ref/auth/performance'
-    | '/project/$ref/auth/policies'
     | '/project/$ref/auth/protection'
     | '/project/$ref/auth/providers'
     | '/project/$ref/auth/rate-limits'
@@ -3663,6 +3663,7 @@ export interface FileRouteTypes {
     | '/project/$ref/database/functions'
     | '/project/$ref/database/indexes'
     | '/project/$ref/database/migrations'
+    | '/project/$ref/database/policies'
     | '/project/$ref/database/roles'
     | '/project/$ref/database/schemas'
     | '/project/$ref/database/settings'
@@ -4923,6 +4924,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectRefDatabaseRolesRouteImport
       parentRoute: typeof ProjectRefDatabaseRoute
     }
+    '/project/$ref/database/policies': {
+      id: '/project/$ref/database/policies'
+      path: '/policies'
+      fullPath: '/project/$ref/database/policies'
+      preLoaderRoute: typeof ProjectRefDatabasePoliciesRouteImport
+      parentRoute: typeof ProjectRefDatabaseRoute
+    }
     '/project/$ref/database/migrations': {
       id: '/project/$ref/database/migrations'
       path: '/migrations'
@@ -5019,13 +5027,6 @@ declare module '@tanstack/react-router' {
       path: '/protection'
       fullPath: '/project/$ref/auth/protection'
       preLoaderRoute: typeof ProjectRefAuthProtectionRouteImport
-      parentRoute: typeof ProjectRefAuthRoute
-    }
-    '/project/$ref/auth/policies': {
-      id: '/project/$ref/auth/policies'
-      path: '/policies'
-      fullPath: '/project/$ref/auth/policies'
-      preLoaderRoute: typeof ProjectRefAuthPoliciesRouteImport
       parentRoute: typeof ProjectRefAuthRoute
     }
     '/project/$ref/auth/performance': {
@@ -6294,7 +6295,6 @@ interface ProjectRefAuthRouteChildren {
   ProjectRefAuthOverviewRoute: typeof ProjectRefAuthOverviewRoute
   ProjectRefAuthPasskeysRoute: typeof ProjectRefAuthPasskeysRoute
   ProjectRefAuthPerformanceRoute: typeof ProjectRefAuthPerformanceRoute
-  ProjectRefAuthPoliciesRoute: typeof ProjectRefAuthPoliciesRoute
   ProjectRefAuthProtectionRoute: typeof ProjectRefAuthProtectionRoute
   ProjectRefAuthProvidersRoute: typeof ProjectRefAuthProvidersRoute
   ProjectRefAuthRateLimitsRoute: typeof ProjectRefAuthRateLimitsRoute
@@ -6316,7 +6316,6 @@ const ProjectRefAuthRouteChildren: ProjectRefAuthRouteChildren = {
   ProjectRefAuthOverviewRoute: ProjectRefAuthOverviewRoute,
   ProjectRefAuthPasskeysRoute: ProjectRefAuthPasskeysRoute,
   ProjectRefAuthPerformanceRoute: ProjectRefAuthPerformanceRoute,
-  ProjectRefAuthPoliciesRoute: ProjectRefAuthPoliciesRoute,
   ProjectRefAuthProtectionRoute: ProjectRefAuthProtectionRoute,
   ProjectRefAuthProvidersRoute: ProjectRefAuthProvidersRoute,
   ProjectRefAuthRateLimitsRoute: ProjectRefAuthRateLimitsRoute,
@@ -6371,6 +6370,7 @@ interface ProjectRefDatabaseRouteChildren {
   ProjectRefDatabaseFunctionsRoute: typeof ProjectRefDatabaseFunctionsRoute
   ProjectRefDatabaseIndexesRoute: typeof ProjectRefDatabaseIndexesRoute
   ProjectRefDatabaseMigrationsRoute: typeof ProjectRefDatabaseMigrationsRoute
+  ProjectRefDatabasePoliciesRoute: typeof ProjectRefDatabasePoliciesRoute
   ProjectRefDatabaseRolesRoute: typeof ProjectRefDatabaseRolesRoute
   ProjectRefDatabaseSchemasRoute: typeof ProjectRefDatabaseSchemasRoute
   ProjectRefDatabaseSettingsRoute: typeof ProjectRefDatabaseSettingsRoute
@@ -6395,6 +6395,7 @@ const ProjectRefDatabaseRouteChildren: ProjectRefDatabaseRouteChildren = {
   ProjectRefDatabaseFunctionsRoute: ProjectRefDatabaseFunctionsRoute,
   ProjectRefDatabaseIndexesRoute: ProjectRefDatabaseIndexesRoute,
   ProjectRefDatabaseMigrationsRoute: ProjectRefDatabaseMigrationsRoute,
+  ProjectRefDatabasePoliciesRoute: ProjectRefDatabasePoliciesRoute,
   ProjectRefDatabaseRolesRoute: ProjectRefDatabaseRolesRoute,
   ProjectRefDatabaseSchemasRoute: ProjectRefDatabaseSchemasRoute,
   ProjectRefDatabaseSettingsRoute: ProjectRefDatabaseSettingsRoute,

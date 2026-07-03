@@ -25,7 +25,7 @@ import { CodeBlock } from '~/features/ui/CodeBlock/CodeBlock'
 import InfoTooltip from '~/features/ui/InfoTooltip'
 import { ShowUntil } from '~/features/ui/ShowUntil'
 import { TabPanel, Tabs } from '~/features/ui/Tabs'
-import { ArrowDown, Check, X } from 'lucide-react'
+import { ArrowDown, Check, Sparkles, X } from 'lucide-react'
 import Link from 'next/link'
 import { type ComponentPropsWithoutRef } from 'react'
 import { Badge, Button } from 'ui'
@@ -95,6 +95,7 @@ const components = {
   RealtimeLimitsEstimator,
   RegionsList,
   SmartRegionsList,
+  Sparkles,
   SharedData,
   ShowUntil,
   SqlToRest,

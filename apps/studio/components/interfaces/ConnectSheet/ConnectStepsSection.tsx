@@ -238,7 +238,7 @@ export function ConnectStepsSection({ steps, state, projectKeys }: ConnectStepsS
             type="warning"
             layout="responsive"
             title="Database access requires the Data API"
-            description="Client library database queries (such as .from().select()) will not work until the Data API is enabled."
+            description="Client library database queries will not work until the Data API is enabled."
             actions={[
               <Button asChild key="enable" variant="default">
                 <Link href={`/project/${ref}/integrations/data_api/settings`}>Enable Data API</Link>

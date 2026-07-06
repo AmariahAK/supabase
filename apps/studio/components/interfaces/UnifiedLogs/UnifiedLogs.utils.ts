@@ -122,6 +122,7 @@ export function formatServiceTypeForDisplay(serviceType: string): string {
     supavisor: 'Supavisor',
     pgbouncer: 'PgBouncer',
     multigres: 'Multigres',
+    'database upgrades': 'Database Upgrades',
   }
 
   return specialCases[serviceType.toLowerCase()] || serviceType

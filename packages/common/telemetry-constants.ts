@@ -3370,6 +3370,7 @@ export interface UnifiedLogsRowClickedEvent {
       | 'supavisor'
       | 'pgbouncer'
       | 'multigres'
+      | 'database upgrades'
   }
   groups: TelemetryGroups
 }

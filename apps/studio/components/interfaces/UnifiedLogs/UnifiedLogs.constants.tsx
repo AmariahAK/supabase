@@ -27,6 +27,7 @@ export const LOG_TYPES_LABELS = {
   supavisor: 'Supavisor',
   pgbouncer: 'PgBouncer',
   multigres: 'Multigres',
+  'database upgrades': 'Database Upgrades',
 }
 
 type LogType = keyof typeof LOG_TYPES_LABELS

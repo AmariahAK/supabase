@@ -782,14 +782,19 @@ export const TableList = ({
                               onKeyDown={(event) => event.stopPropagation()}
                             >
                               <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="default"
-                                    className="h-[28px] w-7 hit-area-2"
-                                    icon={<MoreVertical />}
-                                    aria-label={`Table ${x.name} actions`}
-                                  />
-                                </DropdownMenuTrigger>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="default"
+                                        className="h-[28px] w-7 hit-area-2"
+                                        icon={<MoreVertical />}
+                                        aria-label={`Table ${x.name} actions`}
+                                      />
+                                    </DropdownMenuTrigger>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom">More options</TooltipContent>
+                                </Tooltip>
                                 <DropdownMenuContent side="bottom" align="end" className="w-48">
                                   <DropdownMenuItem
                                     className="flex items-center space-x-2"

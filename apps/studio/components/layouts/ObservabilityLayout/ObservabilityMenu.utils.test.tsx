@@ -243,6 +243,7 @@ describe('generateObservabilityMenuItems - complete structure', () => {
     expect(itemKeys(menu[0])).toEqual([
       'observability', // Overview
       'query-performance',
+      'database-activity',
       // API Gateway excluded
     ])
   })
@@ -264,6 +265,7 @@ describe('generateObservabilityMenuItems - complete structure', () => {
     expect(itemKeys(generalSection)).toEqual([
       'observability', // Overview
       'query-insights', // Supamonitor enabled
+      'database-activity',
       'api-overview', // Platform only
     ])
 

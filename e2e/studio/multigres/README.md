@@ -11,14 +11,14 @@ Studio E2E suite can run against it.
    prebuilt [`multigres-cluster-supabase`](https://github.com/multigres/multigres/pkgs/container/multigres-cluster-supabase)
    image, which is already built on a `supabase/postgres:*-multigres` base so
    the Supabase roles/schemas/extensions exist via that image's `initdb`.
-   `MULTIGRES_PG_EXTRA_CONF` sets `shared_preload_libraries` so pg_cron/pg_net
-   can load (they can't be enabled at runtime otherwise):
+   `MULTIGRES_PG_EXTRA_CONF` sets `shared_preload_libraries` so pg_cron/pg_net/
+   pg_stat_statements can load (they can't be enabled at runtime otherwise):
    ```bash
    docker run -d --name multigres-multigres-1 \
      -p 15432:15432 -p 15100:15100 -p 15000:15000 \
      -e MULTIGRES_NUM_CELLS=2 \
      -e MULTIGRES_GATEWAY_PG_PORT=15432 \
-     -e MULTIGRES_PG_EXTRA_CONF="shared_preload_libraries = 'pg_cron,pg_net'" \
+     -e MULTIGRES_PG_EXTRA_CONF="shared_preload_libraries = 'pg_cron,pg_net,pg_stat_statements'" \
      ghcr.io/multigres/multigres-cluster-supabase:latest   # wait ~30s for healthy
    ```
 

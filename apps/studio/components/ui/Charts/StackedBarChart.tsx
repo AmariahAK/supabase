@@ -181,6 +181,7 @@ const StackedBarChart: React.FC<Props> = ({
             </Bar>
           ))}
           <Tooltip
+            isAnimationActive={false}
             labelFormatter={
               xAxisFormatAsDate ? (label) => formatChartDate(label as number | string) : undefined
             }

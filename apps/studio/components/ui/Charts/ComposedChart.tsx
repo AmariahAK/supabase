@@ -618,6 +618,7 @@ export function ComposedChart({
             />
           )}
           <Tooltip
+            isAnimationActive={false}
             content={(props) =>
               showTooltip && !showHighlightActions ? (
                 <CustomTooltip

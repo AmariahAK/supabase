@@ -92,7 +92,16 @@ ${colorConfig
   )
 }
 
-const ChartTooltip = RechartsPrimitive.Tooltip
+// recharts v3 animates the tooltip wrapper's position by default (`isAnimationActive: 'auto'`),
+// which makes it visibly slide in from its previous position instead of appearing next to the
+// cursor as it did in v2. Default it to `false` here so all consumers get the v2 behaviour
+// unless they explicitly opt back into the animation.
+const ChartTooltip = ({
+  isAnimationActive = false,
+  ...props
+}: React.ComponentProps<typeof RechartsPrimitive.Tooltip>) => (
+  <RechartsPrimitive.Tooltip isAnimationActive={isAnimationActive} {...props} />
+)
 
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,

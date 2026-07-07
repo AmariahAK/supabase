@@ -328,6 +328,7 @@ export const QueryBlock = ({
                     tickFormatter={effectiveLogScale ? formatLogTick : formatYAxisTick}
                   />
                   <Tooltip
+                    isAnimationActive={false}
                     content={
                       portalTooltip ? (
                         <PortalChartTooltip

@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import type { Suggestion } from '@/lib/ai/suggest'
 import { ICON_LIBRARY } from '@/lib/assets/icon-library'
 import { type SeedIcon } from '@/lib/assets/seed-icons'
 import { BRAND_OPTIONS, DEFAULT_BRAND_ID, color, getBrand, type BrandId } from '@/lib/design/brands'
@@ -21,40 +20,15 @@ const SOFT_LIMIT = 60
 const HARD_LIMIT = 70
 const MIN_SIZE = typography.roles.headline.minSize
 const MAX_SIZE = typography.roles.headline.maxSize
-const THUMB_MIN = 160
-const THUMB_MAX = 480
-const OPACITY_MIN = 0.2
-const OPACITY_MAX = 0.35
 
-/** Safe-area guide insets as % of the canvas, for a given format. */
-function outerInset(width: number, height: number) {
-  return { x: (64 / width) * 100, y: (64 / height) * 100 }
-}
-function headlineInsetPct(width: number, height: number) {
-  return { x: (80 / width) * 100, y: (72 / height) * 100 }
+/** Safe-area guide: a uniform 80px margin on every side, regardless of format. */
+function safeAreaInset(width: number, height: number) {
+  return { x: (80 / width) * 100, y: (80 / height) * 100 }
 }
 
 type View = 'og' | 'thumb' | 'both'
-type PatternTypeOpt = 'none' | 'dots' | 'grid' | 'hlines' | 'vlines'
-type PatternScaleOpt = 'sm' | 'md' | 'lg'
-type PatternColorOpt = 'white' | 'green'
-/** Backgrounds are white-only for now — color picker removed from the UI. */
-const PATTERN_COLOR: PatternColorOpt = 'white'
-/** Collapse any legacy 'sm' value (still used by older examples) onto 'md'. */
-const normalizeScale = (s: PatternScaleOpt): PatternScaleOpt => (s === 'sm' ? 'md' : s)
 type EyebrowStyle = 'text' | 'pill'
 
-const PATTERN_TYPE_OPTS: { value: PatternTypeOpt; label: string }[] = [
-  { value: 'none', label: 'None' },
-  { value: 'dots', label: 'Dot grid' },
-  { value: 'grid', label: 'Square grid' },
-  { value: 'hlines', label: 'Horizontal rules' },
-  { value: 'vlines', label: 'Vertical rules' },
-]
-const SCALE_OPTS: { value: PatternScaleOpt; label: string }[] = [
-  { value: 'md', label: 'Default' },
-  { value: 'lg', label: 'Bigger' },
-]
 const VIEW_OPTS: { value: View; label: string }[] = [
   { value: 'og', label: 'OG' },
   { value: 'thumb', label: 'Thumb' },
@@ -72,8 +46,6 @@ const PLATFORMS: { name: string; aspect: string; radius: number; accent?: boolea
   { name: 'Slack', aspect: '1.91 / 1', radius: 8, accent: true },
   { name: 'Messages', aspect: '1 / 1', radius: 18 },
 ]
-
-const DEFAULT_TPL = TEMPLATES.find((t) => t.id === DEFAULT_TEMPLATE_ID) ?? TEMPLATES[0]
 
 interface FitInfo {
   fontSize: number
@@ -138,6 +110,48 @@ function Segmented<T extends string>({
   )
 }
 
+/** Small illustrative diagram of where the headline/icon sit for a template. */
+function LayoutThumb({ id }: { id: string }) {
+  const iconBox = <div className="absolute h-3 w-3 rounded-sm bg-surface-300" />
+  const bars = (align: 'items-start' | 'items-center') => (
+    <div className={`absolute flex flex-col gap-0.5 ${align}`}>
+      <div className="h-1 w-6 rounded-full bg-foreground-lighter" />
+      <div className="h-1 w-4 rounded-full bg-foreground-lighter" />
+    </div>
+  )
+  switch (id) {
+    case 'split-right':
+      return (
+        <div className="relative h-full w-full">
+          <div className="absolute left-1.5 top-1/2 -translate-y-1/2">{bars('items-start')}</div>
+          <div className="absolute right-1.5 top-1/2 -translate-y-1/2">{iconBox}</div>
+        </div>
+      )
+    case 'centered':
+      return (
+        <div className="relative h-full w-full">
+          <div className="absolute left-1/2 top-1.5 -translate-x-1/2">{iconBox}</div>
+          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2">{bars('items-center')}</div>
+        </div>
+      )
+    case 'stacked':
+      return (
+        <div className="relative h-full w-full">
+          <div className="absolute left-1.5 top-1.5">{bars('items-start')}</div>
+          <div className="absolute bottom-1.5 right-1.5">{iconBox}</div>
+        </div>
+      )
+    case 'bottom-left':
+    default:
+      return (
+        <div className="relative h-full w-full">
+          <div className="absolute right-1.5 top-1.5">{iconBox}</div>
+          <div className="absolute bottom-1.5 left-1.5">{bars('items-start')}</div>
+        </div>
+      )
+  }
+}
+
 /** Debounced fetch of a render endpoint → object URL + fit metadata from headers. */
 function useRenderedImage(endpoint: string, enabled: boolean) {
   const [url, setUrl] = useState<string | null>(null)
@@ -195,7 +209,6 @@ function PreviewCard({
   error,
   alt,
   showSafeArea,
-  showHeadlineInset,
   showCrops,
   copied,
   onCopy,
@@ -210,15 +223,13 @@ function PreviewCard({
   error: string | null
   alt: string
   showSafeArea: boolean
-  showHeadlineInset: boolean
   showCrops: boolean
   copied: boolean
   onCopy: () => void
   onDownload: () => void
   children?: React.ReactNode
 }) {
-  const outer = outerInset(width, height)
-  const headlineInset = headlineInsetPct(width, height)
+  const safeArea = safeAreaInset(width, height)
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <div className="flex items-center justify-between">
@@ -258,19 +269,13 @@ function PreviewCard({
           <div className="pointer-events-none absolute inset-0">
             <div
               className="absolute border border-dashed border-brand/40"
-              style={{ top: `${outer.y}%`, bottom: `${outer.y}%`, left: `${outer.x}%`, right: `${outer.x}%` }}
+              style={{
+                top: `${safeArea.y}%`,
+                bottom: `${safeArea.y}%`,
+                left: `${safeArea.x}%`,
+                right: `${safeArea.x}%`,
+              }}
             />
-            {showHeadlineInset && (
-              <div
-                className="absolute border border-dashed border-warning/50"
-                style={{
-                  top: `${headlineInset.y}%`,
-                  bottom: `${headlineInset.y}%`,
-                  left: `${headlineInset.x}%`,
-                  right: `${headlineInset.x}%`,
-                }}
-              />
-            )}
           </div>
         )}
       </div>
@@ -317,7 +322,6 @@ export default function Page() {
   const hasThumb = !!format.thumb
 
   const [view, setView] = useState<View>('both')
-  const [aiDescription, setAiDescription] = useState('')
   const [headline, setHeadline] = useState('Postgres full text search just got faster')
   const [eyebrow, setEyebrow] = useState('Engineering')
   const [eyebrowStyle, setEyebrowStyle] = useState<EyebrowStyle>('text')
@@ -326,10 +330,12 @@ export default function Page() {
   const [autoFit, setAutoFit] = useState(true)
   const [manualFontSize, setManualFontSize] = useState(56)
   const [icon, setIcon] = useState<string | null>(null)
+  const [iconPickerOpen, setIconPickerOpen] = useState(false)
   const [uploadedIcons, setUploadedIcons] = useState<SeedIcon[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const allIcons = useMemo(() => [...ICON_LIBRARY, ...uploadedIcons], [uploadedIcons])
+  const selectedIcon = useMemo(() => allIcons.find((i) => i.name === icon) ?? null, [allIcons, icon])
 
   // Load the shared asset library (uploaded icons) for the active brand; empty
   // when Supabase is off.
@@ -409,34 +415,15 @@ export default function Page() {
       setUploadingLogo(false)
     }
   }
-  const [thumbSize, setThumbSize] = useState(380)
   const [scale, setScale] = useState<1 | 2>(1)
   const [showSafeArea, setShowSafeArea] = useState(false)
   const [showCrops, setShowCrops] = useState(false)
   const [inContext, setInContext] = useState<InContextMode>('none')
 
-  const [patternType, setPatternType] = useState<PatternTypeOpt>(
-    DEFAULT_TPL.defaultPattern.type as PatternTypeOpt
-  )
-  const [patternScale, setPatternScale] = useState<PatternScaleOpt>(
-    normalizeScale(DEFAULT_TPL.defaultPattern.scale as PatternScaleOpt)
-  )
-  const patternColor = PATTERN_COLOR
-  const [patternOpacity, setPatternOpacity] = useState(OPACITY_MIN)
-
   const [copied, setCopied] = useState<View | null>(null)
 
   const showOg = view !== 'thumb'
   const showThumb = view !== 'og'
-
-  const patternParams = (p: URLSearchParams) => {
-    p.set('pattern', patternType)
-    if (patternType !== 'none') {
-      p.set('patternScale', patternScale)
-      p.set('patternColor', patternColor)
-      p.set('patternOpacity', String(patternOpacity))
-    }
-  }
 
   const ogEndpoint = useMemo(() => {
     const p = new URLSearchParams()
@@ -451,11 +438,10 @@ export default function Page() {
     p.set('template', template)
     if (!autoFit) p.set('fontSize', String(manualFontSize))
     if (icon) p.set('icon', icon)
-    patternParams(p)
     if (scale === 2) p.set('scale', '2')
     return `/api/og?${p.toString()}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandId, formatId, headline, eyebrow, eyebrowStyle, sentenceCase, template, autoFit, manualFontSize, icon, scale, patternType, patternScale, patternColor, patternOpacity])
+  }, [brandId, formatId, headline, eyebrow, eyebrowStyle, sentenceCase, template, autoFit, manualFontSize, icon, scale])
 
   const thumbEndpoint = useMemo(() => {
     const p = new URLSearchParams()
@@ -463,88 +449,13 @@ export default function Page() {
     if (formatId !== DEFAULT_FORMAT_ID) p.set('format', formatId)
     p.set('type', 'thumb')
     if (icon) p.set('icon', icon)
-    p.set('thumbSize', String(thumbSize))
-    patternParams(p)
     if (scale === 2) p.set('scale', '2')
     return `/api/og?${p.toString()}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandId, formatId, icon, thumbSize, scale, patternType, patternScale, patternColor, patternOpacity])
+  }, [brandId, formatId, icon, scale])
 
   const og = useRenderedImage(ogEndpoint, showOg)
   const thumb = useRenderedImage(thumbEndpoint, showThumb)
-
-  // Template and background are independent controls — switching templates
-  // must not touch whatever pattern the user already has set. (AI suggestions
-  // still set a pattern explicitly, right after calling this, when the
-  // suggestion includes one — see applySuggestion below.)
-  const changeTemplate = (id: string) => {
-    setTemplate(id)
-  }
-
-  const [generated, setGenerated] = useState<Suggestion | null>(null)
-  const [generating, setGenerating] = useState(false)
-  const [exampleCopied, setExampleCopied] = useState(false)
-  // Server route decides the engine: Claude when ANTHROPIC_API_KEY is set,
-  // else the backend-free keyword matcher. Same Suggestion shape either way.
-  const generate = async () => {
-    const description = aiDescription.trim()
-    if (!description) {
-      setGenerated(null)
-      return
-    }
-    setGenerating(true)
-    try {
-      const res = await fetch('/api/suggest', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ description }),
-      })
-      if (!res.ok) throw new Error(`suggest failed: ${res.status}`)
-      setGenerated((await res.json()) as Suggestion)
-    } catch (err) {
-      console.error(err)
-      setGenerated({
-        iconName: null,
-        templateId: template,
-        rationale: 'Could not generate a suggestion — please try again.',
-        source: 'none',
-        alternates: [],
-      })
-    } finally {
-      setGenerating(false)
-    }
-  }
-  const applySuggestion = () => {
-    if (!generated) return
-    if (generated.iconName) setIcon(generated.iconName)
-    changeTemplate(generated.templateId)
-    if (generated.pattern) {
-      setPatternType(generated.pattern.type as PatternTypeOpt)
-      setPatternScale(normalizeScale(generated.pattern.scale as PatternScaleOpt))
-      setPatternOpacity(Math.max(OPACITY_MIN, generated.pattern.opacity))
-    }
-    if (generated.eyebrow && !eyebrow.trim()) setEyebrow(generated.eyebrow)
-  }
-
-  // Backend-free way to grow the featured-examples corpus (§6.8): copy the
-  // current composition as a ready-to-paste entry for lib/ai/examples.ts.
-  const saveAsExample = () => {
-    if (!icon) return
-    const entry: Record<string, unknown> = {
-      id: `ex-${Date.now().toString(36)}`,
-      subject: (aiDescription.trim() || headline).toLowerCase(),
-      iconName: icon,
-      templateId: template,
-    }
-    if (eyebrow.trim()) entry.eyebrow = eyebrow.trim()
-    if (patternType !== 'none') {
-      entry.pattern = { type: patternType, scale: patternScale, color: patternColor, opacity: patternOpacity }
-    }
-    entry.whyItWorks = '<why this composition works>'
-    navigator.clipboard.writeText(`${JSON.stringify(entry, null, 2)},`)
-    setExampleCopied(true)
-    setTimeout(() => setExampleCopied(false), 2500)
-  }
 
   const count = [...headline].length
   const counterColor =
@@ -587,15 +498,6 @@ export default function Page() {
           backgroundSize: '16px 16px',
         }}
       >
-        {/* view toggle — stays pinned near the top */}
-        <div className="mb-5 flex w-full items-center justify-center">
-          <Segmented
-            value={view}
-            onChange={setView}
-            options={hasThumb ? VIEW_OPTS : VIEW_OPTS.filter((o) => o.value !== 'thumb')}
-          />
-        </div>
-
         {/* Fills the remaining canvas height; on wide/side-by-side screens the
             row centers within it. (flex-1 items don't shrink below their
             content, so this can't clip an overflowing row — it just grows.) */}
@@ -616,7 +518,6 @@ export default function Page() {
                   error={og.error}
                   alt={headline}
                   showSafeArea={showSafeArea}
-                  showHeadlineInset
                   showCrops={showCrops}
                   copied={copied === 'og'}
                   onCopy={() => copyUrl(ogEndpoint, 'og')}
@@ -673,7 +574,6 @@ export default function Page() {
                   error={thumb.error}
                   alt="Thumbnail preview"
                   showSafeArea={showSafeArea}
-                  showHeadlineInset={false}
                   showCrops={showCrops}
                   copied={copied === 'thumb'}
                   onCopy={() => copyUrl(thumbEndpoint, 'thumb')}
@@ -685,12 +585,29 @@ export default function Page() {
                     </p>
                     {!icon && (
                       <p className="text-xs text-warning-600">
-                        ⚠ Pick an icon in Assets — the Thumb has no text to fall back on.
+                        ⚠ Pick an icon in Content — the Thumb has no text to fall back on.
                       </p>
                     )}
                   </div>
                 </PreviewCard>
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* Floating View / View-in-context toolbar — bottom-aligned, centered. */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-6 z-10 flex justify-center">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-default bg-background px-3 py-2 shadow-lg">
+            <Segmented
+              value={view}
+              onChange={setView}
+              options={hasThumb ? VIEW_OPTS : VIEW_OPTS.filter((o) => o.value !== 'thumb')}
+            />
+            {showOg && (
+              <>
+                <div className="h-5 border-l border-default" />
+                <Segmented value={inContext} onChange={setInContext} options={IN_CONTEXT_OPTS} />
+              </>
             )}
           </div>
         </div>
@@ -716,136 +633,21 @@ export default function Page() {
           <Group title="Brand & format">
             <div className="flex flex-col gap-2">
               <span className="text-sm font-medium text-foreground-light">Brand</span>
-              <select
-                id="brand"
+              <Segmented
                 value={brandId}
-                onChange={(e) => setBrandId(e.target.value as BrandId)}
-                className="rounded-md border border-default bg-surface-100 px-3 py-2 text-sm text-foreground outline-none focus:border-strong"
-              >
-                {BRAND_OPTIONS.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.label}
-                  </option>
-                ))}
-              </select>
+                onChange={setBrandId}
+                options={BRAND_OPTIONS.map((b) => ({ value: b.id, label: b.label }))}
+              />
             </div>
             <div className="flex flex-col gap-2">
               <span className="text-sm font-medium text-foreground-light">Format</span>
-              <select
-                id="format"
+              <Segmented
                 value={formatId}
-                onChange={(e) => setFormatId(e.target.value as FormatId)}
-                className="rounded-md border border-default bg-surface-100 px-3 py-2 text-sm text-foreground outline-none focus:border-strong"
-              >
-                {FORMAT_OPTIONS.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.label}
-                  </option>
-                ))}
-              </select>
+                onChange={setFormatId}
+                options={FORMAT_OPTIONS.map((f) => ({ value: f.id, label: f.label }))}
+              />
             </div>
           </Group>
-
-          {showOg && (
-            <Group title="AI art direction">
-              <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-foreground-light">
-                  Describe this post
-                  <Hint text="Picks an on-brand icon + template + background for your post. Uses Claude when an ANTHROPIC_API_KEY is set (see README) and falls back to a keyword match over the seed icons otherwise (§6.6)." />
-                </span>
-                <textarea
-                  id="ai-describe"
-                  value={aiDescription}
-                  onChange={(e) => setAiDescription(e.target.value)}
-                  rows={2}
-                  className="resize-none rounded-md border border-default bg-surface-100 px-3 py-2 text-sm text-foreground outline-none focus:border-strong"
-                  placeholder="e.g. row-level security for multi-tenant apps"
-                />
-                <button
-                  onClick={generate}
-                  disabled={!aiDescription.trim() || generating}
-                  className="flex items-center justify-center gap-1.5 rounded-md bg-brand px-3 py-2 text-xs font-medium text-background hover:bg-brand/90 disabled:opacity-50"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z" />
-                    <path d="M18.5 14.5l.85 2.65 2.65.85-2.65.85-.85 2.65-.85-2.65-2.65-.85 2.65-.85z" />
-                  </svg>
-                  {generating ? 'Generating…' : 'Generate'}
-                </button>
-                {generated && (
-                  <div className="flex flex-col gap-2 rounded-md border border-default bg-surface-100 p-3">
-                    {generated.iconName ? (
-                      <>
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-default text-foreground-light">
-                            {(() => {
-                              const ic = allIcons.find((i) => i.name === generated.iconName)
-                              return ic ? (
-                                <svg
-                                  width={20}
-                                  height={20}
-                                  viewBox={ic.viewBox}
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth={2}
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  dangerouslySetInnerHTML={{ __html: ic.body }}
-                                />
-                              ) : null
-                            })()}
-                          </div>
-                          <div className="min-w-0 flex-1 text-xs">
-                            <div className="text-foreground">{generated.rationale}</div>
-                            <div className="text-foreground-lighter">
-                              {generated.source === 'ai'
-                                ? '✨ AI suggestion'
-                                : generated.source === 'example'
-                                  ? '★ Featured example'
-                                  : 'Icon library'}{' '}
-                              ·{' '}
-                              {TEMPLATES.find((t) => t.id === generated.templateId)?.label}
-                            </div>
-                          </div>
-                          <button
-                            onClick={applySuggestion}
-                            className="shrink-0 rounded-md bg-brand px-2.5 py-1 text-xs font-medium text-background hover:bg-brand/90"
-                          >
-                            Apply
-                          </button>
-                        </div>
-                        {generated.alternates.length > 0 && (
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs text-foreground-lighter">Also:</span>
-                            {generated.alternates.map((a) => (
-                              <button
-                                key={a.iconName}
-                                onClick={() => setIcon(a.iconName)}
-                                className="rounded border border-default px-2 py-0.5 text-xs text-foreground-light hover:border-strong"
-                              >
-                                {a.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <p className="text-xs text-warning-600">{generated.rationale}</p>
-                    )}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={saveAsExample}
-                  disabled={!icon}
-                  title={icon ? 'Copy this composition as a featured example' : 'Pick an icon first'}
-                  className="self-start rounded-md border border-default px-2.5 py-1 text-xs text-foreground-light hover:border-strong disabled:opacity-50"
-                >
-                  {exampleCopied ? '✓ Copied — paste into lib/ai/examples.ts' : '★ Save current as example'}
-                </button>
-              </div>
-            </Group>
-          )}
 
           {showOg && (
             <Group title="Layout">
@@ -854,123 +656,38 @@ export default function Page() {
                   Template
                   <Hint text="Prebuilt layouts that already satisfy the safe area + alignment rules (§5.6). Pick one, then customize within it." />
                 </span>
-                <select
-                  id="template"
-                  value={template}
-                  onChange={(e) => changeTemplate(e.target.value)}
-                  className="rounded-md border border-default bg-surface-100 px-3 py-2 text-sm text-foreground outline-none focus:border-strong"
-                >
+                <div className="grid grid-cols-2 gap-2">
                   {TEMPLATES.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.label}
-                    </option>
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTemplate(t.id)}
+                      title={t.label}
+                      className={`flex h-16 flex-col rounded-md border p-1.5 ${
+                        template === t.id
+                          ? 'border-brand bg-brand/10'
+                          : 'border-default bg-surface-100 hover:border-strong'
+                      }`}
+                    >
+                      <div className="relative flex-1">
+                        <LayoutThumb id={t.id} />
+                      </div>
+                      <span
+                        className={`truncate text-[10px] ${
+                          template === t.id ? 'text-brand' : 'text-foreground-lighter'
+                        }`}
+                      >
+                        {t.label}
+                      </span>
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
             </Group>
           )}
 
-          <Group title="Assets">
-            <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-foreground-light">
-                Icon
-                <Hint text="Line-art icons only, stroke locked to the illustration weight (§4). The icon is shared between the OG and Thumb." />
-              </span>
-              <div className="grid grid-cols-4 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIcon(null)}
-                  title="No icon"
-                  className={`flex h-14 items-center justify-center rounded-md border text-xs ${
-                    icon === null
-                      ? 'border-brand bg-brand/10 text-brand'
-                      : 'border-default bg-surface-100 text-foreground-lighter hover:border-strong'
-                  }`}
-                >
-                  None
-                </button>
-                {allIcons.map((ic) => (
-                  <button
-                    key={ic.name}
-                    type="button"
-                    onClick={() => setIcon(ic.name)}
-                    title={ic.kind === 'logo' ? `${ic.label} (color logo)` : ic.label}
-                    className={`flex h-14 items-center justify-center rounded-md border p-1.5 ${
-                      icon === ic.name
-                        ? 'border-brand bg-brand/10 text-brand'
-                        : 'border-default bg-surface-100 text-foreground-light hover:border-strong'
-                    }`}
-                  >
-                    {ic.kind === 'logo' && ic.url ? (
-                      // Real colors, no forced stroke — this is the point of a logo.
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={ic.url} alt={ic.label} className="max-h-full max-w-full object-contain" />
-                    ) : (
-                      <svg
-                        width={22}
-                        height={22}
-                        viewBox={ic.viewBox}
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        dangerouslySetInnerHTML={{ __html: ic.body }}
-                      />
-                    )}
-                  </button>
-                ))}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <label
-                  className={`rounded-md border border-dashed border-default px-3 py-2 text-center text-xs text-foreground-light hover:border-strong ${
-                    uploading ? 'cursor-wait opacity-70' : 'cursor-pointer'
-                  }`}
-                >
-                  {uploading ? 'Uploading…' : '+ Upload SVG icon'}
-                  <input
-                    type="file"
-                    accept=".svg,image/svg+xml"
-                    className="hidden"
-                    disabled={uploading}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0]
-                      if (f) uploadSvg(f)
-                      e.target.value = ''
-                    }}
-                  />
-                </label>
-                <label
-                  className={`rounded-md border border-dashed border-default px-3 py-2 text-center text-xs text-foreground-light hover:border-strong ${
-                    uploadingLogo ? 'cursor-wait opacity-70' : 'cursor-pointer'
-                  }`}
-                >
-                  {uploadingLogo ? 'Uploading…' : '+ Upload logo (color)'}
-                  <input
-                    type="file"
-                    accept=".svg,.png,.jpg,.jpeg,.webp,image/svg+xml,image/png,image/jpeg,image/webp"
-                    className="hidden"
-                    disabled={uploadingLogo}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0]
-                      if (f) uploadLogo(f)
-                      e.target.value = ''
-                    }}
-                  />
-                </label>
-              </div>
-              {uploadError && <p className="text-xs text-warning-600">{uploadError}</p>}
-              {logoError && <p className="text-xs text-warning-600">{logoError}</p>}
-              <p className="text-xs text-foreground-lighter">
-                Line-art SVGs become shared icons, re-drawn with the locked stroke. Logos (SVG, PNG,
-                JPEG, or WebP) keep their original colors — for partnerships, acquisitions, and
-                co-marketing. Both are stored in Supabase and need the secret key configured.
-              </p>
-            </div>
-          </Group>
-
-          {showOg && (
-            <Group title="Content">
+          <Group title="Content">
+            {showOg && (
               <div className="flex flex-col gap-2">
                 <label htmlFor="eyebrow" className="text-sm font-medium text-foreground-light">
                   Eyebrow <span className="text-foreground-lighter">(optional)</span>
@@ -987,7 +704,9 @@ export default function Page() {
                   <Segmented value={eyebrowStyle} onChange={setEyebrowStyle} options={EYEBROW_STYLE_OPTS} />
                 </div>
               </div>
+            )}
 
+            {showOg && (
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <label htmlFor="headline" className="text-sm font-medium text-foreground-light">
@@ -1054,85 +773,152 @@ export default function Page() {
                   <Hint text="By default headlines are sentence-cased, with brand terms (Postgres, pgvector, API…) preserved automatically. Check this to type it exactly as written." />
                 </label>
               </div>
-            </Group>
-          )}
+            )}
 
-          {showThumb && (
-            <Group title="Thumb">
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground-light">
-                    Icon size
-                    <Hint text="The Thumb has no text, so the icon scales up to fill the frame. Adjust it independently of the OG." />
-                  </span>
-                  <span className="text-xs tabular-nums text-foreground-lighter">{thumbSize}px</span>
-                </div>
-                <input
-                  type="range"
-                  id="thumb-size"
-                  min={THUMB_MIN}
-                  max={THUMB_MAX}
-                  step={20}
-                  value={thumbSize}
-                  onChange={(e) => setThumbSize(Number(e.target.value))}
-                  className="w-full min-w-0 accent-brand"
-                />
-                <p className="text-xs text-foreground-lighter">
-                  No text by design — the Thumb shares the OG’s icon (§3).
-                </p>
-              </div>
-            </Group>
-          )}
-
-          <Group title="Background">
             <div className="flex flex-col gap-2">
               <span className="text-sm font-medium text-foreground-light">
-                Pattern
-                <Hint text="Subtle white background texture. Opacity is locked to a range (20–35%) that keeps it a texture, not foreground (§6.7)." />
+                Icon
+                <Hint text="Line-art icons only, stroke locked to the illustration weight (§4). Logos (SVG, PNG, JPEG, WebP) keep their original colors, for partnerships/acquisitions. The icon is shared between the OG and Thumb. Both are stored in Supabase and need the secret key configured." />
               </span>
-              <select
-                id="pattern"
-                value={patternType}
-                onChange={(e) => setPatternType(e.target.value as PatternTypeOpt)}
-                className="rounded-md border border-default bg-surface-100 px-3 py-2 text-sm text-foreground outline-none focus:border-strong"
-              >
-                {PATTERN_TYPE_OPTS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIconPickerOpen((o) => !o)}
+                  className="flex w-full items-center gap-2 rounded-md border border-default bg-surface-100 px-3 py-2 text-sm text-foreground outline-none hover:border-strong focus:border-strong"
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-default bg-background text-foreground-light">
+                    {selectedIcon ? (
+                      selectedIcon.kind === 'logo' && selectedIcon.url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={selectedIcon.url}
+                          alt=""
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      ) : (
+                        <svg
+                          width={14}
+                          height={14}
+                          viewBox={selectedIcon.viewBox}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          dangerouslySetInnerHTML={{ __html: selectedIcon.body }}
+                        />
+                      )
+                    ) : (
+                      <span className="text-[9px] text-foreground-lighter">—</span>
+                    )}
+                  </span>
+                  <span className="flex-1 truncate text-left">
+                    {selectedIcon ? selectedIcon.label : 'None'}
+                  </span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
 
-            {patternType !== 'none' && (
-              <>
-                <div className="flex items-center justify-between">
-                  <Label>Scale</Label>
-                  <Segmented value={patternScale} onChange={setPatternScale} options={SCALE_OPTS} />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between">
-                    <Label>Opacity</Label>
-                    <span className="text-xs tabular-nums text-foreground-lighter">
-                      {Math.round(patternOpacity * 100)}%
-                    </span>
+                {iconPickerOpen && (
+                  <div className="absolute z-20 mt-1 w-full rounded-md border border-default bg-background p-2 shadow-lg">
+                    <div className="grid max-h-56 grid-cols-4 gap-2 overflow-y-auto">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIcon(null)
+                          setIconPickerOpen(false)
+                        }}
+                        title="No icon"
+                        className={`flex h-14 items-center justify-center rounded-md border text-xs ${
+                          icon === null
+                            ? 'border-brand bg-brand/10 text-brand'
+                            : 'border-default bg-surface-100 text-foreground-lighter hover:border-strong'
+                        }`}
+                      >
+                        None
+                      </button>
+                      {allIcons.map((ic) => (
+                        <button
+                          key={ic.name}
+                          type="button"
+                          onClick={() => {
+                            setIcon(ic.name)
+                            setIconPickerOpen(false)
+                          }}
+                          title={ic.kind === 'logo' ? `${ic.label} (color logo)` : ic.label}
+                          className={`flex h-14 items-center justify-center rounded-md border p-1.5 ${
+                            icon === ic.name
+                              ? 'border-brand bg-brand/10 text-brand'
+                              : 'border-default bg-surface-100 text-foreground-light hover:border-strong'
+                          }`}
+                        >
+                          {ic.kind === 'logo' && ic.url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={ic.url} alt={ic.label} className="max-h-full max-w-full object-contain" />
+                          ) : (
+                            <svg
+                              width={22}
+                              height={22}
+                              viewBox={ic.viewBox}
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              dangerouslySetInnerHTML={{ __html: ic.body }}
+                            />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <label
+                        className={`rounded-md border border-dashed border-default px-3 py-2 text-center text-xs text-foreground-light hover:border-strong ${
+                          uploading ? 'cursor-wait opacity-70' : 'cursor-pointer'
+                        }`}
+                      >
+                        {uploading ? 'Uploading…' : '+ Upload SVG icon'}
+                        <input
+                          type="file"
+                          accept=".svg,image/svg+xml"
+                          className="hidden"
+                          disabled={uploading}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0]
+                            if (f) uploadSvg(f)
+                            e.target.value = ''
+                          }}
+                        />
+                      </label>
+                      <label
+                        className={`rounded-md border border-dashed border-default px-3 py-2 text-center text-xs text-foreground-light hover:border-strong ${
+                          uploadingLogo ? 'cursor-wait opacity-70' : 'cursor-pointer'
+                        }`}
+                      >
+                        {uploadingLogo ? 'Uploading…' : '+ Upload logo (color)'}
+                        <input
+                          type="file"
+                          accept=".svg,.png,.jpg,.jpeg,.webp,image/svg+xml,image/png,image/jpeg,image/webp"
+                          className="hidden"
+                          disabled={uploadingLogo}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0]
+                            if (f) uploadLogo(f)
+                            e.target.value = ''
+                          }}
+                        />
+                      </label>
+                    </div>
+                    {uploadError && <p className="mt-2 text-xs text-warning-600">{uploadError}</p>}
+                    {logoError && <p className="mt-2 text-xs text-warning-600">{logoError}</p>}
                   </div>
-                  <input
-                    type="range"
-                    id="pattern-opacity"
-                    min={OPACITY_MIN}
-                    max={OPACITY_MAX}
-                    step={0.01}
-                    value={patternOpacity}
-                    onChange={(e) => setPatternOpacity(Number(e.target.value))}
-                    className="w-full min-w-0 accent-brand"
-                  />
-                </div>
-              </>
-            )}
+                )}
+              </div>
+            </div>
           </Group>
 
-          <Group title="View">
+          <Group title="Guides">
             <label className="flex items-center gap-2 text-sm text-foreground-light">
               <input
                 type="checkbox"
@@ -1141,7 +927,7 @@ export default function Page() {
                 onChange={(e) => setShowSafeArea(e.target.checked)}
               />
               Show safe-area guide
-              <Hint text="Dashed guides for the safe zone — editor-only, never part of the export." />
+              <Hint text="Dashed guide 80px in from every edge — editor-only, never part of the export." />
             </label>
             <label className="flex items-center gap-2 text-sm text-foreground-light">
               <input
@@ -1151,17 +937,8 @@ export default function Page() {
                 onChange={(e) => setShowCrops(e.target.checked)}
               />
               Show platform crops
-              <Hint text="Preview how X, LinkedIn, Facebook, Slack and chat apps crop & round the 1200×630 (§11.1)." />
+              <Hint text="Preview how X, LinkedIn, Facebook, Slack and chat apps crop & round the image (§11.1)." />
             </label>
-            {showOg && (
-              <div className="flex flex-col gap-2 pt-1">
-                <span className="text-sm font-medium text-foreground-light">
-                  View in context
-                  <Hint text="See the image as it'd actually appear — a Twitter/LinkedIn post mockup, or a card in the supabase.com blog listing — not just a cropped rectangle." />
-                </span>
-                <Segmented value={inContext} onChange={setInContext} options={IN_CONTEXT_OPTS} />
-              </div>
-            )}
           </Group>
         </div>
       </aside>

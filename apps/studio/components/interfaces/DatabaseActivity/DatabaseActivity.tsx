@@ -210,7 +210,7 @@ export const DatabaseActivity = () => {
 
         {/* 3. Sessions */}
         <div>
-          <h2 className="mb-4">Sessions</h2>
+          <h2 className="mb-4">Connections</h2>
           <div className="space-y-4">
             {blocking.hasBlocking && (
               <div className="rounded-md border border-destructive bg-destructive-200 px-4 py-3">
@@ -271,7 +271,7 @@ export const DatabaseActivity = () => {
                   {visibleSessions.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={6}>
-                        <p className="text-sm text-foreground">No sessions to display</p>
+                        <p className="text-sm text-foreground">No connections to display</p>
                         <p className="text-sm text-foreground-lighter">
                           No connections match the current filter
                         </p>

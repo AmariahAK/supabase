@@ -1,10 +1,12 @@
 import { multigres } from './multigres'
+import { oriole } from './oriole'
 import { supabase } from './supabase'
+import { supasquad } from './supasquad'
 import type { Brand, BrandId, ColorToken } from './types'
 
 export type { Brand, BrandId, ColorToken } from './types'
 
-export const BRANDS: Record<BrandId, Brand> = { supabase, multigres }
+export const BRANDS: Record<BrandId, Brand> = { supabase, multigres, oriole, supasquad }
 export const DEFAULT_BRAND_ID: BrandId = 'supabase'
 
 export const BRAND_OPTIONS: { id: BrandId; label: string }[] = Object.values(BRANDS).map((b) => ({

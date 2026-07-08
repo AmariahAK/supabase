@@ -10,7 +10,7 @@
  * here, no other module needs to change.
  */
 
-export type BrandId = 'supabase' | 'multigres'
+export type BrandId = 'supabase' | 'multigres' | 'oriole' | 'supasquad'
 
 /**
  * The full set of token names every brand's palette must supply. Keeping this

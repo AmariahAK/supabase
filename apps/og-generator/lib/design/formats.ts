@@ -9,7 +9,7 @@
  * same-width, different-height format like Twitter's.
  */
 
-export type FormatId = 'og' | 'twitter'
+export type FormatId = 'og' | 'twitter' | 'newsletter' | 'luma'
 
 export interface Format {
   id: FormatId
@@ -31,7 +31,7 @@ export interface Format {
 export const FORMATS: Record<FormatId, Format> = {
   og: {
     id: 'og',
-    label: 'OG image',
+    label: 'Blog',
     width: 1200,
     height: 630, // -> effective safe area 1072 x 502, centered (outerMargin 64)
     outerMargin: 64,
@@ -41,7 +41,7 @@ export const FORMATS: Record<FormatId, Format> = {
   },
   twitter: {
     id: 'twitter',
-    label: 'Twitter / X post',
+    label: 'Social',
     width: 1200,
     height: 675, // Twitter/X's recommended link-card size — same width as OG,
     // so template headline widths carry over unchanged; only the vertical
@@ -50,6 +50,26 @@ export const FORMATS: Record<FormatId, Format> = {
     headlineInset: { x: 80, y: 72 },
     iconSize: 220,
     // No Thumb for a single social post image (brief follow-up, this phase).
+  },
+  newsletter: {
+    id: 'newsletter',
+    label: 'Newsletter',
+    width: 1200,
+    height: 600, // common 2:1 email-header banner width, same headline-box math as OG.
+    outerMargin: 64,
+    headlineInset: { x: 80, y: 72 },
+    iconSize: 220,
+    // No Thumb — a newsletter banner isn't cropped down to an icon-only variant.
+  },
+  luma: {
+    id: 'luma',
+    label: 'Luma',
+    width: 1600,
+    height: 900, // Luma's standard 16:9 event cover size.
+    outerMargin: 86,
+    headlineInset: { x: 107, y: 96 }, // same proportions as OG's inset, scaled to 1600 wide
+    iconSize: 290,
+    // No Thumb — an event cover isn't cropped down to an icon-only variant.
   },
 }
 

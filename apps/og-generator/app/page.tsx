@@ -6,7 +6,12 @@ import { ICON_LIBRARY } from '@/lib/assets/icon-library'
 import { type SeedIcon } from '@/lib/assets/seed-icons'
 import { BRAND_OPTIONS, DEFAULT_BRAND_ID, type BrandId } from '@/lib/design/brands'
 import { DEFAULT_FORMAT_ID, FORMAT_OPTIONS, getFormat, type FormatId } from '@/lib/design/formats'
-import { DEFAULT_TEMPLATE_ID, TEMPLATES } from '@/lib/design/templates'
+import {
+  DEFAULT_NEWSLETTER_TEMPLATE_ID,
+  DEFAULT_TEMPLATE_ID,
+  NEWSLETTER_TEMPLATES,
+  TEMPLATES,
+} from '@/lib/design/templates'
 import {
   IN_CONTEXT_OPTS,
   InContextPreview,
@@ -126,6 +131,14 @@ function LayoutThumb({ id }: { id: string }) {
           <div className="absolute bottom-1.5 right-1.5">{iconBox}</div>
         </div>
       )
+    case 'newsletter-section':
+      return (
+        <div className="relative h-full w-full">
+          <div className="absolute left-1.5 top-1/2 -translate-y-1/2">{iconBox}</div>
+          <div className="absolute left-6 top-1/2 h-1 w-6 -translate-y-1/2 rounded-full bg-foreground-lighter" />
+        </div>
+      )
+    case 'newsletter-cover':
     case 'bottom-left':
     default:
       return (
@@ -382,6 +395,9 @@ export default function Page() {
   const [formatId, setFormatId] = useState<FormatId>(DEFAULT_FORMAT_ID)
   const format = useMemo(() => getFormat(formatId), [formatId])
   const hasThumb = !!format.thumb
+  // Newsletter has its own two-tile layout set (cover / section header)
+  // instead of the standard 4 templates.
+  const activeTemplates = formatId === 'newsletter' ? NEWSLETTER_TEMPLATES : TEMPLATES
 
   const [view, setView] = useState<View>('both')
   const [headline, setHeadline] = useState('Postgres full text search just got faster')
@@ -404,6 +420,14 @@ export default function Page() {
       .then((d) => setUploadedIcons(d.assets ?? []))
       .catch(() => {})
   }, [brandId])
+
+  // Newsletter swaps in its own layout set — reset to a valid default when
+  // the active template isn't in the set the current format offers.
+  useEffect(() => {
+    if (!activeTemplates.some((t) => t.id === template)) {
+      setTemplate(formatId === 'newsletter' ? DEFAULT_NEWSLETTER_TEMPLATE_ID : DEFAULT_TEMPLATE_ID)
+    }
+  }, [formatId, activeTemplates, template])
 
   // Format may drop the Thumb view (e.g. Twitter) — fall back to OG.
   useEffect(() => {
@@ -495,7 +519,7 @@ export default function Page() {
   const [copied, setCopied] = useState<View | null>(null)
 
   const showOg = view !== 'thumb'
-  const showThumb = view !== 'og'
+  const showThumb = view !== 'og' && hasThumb
 
   const ogEndpoint = useMemo(() => {
     const p = new URLSearchParams()
@@ -612,7 +636,10 @@ export default function Page() {
           /* In-context preview takes over the full canvas — the OG/Thumb
               rectangles aren't the point here, seeing it "in the wild" is. */
           <div className="flex w-full flex-1 flex-col items-center justify-center">
-            <div className="w-full max-w-2xl">
+            <div className="flex w-full max-w-2xl flex-col gap-2">
+              <span className="text-xs font-medium text-foreground-light">
+                {IN_CONTEXT_OPTS.find((o) => o.value === inContext)?.label}
+              </span>
               <InContextPreview
                 mode={inContext}
                 imgUrl={og.url}
@@ -709,7 +736,7 @@ export default function Page() {
             <Group title="Layout">
               <div className="flex flex-col gap-2">
                 <div className="grid grid-cols-2 gap-2">
-                  {TEMPLATES.map((t) => (
+                  {activeTemplates.map((t) => (
                     <button
                       key={t.id}
                       type="button"

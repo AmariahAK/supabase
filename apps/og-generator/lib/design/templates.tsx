@@ -151,8 +151,68 @@ export const TEMPLATES: Template[] = [
   },
 ]
 
+/**
+ * Newsletter-only layouts (brief follow-up) — a full hero banner for the
+ * top of an email, and a compact divider-style header used to break up
+ * sections further down. Kept out of TEMPLATES so the standard 4 layouts
+ * stay format-agnostic; the editor swaps in this set only when the
+ * Newsletter format is selected.
+ */
+export const NEWSLETTER_TEMPLATES: Template[] = [
+  {
+    id: 'newsletter-cover',
+    label: 'Newsletter cover',
+    headlineBox: fullHeadlineBoxWidth,
+    textAlign: 'left',
+    anchorX: 'left',
+    anchorY: 'bottom',
+    build: (p) => (
+      <div
+        style={{
+          ...rootBase(p),
+          flexDirection: 'column',
+          justifyContent: p.hasIcon ? 'space-between' : 'flex-end',
+          alignItems: 'flex-start',
+        }}
+      >
+        {p.hasIcon ? (
+          <div style={{ display: 'flex', width: p.W - p.padX * 2, justifyContent: 'flex-end' }}>
+            {p.iconEl}
+          </div>
+        ) : null}
+        {p.textBlock}
+      </div>
+    ),
+  },
+  {
+    id: 'newsletter-section',
+    label: 'Section header',
+    // A compact divider row, not a full banner — narrower box for a short,
+    // single-line section title rather than a full headline.
+    headlineBox: (format) => Math.round(fullHeadlineBoxWidth(format) * 0.6),
+    textAlign: 'left',
+    anchorX: 'left',
+    anchorY: 'center',
+    build: (p) => (
+      <div
+        style={{
+          ...rootBase(p),
+          flexDirection: 'row',
+          justifyContent: 'flex-start',
+          alignItems: 'center',
+          gap: 32 * p.scaleFactor,
+        }}
+      >
+        {p.iconEl}
+        {p.textBlock}
+      </div>
+    ),
+  },
+]
+
 export const TEMPLATE_MAP: Record<string, Template> = Object.fromEntries(
-  TEMPLATES.map((t) => [t.id, t])
+  [...TEMPLATES, ...NEWSLETTER_TEMPLATES].map((t) => [t.id, t])
 )
 
 export const DEFAULT_TEMPLATE_ID = 'bottom-left'
+export const DEFAULT_NEWSLETTER_TEMPLATE_ID = 'newsletter-cover'

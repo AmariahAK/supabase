@@ -8,7 +8,13 @@ import { BRAND_OPTIONS, DEFAULT_BRAND_ID, color, getBrand, type BrandId } from '
 import { contrastRatio, rating } from '@/lib/design/contrast'
 import { DEFAULT_FORMAT_ID, FORMAT_OPTIONS, getFormat, type FormatId } from '@/lib/design/formats'
 import { DEFAULT_TEMPLATE_ID, TEMPLATES } from '@/lib/design/templates'
-import { IN_CONTEXT_OPTS, InContextPreview, type InContextMode } from './InContextPreview'
+import {
+  IN_CONTEXT_OPTS,
+  InContextPreview,
+  PREVIEW_THEME_OPTS,
+  type InContextMode,
+  type PreviewTheme,
+} from './InContextPreview'
 
 /**
  * Editor. State maps 1:1 to /api/og query params (the stateless recipe, §6.9).
@@ -472,6 +478,7 @@ export default function Page() {
   const [scale, setScale] = useState<1 | 2>(1)
   const [showSafeArea, setShowSafeArea] = useState(false)
   const [inContext, setInContext] = useState<InContextMode>('none')
+  const [previewTheme, setPreviewTheme] = useState<PreviewTheme>('light')
   const [exportOpen, setExportOpen] = useState(false)
 
   const [copied, setCopied] = useState<View | null>(null)
@@ -540,139 +547,159 @@ export default function Page() {
   return (
     <div className="relative h-full overflow-hidden bg-background text-foreground">
       {/* Canvas — one continuous full-bleed dot-grid surface; the tool panel
-          floats on top of it (absolutely positioned), not beside it. */}
+          floats on top of it (absolutely positioned), not beside it. Scrolls
+          independently of the two floating toolbars below, which are their
+          own siblings so they stay anchored regardless of scroll position. */}
       <main
-        className="@container absolute inset-0 flex flex-col items-center overflow-auto p-8 pr-[380px]"
+        className="@container absolute inset-0 flex flex-col items-center overflow-auto p-8 pt-24 pb-24 pr-[380px]"
         style={{
           backgroundColor: '#f4f4f5',
           backgroundImage: 'radial-gradient(rgba(0,0,0,0.06) 1px, transparent 1px)',
           backgroundSize: '16px 16px',
         }}
       >
-        {/* View toggle — stays pinned near the top, separate from the other
-            tools since it drives which preview cards render at all. */}
-        <div className="mb-5 flex w-full items-center justify-center">
+        {inContext === 'none' ? (
+          /* Fills the remaining canvas height; on wide/side-by-side screens
+              the row centers within it. (flex-1 items don't shrink below
+              their content, so this can't clip an overflowing row — it just
+              grows.) */
+          <div className="flex w-full flex-1 flex-col items-center @4xl:justify-center">
+            <div
+              className={`flex flex-col gap-6 @4xl:flex-row @4xl:items-start ${
+                view === 'both' ? 'w-full' : 'w-[65%]'
+              }`}
+            >
+              {showOg && (
+                <div className="min-w-0 @4xl:flex-1">
+                  <PreviewCard
+                    label={format.label}
+                    width={format.width}
+                    height={format.height}
+                    imgUrl={og.url}
+                    loading={og.loading}
+                    error={og.error}
+                    alt={headline}
+                    showSafeArea={showSafeArea}
+                  >
+                    <div className="flex flex-col gap-2">
+                      {og.fit && (
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 self-start rounded-full border border-default bg-background px-3 py-1 text-xs text-foreground-light shadow-sm">
+                          <span className="font-medium text-foreground">Headline:</span>
+                          <span className="text-foreground">
+                            {og.fit.fontSize}px{og.fit.mode === 'auto' ? ' (auto on)' : ''}
+                          </span>
+                          <span className="text-foreground-lighter">·</span>
+                          <span>
+                            {og.fit.lineCount} {og.fit.lineCount === 1 ? 'line' : 'lines'}
+                          </span>
+                          <span className="text-foreground-lighter">·</span>
+                          <span className="font-medium text-foreground">WCAG:</span>
+                          <span className={headlineRating === 'Fail' ? 'text-destructive-600' : 'text-brand'}>
+                            {headlineContrast.toFixed(1)}:1 {headlineRating}
+                          </span>
+                        </div>
+                      )}
+                      {og.fit?.overflow && (
+                        <p className="text-xs text-destructive-600">
+                          ⚠ Won’t fit in 2 lines even at the minimum size — shorten it before export.
+                        </p>
+                      )}
+                      {og.fit && !og.fit.overflow && og.fit.mode === 'manual' && og.fit.lineCount > 2 && (
+                        <p className="text-xs text-warning-600">
+                          ⚠ More than 2 lines — allowed in manual mode, but off-brand.
+                        </p>
+                      )}
+                    </div>
+                  </PreviewCard>
+                </div>
+              )}
+
+              {showThumb && (
+                <div className="min-w-0 @4xl:flex-1">
+                  <PreviewCard
+                    label="Thumb"
+                    width={format.width}
+                    height={format.height}
+                    imgUrl={thumb.url}
+                    loading={thumb.loading}
+                    error={thumb.error}
+                    alt="Thumbnail preview"
+                    showSafeArea={showSafeArea}
+                  >
+                    <div className="flex flex-col gap-2">
+                      {!icon && (
+                        <p className="text-xs text-warning-600">
+                          ⚠ Pick an icon in Content — the Thumb has no text to fall back on.
+                        </p>
+                      )}
+                    </div>
+                  </PreviewCard>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* In-context preview takes over the full canvas — the OG/Thumb
+              rectangles aren't the point here, seeing it "in the wild" is. */
+          <div className="flex w-full flex-1 flex-col items-center justify-center">
+            <div className="w-full max-w-2xl">
+              <InContextPreview
+                mode={inContext}
+                imgUrl={og.url}
+                headline={headline}
+                eyebrow={eyebrow.trim() || null}
+                aspect={`${format.width} / ${format.height}`}
+                theme={previewTheme}
+              />
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* View toggle — anchored to the top of the canvas, independent of
+          main's scroll (a sibling, not a child of the scroll container). */}
+      <div className="pointer-events-none absolute left-8 right-[380px] top-6 z-10 flex justify-center">
+        <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-default bg-background px-3 py-2 shadow-lg">
           <Segmented
             value={view}
             onChange={setView}
             options={hasThumb ? VIEW_OPTS : VIEW_OPTS.filter((o) => o.value !== 'thumb')}
           />
         </div>
+      </div>
 
-        {/* Fills the remaining canvas height; on wide/side-by-side screens the
-            row centers within it. (flex-1 items don't shrink below their
-            content, so this can't clip an overflowing row — it just grows.) */}
-        <div className="flex w-full flex-1 flex-col items-center @4xl:justify-center">
-          <div
-            className={`flex flex-col gap-6 @4xl:flex-row @4xl:items-start ${
-              view === 'both' ? 'w-full' : 'w-[65%]'
+      {/* Floating guides / view-in-context toolbar — bottom-aligned, centered
+          on the same content box as the View toggle above, and likewise
+          anchored outside main's scroll container. */}
+      <div className="pointer-events-none absolute bottom-6 left-8 right-[380px] z-10 flex justify-center">
+        <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-default bg-background px-3 py-2 shadow-lg">
+          <button
+            type="button"
+            onClick={() => setShowSafeArea((v) => !v)}
+            title="Show safe-area guide"
+            className={`flex h-7 w-7 items-center justify-center rounded ${
+              showSafeArea ? 'bg-surface-300 text-foreground' : 'text-foreground-light hover:text-foreground'
             }`}
           >
-            {showOg && (
-              <div className="min-w-0 @4xl:flex-1">
-                <PreviewCard
-                  label={format.label}
-                  width={format.width}
-                  height={format.height}
-                  imgUrl={og.url}
-                  loading={og.loading}
-                  error={og.error}
-                  alt={headline}
-                  showSafeArea={showSafeArea}
-                >
-                  <div className="flex flex-col gap-2">
-                    {og.fit && (
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 self-start rounded-full border border-default bg-background px-3 py-1 text-xs text-foreground-light shadow-sm">
-                        <span className="font-medium text-foreground">Headline:</span>
-                        <span className="text-foreground">
-                          {og.fit.fontSize}px{og.fit.mode === 'auto' ? ' (auto on)' : ''}
-                        </span>
-                        <span className="text-foreground-lighter">·</span>
-                        <span>
-                          {og.fit.lineCount} {og.fit.lineCount === 1 ? 'line' : 'lines'}
-                        </span>
-                        <span className="text-foreground-lighter">·</span>
-                        <span className="font-medium text-foreground">WCAG:</span>
-                        <span className={headlineRating === 'Fail' ? 'text-destructive-600' : 'text-brand'}>
-                          {headlineContrast.toFixed(1)}:1 {headlineRating}
-                        </span>
-                      </div>
-                    )}
-                    {og.fit?.overflow && (
-                      <p className="text-xs text-destructive-600">
-                        ⚠ Won’t fit in 2 lines even at the minimum size — shorten it before export.
-                      </p>
-                    )}
-                    {og.fit && !og.fit.overflow && og.fit.mode === 'manual' && og.fit.lineCount > 2 && (
-                      <p className="text-xs text-warning-600">
-                        ⚠ More than 2 lines — allowed in manual mode, but off-brand.
-                      </p>
-                    )}
-                  </div>
-                </PreviewCard>
-                <InContextPreview
-                  mode={inContext}
-                  imgUrl={og.url}
-                  headline={headline}
-                  eyebrow={eyebrow.trim() || null}
-                  aspect={`${format.width} / ${format.height}`}
-                />
-              </div>
-            )}
-
-            {showThumb && (
-              <div className="min-w-0 @4xl:flex-1">
-                <PreviewCard
-                  label="Thumb"
-                  width={format.width}
-                  height={format.height}
-                  imgUrl={thumb.url}
-                  loading={thumb.loading}
-                  error={thumb.error}
-                  alt="Thumbnail preview"
-                  showSafeArea={showSafeArea}
-                >
-                  <div className="flex flex-col gap-2">
-                    {!icon && (
-                      <p className="text-xs text-warning-600">
-                        ⚠ Pick an icon in Content — the Thumb has no text to fall back on.
-                      </p>
-                    )}
-                  </div>
-                </PreviewCard>
-              </div>
-            )}
-          </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <rect x="4" y="4" width="16" height="16" rx="2" strokeDasharray="0.1 4.2" strokeLinecap="round" />
+            </svg>
+          </button>
+          {showOg && (
+            <>
+              <div className="h-5 border-l border-default" />
+              <span className="pl-1 text-xs font-medium text-foreground-light">Preview</span>
+              <Segmented value={inContext} onChange={setInContext} options={IN_CONTEXT_OPTS} />
+              {(inContext === 'twitter' || inContext === 'linkedin') && (
+                <>
+                  <div className="h-5 border-l border-default" />
+                  <Segmented value={previewTheme} onChange={setPreviewTheme} options={PREVIEW_THEME_OPTS} />
+                </>
+              )}
+            </>
+          )}
         </div>
-
-        {/* Floating guides / view-in-context toolbar — bottom-aligned, centered
-            on the same content box as the View toggle above. An absolutely
-            positioned child ignores its ancestor's padding, so we repeat
-            main's p-8/pr-[380px] insets here to land on the same center line. */}
-        <div className="pointer-events-none absolute bottom-6 left-8 right-[380px] z-10 flex justify-center">
-          <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-default bg-background px-3 py-2 shadow-lg">
-            {showOg && (
-              <>
-                <span className="pl-1 text-xs font-medium text-foreground-light">Preview</span>
-                <Segmented value={inContext} onChange={setInContext} options={IN_CONTEXT_OPTS} />
-                <div className="h-5 border-l border-default" />
-              </>
-            )}
-            <button
-              type="button"
-              onClick={() => setShowSafeArea((v) => !v)}
-              title="Show safe-area guide"
-              className={`flex h-7 w-7 items-center justify-center rounded ${
-                showSafeArea ? 'bg-surface-300 text-foreground' : 'text-foreground-light hover:text-foreground'
-              }`}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <rect x="4" y="4" width="16" height="16" rx="2" strokeDasharray="0.1 4.2" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </main>
+      </div>
 
       {/* Floating tool panel — packaged top bar + all controls, docked right.
           Absolutely positioned (not a flex sibling) so the canvas behind it

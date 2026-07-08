@@ -4,12 +4,11 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { extname, join } from 'node:path'
 
 /**
- * Fallback background art for icon-less compositions (brief follow-up).
+ * Fallback background art for the icon-less Thumb (brief follow-up).
  *
- * Templates without an icon otherwise render as flat color + the thin
- * geometric pattern — fine with an icon anchoring the layout, empty without
- * one. Drop new files into public/backgrounds/ (SVG/PNG/JPEG/WebP) to grow
- * this set; no code change needed.
+ * OG/layout renders no longer use this — flat color only. Drop files into
+ * public/backgrounds/ (SVG/PNG/JPEG/WebP) to grow the set; no code change
+ * needed.
  */
 
 const BACKGROUNDS_DIR = join(process.cwd(), 'public', 'backgrounds')

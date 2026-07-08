@@ -236,7 +236,6 @@ export async function GET(req: Request) {
       textBlock,
       iconEl,
       hasIcon,
-      bgImage: hasIcon ? null : randomBackgroundDataUri(),
     })
 
     return new ImageResponse(root, {

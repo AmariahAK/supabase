@@ -4,8 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { ICON_LIBRARY } from '@/lib/assets/icon-library'
 import { type SeedIcon } from '@/lib/assets/seed-icons'
-import { BRAND_OPTIONS, DEFAULT_BRAND_ID, color, getBrand, type BrandId } from '@/lib/design/brands'
-import { contrastRatio, rating } from '@/lib/design/contrast'
+import { BRAND_OPTIONS, DEFAULT_BRAND_ID, type BrandId } from '@/lib/design/brands'
 import { DEFAULT_FORMAT_ID, FORMAT_OPTIONS, getFormat, type FormatId } from '@/lib/design/formats'
 import { DEFAULT_TEMPLATE_ID, TEMPLATES } from '@/lib/design/templates'
 import {
@@ -381,7 +380,6 @@ function PreviewCard({
 export default function Page() {
   const [brandId, setBrandId] = useState<BrandId>(DEFAULT_BRAND_ID)
   const [formatId, setFormatId] = useState<FormatId>(DEFAULT_FORMAT_ID)
-  const brand = useMemo(() => getBrand(brandId), [brandId])
   const format = useMemo(() => getFormat(formatId), [formatId])
   const hasThumb = !!format.thumb
 
@@ -391,6 +389,7 @@ export default function Page() {
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE_ID)
   const [icon, setIcon] = useState<string | null>(null)
   const [iconPickerOpen, setIconPickerOpen] = useState(false)
+  const iconPickerRef = useRef<HTMLDivElement>(null)
   const [uploadedIcons, setUploadedIcons] = useState<SeedIcon[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -410,6 +409,18 @@ export default function Page() {
   useEffect(() => {
     if (!hasThumb && view === 'thumb') setView('og')
   }, [hasThumb, view])
+
+  // Close the icon dropdown on an outside click, like a real dropdown.
+  useEffect(() => {
+    if (!iconPickerOpen) return
+    const onPointerDown = (e: PointerEvent) => {
+      if (iconPickerRef.current && !iconPickerRef.current.contains(e.target as Node)) {
+        setIconPickerOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [iconPickerOpen])
 
   const uploadSvg = async (file: File) => {
     setUploading(true)
@@ -524,9 +535,6 @@ export default function Page() {
         ? 'text-warning-600'
         : 'text-foreground-lighter'
 
-  const headlineContrast = contrastRatio(color('text.primary', brand), color('bg.primary', brand))
-  const headlineRating = rating(headlineContrast, true)
-
   const copyUrl = async (endpoint: string, key: View) => {
     const abs = typeof window !== 'undefined' ? window.location.origin + endpoint : endpoint
     await navigator.clipboard.writeText(abs)
@@ -580,37 +588,7 @@ export default function Page() {
                     error={og.error}
                     alt={headline}
                     showSafeArea={showSafeArea}
-                  >
-                    <div className="flex flex-col gap-2">
-                      {og.fit && (
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 self-start rounded-full border border-default bg-background px-3 py-1 text-xs text-foreground-light shadow-sm">
-                          <span className="font-medium text-foreground">Headline:</span>
-                          <span className="text-foreground">
-                            {og.fit.fontSize}px{og.fit.mode === 'auto' ? ' (auto on)' : ''}
-                          </span>
-                          <span className="text-foreground-lighter">·</span>
-                          <span>
-                            {og.fit.lineCount} {og.fit.lineCount === 1 ? 'line' : 'lines'}
-                          </span>
-                          <span className="text-foreground-lighter">·</span>
-                          <span className="font-medium text-foreground">WCAG:</span>
-                          <span className={headlineRating === 'Fail' ? 'text-destructive-600' : 'text-brand'}>
-                            {headlineContrast.toFixed(1)}:1 {headlineRating}
-                          </span>
-                        </div>
-                      )}
-                      {og.fit?.overflow && (
-                        <p className="text-xs text-destructive-600">
-                          ⚠ Won’t fit in 2 lines even at the minimum size — shorten it before export.
-                        </p>
-                      )}
-                      {og.fit && !og.fit.overflow && og.fit.mode === 'manual' && og.fit.lineCount > 2 && (
-                        <p className="text-xs text-warning-600">
-                          ⚠ More than 2 lines — allowed in manual mode, but off-brand.
-                        </p>
-                      )}
-                    </div>
-                  </PreviewCard>
+                  />
                 </div>
               )}
 
@@ -625,15 +603,7 @@ export default function Page() {
                     error={thumb.error}
                     alt="Thumbnail preview"
                     showSafeArea={showSafeArea}
-                  >
-                    <div className="flex flex-col gap-2">
-                      {!icon && (
-                        <p className="text-xs text-warning-600">
-                          ⚠ Pick an icon in Content — the Thumb has no text to fall back on.
-                        </p>
-                      )}
-                    </div>
-                  </PreviewCard>
+                  />
                 </div>
               )}
             </div>
@@ -659,7 +629,7 @@ export default function Page() {
       {/* View toggle — anchored to the top of the canvas, independent of
           main's scroll (a sibling, not a child of the scroll container). */}
       <div className="pointer-events-none absolute left-8 right-[380px] top-6 z-10 flex justify-center">
-        <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-default bg-background px-3 py-2 shadow-lg">
+        <div className="pointer-events-auto flex items-center gap-3 rounded-md border border-default bg-background px-3 py-2 shadow-lg">
           <Segmented
             value={view}
             onChange={setView}
@@ -672,7 +642,7 @@ export default function Page() {
           on the same content box as the View toggle above, and likewise
           anchored outside main's scroll container. */}
       <div className="pointer-events-none absolute bottom-6 left-8 right-[380px] z-10 flex justify-center">
-        <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-default bg-background px-3 py-2 shadow-lg">
+        <div className="pointer-events-auto flex items-center gap-3 rounded-md border border-default bg-background px-3 py-2 shadow-lg">
           <button
             type="button"
             onClick={() => setShowSafeArea((v) => !v)}
@@ -814,7 +784,7 @@ export default function Page() {
                 Icon
                 <Hint text="Line-art icons only, stroke locked to the illustration weight (§4). Logos (SVG, PNG, JPEG, WebP) keep their original colors, for partnerships/acquisitions. The icon is shared between the OG and Thumb. Both are stored in Supabase and need the secret key configured." />
               </span>
-              <div className="relative">
+              <div className="relative" ref={iconPickerRef}>
                 <button
                   type="button"
                   onClick={() => setIconPickerOpen((o) => !o)}
@@ -855,7 +825,7 @@ export default function Page() {
                 </button>
 
                 {iconPickerOpen && (
-                  <div className="absolute z-20 mt-1 w-full rounded-md border border-default bg-background p-2 shadow-lg">
+                  <div className="absolute bottom-full z-20 mb-1 w-full rounded-md border border-default bg-background p-2 shadow-lg">
                     <div className="grid max-h-56 grid-cols-4 gap-2 overflow-y-auto">
                       <button
                         type="button"

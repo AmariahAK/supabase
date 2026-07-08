@@ -32,24 +32,24 @@ Before choosing a tool, answer four questions:
 3. Is the destination Supabase, an external system, or an analytical destination?
 4. Does the job need retries, replay, backfills, or long-running compute?
 
-| Area | Job | Use |
-| --- | --- | --- |
-| Rows | Import a small CSV | Dashboard CSV import |
-| Rows | Import a large table | `COPY` |
-| Rows | Move from another Postgres database | `pg_dump`, `pg_restore`, or `COPY` |
-| Rows | Move from another database engine | `pgloader` or ETL tooling |
-| Rows | Export rows from Supabase Database | SQL, `COPY`, or `pg_dump` |
-| Files | Upload or download files from an app | Supabase Storage API |
-| Files | Move many files | S3-compatible tools |
-| External systems | Read from external Postgres | `postgres_fdw` |
-| External systems | Read from external S3 files | S3 Wrapper |
-| External systems | Write to an external API | Supabase Edge Functions for short jobs, external workers for longer jobs |
-| External systems | Write to external S3 | App code, Edge Functions, or external workers |
-| Jobs and sync | Run a scheduled job | Supabase Cron plus SQL, Edge Functions, or external workers |
-| Jobs and sync | React when rows change | Supabase Database Webhooks, triggers, Supabase Realtime, Supabase Queue, Edge Functions, or workers |
-| Jobs and sync | Run longer background jobs | External workers. Supabase doesn't have a first-party long-running compute product today. |
-| Analytics | Move operational data into an analytical destination | Supabase Pipelines (built on the open source Supabase ETL engine) for BigQuery today, more destinations planned. ETL tooling for anything Pipelines doesn't cover yet. |
-| Analytics | Query analytical data without affecting the app workload | Analytics Buckets today, with your own ingestion pipeline. Supabase Warehouse is in development to replace Analytics Buckets. |
+| Area             | Job                                                      | Use                                                                                                                                                                    |
+| ---------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rows             | Import a small CSV                                       | Dashboard CSV import                                                                                                                                                   |
+| Rows             | Import a large table                                     | `COPY`                                                                                                                                                                 |
+| Rows             | Move from another Postgres database                      | `pg_dump`, `pg_restore`, or `COPY`                                                                                                                                     |
+| Rows             | Move from another database engine                        | `pgloader` or ETL tooling                                                                                                                                              |
+| Rows             | Export rows from Supabase Database                       | SQL, `COPY`, or `pg_dump`                                                                                                                                              |
+| Files            | Upload or download files from an app                     | Supabase Storage API                                                                                                                                                   |
+| Files            | Move many files                                          | S3-compatible tools                                                                                                                                                    |
+| External systems | Read from external Postgres                              | `postgres_fdw`                                                                                                                                                         |
+| External systems | Read from external S3 files                              | S3 Wrapper                                                                                                                                                             |
+| External systems | Write to an external API                                 | Supabase Edge Functions for short jobs, external workers for longer jobs                                                                                               |
+| External systems | Write to external S3                                     | App code, Edge Functions, or external workers                                                                                                                          |
+| Jobs and sync    | Run a scheduled job                                      | Supabase Cron plus SQL, Edge Functions, or external workers                                                                                                            |
+| Jobs and sync    | React when rows change                                   | Supabase Database Webhooks, triggers, Supabase Realtime, Supabase Queue, Edge Functions, or workers                                                                    |
+| Jobs and sync    | Run longer background jobs                               | External workers. Supabase doesn't have a first-party long-running compute product today.                                                                              |
+| Analytics        | Move operational data into an analytical destination     | Supabase Pipelines (built on the open source Supabase ETL engine) for BigQuery today, more destinations planned. ETL tooling for anything Pipelines doesn't cover yet. |
+| Analytics        | Query analytical data without affecting the app workload | Analytics Buckets today, with your own ingestion pipeline. Supabase Warehouse is in development to replace Analytics Buckets.                                          |
 
 ### Move rows
 

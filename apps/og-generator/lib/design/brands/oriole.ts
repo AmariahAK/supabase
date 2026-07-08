@@ -14,7 +14,7 @@ export const oriole: Brand = {
   id: 'oriole',
   name: 'Oriole',
   colorPalette: {
-    'bg.primary': '#1A1512',
+    'bg.primary': '#121212',
     'bg.alt': '#15110E',
     'surface.100': '#2A231D',
     'surface.200': '#2E2620',

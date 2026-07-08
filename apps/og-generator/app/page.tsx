@@ -774,7 +774,7 @@ export default function Page() {
             </Group>
           )}
 
-          <Group title="Content">
+          <Group title="Content" noDivider>
             {showOg && (
               <div className="flex flex-col gap-2">
                 <label htmlFor="eyebrow" className="text-sm font-medium text-foreground-light">

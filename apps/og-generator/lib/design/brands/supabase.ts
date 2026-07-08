@@ -10,7 +10,7 @@ export const supabase: Brand = {
   id: 'supabase',
   name: 'Supabase',
   colorPalette: {
-    'bg.primary': '#1C1C1C',
+    'bg.primary': '#121212',
     'bg.alt': '#171717',
     'surface.100': '#2A2A2A',
     'surface.200': '#2E2E2E',

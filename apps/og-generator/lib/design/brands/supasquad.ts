@@ -14,7 +14,7 @@ export const supasquad: Brand = {
   id: 'supasquad',
   name: 'Supasquad',
   colorPalette: {
-    'bg.primary': '#160F1C',
+    'bg.primary': '#121212',
     'bg.alt': '#120C17',
     'surface.100': '#241A2C',
     'surface.200': '#291E32',

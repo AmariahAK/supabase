@@ -14,7 +14,7 @@ export const multigres: Brand = {
   id: 'multigres',
   name: 'Multigres',
   colorPalette: {
-    'bg.primary': '#15161C',
+    'bg.primary': '#121212',
     'bg.alt': '#111218',
     'surface.100': '#22242E',
     'surface.200': '#262833',

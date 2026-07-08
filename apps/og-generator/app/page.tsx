@@ -24,16 +24,11 @@ function safeAreaInset(width: number, height: number) {
 }
 
 type View = 'og' | 'thumb' | 'both'
-type EyebrowStyle = 'text' | 'pill'
 
 const VIEW_OPTS: { value: View; label: string }[] = [
   { value: 'og', label: 'OG' },
   { value: 'thumb', label: 'Thumb' },
   { value: 'both', label: 'Both' },
-]
-const EYEBROW_STYLE_OPTS: { value: EyebrowStyle; label: string }[] = [
-  { value: 'text', label: 'Plain' },
-  { value: 'pill', label: 'Pill' },
 ]
 
 interface FitInfo {
@@ -65,10 +60,6 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
       {children}
     </section>
   )
-}
-
-function Label({ children }: { children: React.ReactNode }) {
-  return <span className="text-sm text-foreground-light">{children}</span>
 }
 
 function Segmented<T extends string>({
@@ -255,7 +246,7 @@ function PreviewCard({
         {showSafeArea && (
           <div className="pointer-events-none absolute inset-0">
             <div
-              className="absolute border border-dashed border-brand/40"
+              className="absolute border border-dotted border-brand/40"
               style={{
                 top: `${safeArea.y}%`,
                 bottom: `${safeArea.y}%`,
@@ -288,7 +279,6 @@ export default function Page() {
   const [view, setView] = useState<View>('both')
   const [headline, setHeadline] = useState('Postgres full text search just got faster')
   const [eyebrow, setEyebrow] = useState('Engineering')
-  const [eyebrowStyle, setEyebrowStyle] = useState<EyebrowStyle>('pill')
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE_ID)
   const [icon, setIcon] = useState<string | null>(null)
   const [iconPickerOpen, setIconPickerOpen] = useState(false)
@@ -392,14 +382,14 @@ export default function Page() {
     p.set('headline', headline)
     if (eyebrow.trim()) {
       p.set('eyebrow', eyebrow.trim())
-      if (eyebrowStyle === 'pill') p.set('eyebrowStyle', 'pill')
+      p.set('eyebrowStyle', 'pill')
     }
     p.set('template', template)
     if (icon) p.set('icon', icon)
     if (scale === 2) p.set('scale', '2')
     return `/api/og?${p.toString()}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandId, formatId, headline, eyebrow, eyebrowStyle, template, icon, scale])
+  }, [brandId, formatId, headline, eyebrow, template, icon, scale])
 
   const thumbEndpoint = useMemo(() => {
     const p = new URLSearchParams()
@@ -557,18 +547,24 @@ export default function Page() {
           </div>
         </div>
 
-        {/* Floating guides / view-in-context toolbar — bottom-aligned, centered. */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-6 z-10 flex justify-center">
+        {/* Floating guides / view-in-context toolbar — bottom-aligned, centered
+            on the same content box as the View toggle above. An absolutely
+            positioned child ignores its ancestor's padding, so we repeat
+            main's p-8/pr-[380px] insets here to land on the same center line. */}
+        <div className="pointer-events-none absolute bottom-6 left-8 right-[380px] z-10 flex justify-center">
           <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-default bg-background px-3 py-2 shadow-lg">
-            <label className="flex items-center gap-1.5 px-1 text-xs text-foreground-light">
-              <input
-                type="checkbox"
-                id="toggle-safe-area"
-                checked={showSafeArea}
-                onChange={(e) => setShowSafeArea(e.target.checked)}
-              />
-              Safe area
-            </label>
+            <button
+              type="button"
+              onClick={() => setShowSafeArea((v) => !v)}
+              title="Show safe-area guide"
+              className={`flex h-7 w-7 items-center justify-center rounded ${
+                showSafeArea ? 'bg-surface-300 text-foreground' : 'text-foreground-light hover:text-foreground'
+              }`}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <rect x="4" y="4" width="16" height="16" rx="2" strokeDasharray="0.1 4.2" strokeLinecap="round" />
+              </svg>
+            </button>
             {showOg && (
               <>
                 <div className="h-5 border-l border-default" />
@@ -618,10 +614,6 @@ export default function Page() {
           {showOg && (
             <Group title="Layout">
               <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-foreground-light">
-                  Template
-                  <Hint text="Prebuilt layouts that already satisfy the safe area + alignment rules (§5.6). Pick one, then customize within it." />
-                </span>
                 <div className="grid grid-cols-2 gap-2">
                   {TEMPLATES.map((t) => (
                     <button
@@ -665,10 +657,6 @@ export default function Page() {
                   className="rounded-md border border-default bg-surface-100 px-3 py-2 text-sm text-foreground outline-none focus:border-strong"
                   placeholder="e.g. Launch Week, Engineering"
                 />
-                <div className="flex items-center justify-between">
-                  <Label>Style</Label>
-                  <Segmented value={eyebrowStyle} onChange={setEyebrowStyle} options={EYEBROW_STYLE_OPTS} />
-                </div>
               </div>
             )}
 

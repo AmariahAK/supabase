@@ -6,20 +6,7 @@ import { getBrand, color } from '@/lib/design/brands'
 import { satoriFonts, measurementFont } from '@/lib/design/fonts'
 import { getFormat } from '@/lib/design/formats'
 import { iconDataUri } from '@/lib/design/icons'
-import {
-  PATTERN_SCALE_PX,
-  clampPatternOpacity,
-  patternDataUri,
-  type PatternColor,
-  type PatternConfig,
-  type PatternScale,
-  type PatternType,
-} from '@/lib/design/patterns'
-import {
-  DEFAULT_TEMPLATE_ID,
-  TEMPLATE_MAP,
-  type TemplateDefaultPattern,
-} from '@/lib/design/templates'
+import { DEFAULT_TEMPLATE_ID, TEMPLATE_MAP } from '@/lib/design/templates'
 import { typography } from '@/lib/design/tokens'
 import { fitHeadline } from '@/lib/text/fit-headline'
 import { toSentenceCase } from '@/lib/text/sentence-case'
@@ -33,6 +20,9 @@ const DEFAULT_HEADLINE = 'Postgres full text search just got faster'
 
 const HEADLINE = typography.roles.headline
 const EYEBROW = typography.roles.eyebrow
+// One step below EYEBROW's own weight — the pill reads better slightly lighter
+// than the headline at this size.
+const EYEBROW_PILL_WEIGHT = 400
 
 /** Scale (naturalW, naturalH) to fit within a boxSize square, preserving aspect ratio. */
 function fitBox(naturalW: number, naturalH: number, boxSize: number): { width: number; height: number } {
@@ -40,21 +30,10 @@ function fitBox(naturalW: number, naturalH: number, boxSize: number): { width: n
   return ratio >= 1 ? { width: boxSize, height: boxSize / ratio } : { width: boxSize * ratio, height: boxSize }
 }
 
-const THUMB_PATTERN_FALLBACK: TemplateDefaultPattern = {
-  type: 'none',
-  scale: 'md',
-  color: 'white',
-  opacity: 0.06,
-}
-
 const CORS_AND_CACHE = {
   'access-control-allow-origin': '*',
   'cache-control': 'no-store, max-age=0',
 }
-
-const PATTERN_TYPES: PatternType[] = ['grid', 'dots', 'hlines', 'vlines']
-const PATTERN_SCALES: PatternScale[] = ['sm', 'md', 'lg']
-const PATTERN_COLORS: PatternColor[] = ['white', 'green']
 
 export async function GET(req: Request) {
   try {
@@ -77,35 +56,6 @@ export async function GET(req: Request) {
     const iconObj = iconName ? await resolveIcon(iconName, brand.id) : null
     const type = searchParams.get('type') === 'thumb' ? 'thumb' : 'og'
 
-    // Resolve the background pattern from query params, falling back to a default
-    // (the per-template default for OG, or "none" for thumb).
-    const resolvePattern = (fallback: TemplateDefaultPattern): PatternConfig => {
-      const raw = searchParams.get('pattern')
-      if (raw === null) return fallback
-      if (raw === 'none') return { ...fallback, type: 'none' }
-      const type = (PATTERN_TYPES as string[]).includes(raw) ? (raw as PatternType) : fallback.type
-      const scaleParam = searchParams.get('patternScale')
-      const colorParam = searchParams.get('patternColor')
-      const opacityParam = searchParams.get('patternOpacity')
-      return {
-        type,
-        scale: (PATTERN_SCALES as string[]).includes(scaleParam ?? '')
-          ? (scaleParam as PatternScale)
-          : fallback.scale,
-        color: (PATTERN_COLORS as string[]).includes(colorParam ?? '')
-          ? (colorParam as PatternColor)
-          : fallback.color,
-        opacity: opacityParam ? clampPatternOpacity(Number(opacityParam)) : fallback.opacity,
-      }
-    }
-
-    const patternLayer = (cfg: PatternConfig, offsetX = 0, offsetY = 0) => {
-      if (cfg.type === 'none') return null
-      const uri = patternDataUri({ ...cfg, width: W, height: H, scaleFactor: s, offsetX, offsetY })
-      // eslint-disable-next-line @next/next/no-img-element
-      return <img width={W} height={H} src={uri} style={{ position: 'absolute', top: 0, left: 0 }} />
-    }
-
     // ---- Thumb variant: same canvas + icon system, no text layer (brief §3) -
     if (type === 'thumb') {
       const thumb = format.thumb ?? { default: 380, min: 160, max: 480 }
@@ -113,7 +63,6 @@ export async function GET(req: Request) {
       const thumbSize = Number.isFinite(thumbNum)
         ? Math.min(thumb.max, Math.max(thumb.min, Math.round(thumbNum)))
         : thumb.default
-      const cfg = resolvePattern(THUMB_PATTERN_FALLBACK)
       const thumbBgImage = iconObj ? null : randomBackgroundDataUri()
 
       const thumbRoot = (
@@ -131,7 +80,6 @@ export async function GET(req: Request) {
               : {}),
           }}
         >
-          {patternLayer(cfg)}
           {iconObj && iconObj.kind === 'logo' && iconObj.url ? (
             // Custom color logo — rendered as-is (no stroke normalization),
             // fit to its natural aspect ratio (brief follow-up: partnerships).
@@ -161,7 +109,6 @@ export async function GET(req: Request) {
         headers: {
           ...CORS_AND_CACHE,
           'x-og-template': 'thumb',
-          'x-og-pattern': cfg.type,
           'x-og-has-icon': String(!!iconObj),
         },
       })
@@ -172,7 +119,6 @@ export async function GET(req: Request) {
 
     const rawHeadline = (searchParams.get('headline') ?? DEFAULT_HEADLINE).slice(0, 200)
     const eyebrow = searchParams.get('eyebrow')?.trim() || null
-    const eyebrowPill = searchParams.get('eyebrowStyle') === 'pill'
     const sentenceCase = searchParams.get('sentenceCase') !== '0'
     const manualBreaks = searchParams.get('manual') === '1' || /\n/.test(rawHeadline)
 
@@ -206,7 +152,7 @@ export async function GET(req: Request) {
     const eyebrowLetterSpacing = EYEBROW.letterSpacing * eyebrowSize
     const eyebrowGap = 16 * s
 
-    const fonts = await satoriFonts([...new Set([EYEBROW.weight, HEADLINE.weight])])
+    const fonts = await satoriFonts([...new Set([HEADLINE.weight])])
 
     const textBlock = (
       <div
@@ -221,19 +167,15 @@ export async function GET(req: Request) {
             style={{
               display: 'flex',
               marginBottom: eyebrowGap,
-              color: eyebrowPill ? '#000000' : color('brand.default', brand),
+              color: '#000000',
               fontFamily: 'IBM Plex Mono',
               fontSize: eyebrowSize,
-              fontWeight: EYEBROW.weight,
+              fontWeight: EYEBROW_PILL_WEIGHT,
               letterSpacing: eyebrowLetterSpacing,
               textTransform: 'uppercase',
-              ...(eyebrowPill
-                ? {
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: 999,
-                    padding: `${8 * s}px ${18 * s}px`,
-                  }
-                : {}),
+              backgroundColor: '#FFFFFF',
+              borderRadius: 999,
+              padding: `${8 * s}px ${18 * s}px`,
             }}
           >
             {eyebrow}
@@ -284,37 +226,6 @@ export async function GET(req: Request) {
         />
       ) : null
 
-    const cfg = resolvePattern(template.defaultPattern)
-    // Grid-snap (§4): phase the pattern so a grid line lands on the safe-area
-    // inset, anchoring the composition's left/top edges to the background grid.
-    const gridUnit = PATTERN_SCALE_PX[cfg.scale] * s
-
-    // padY / H-padY mark the invisible LAYOUT BOX edge, but CSS line-height
-    // leading means the visible glyph ink sits a bit inside that edge — the
-    // grid should snap to where the text actually LOOKS like it starts/ends,
-    // not the box. Derived from the real Manrope metrics (already loaded for
-    // the auto-fit measurement above), not a guessed pixel constant, so it
-    // stays correct across every font size auto-fit picks.
-    const unitsPerEm = headlineFont.unitsPerEm
-    const ascentPx = (headlineFont.ascent / unitsPerEm) * headlineSize
-    const descentPx = (Math.abs(headlineFont.descent) / unitsPerEm) * headlineSize
-    const capHeightPx = (headlineFont.capHeight / unitsPerEm) * headlineSize
-    const halfLeading = (headlineLineHeight - (ascentPx + descentPx)) / 2
-    const visualTopInset = halfLeading + ascentPx - capHeightPx // box top -> cap-height top
-    const visualBottomInset = halfLeading + descentPx // box bottom -> baseline
-
-    // Grid-snap on BOTH axes: align a grid line to where THIS template's content
-    // actually sits (left/center × top/center/bottom), not just the top-left.
-    const anchorPxX = template.anchorX === 'center' ? W / 2 : padX
-    const anchorPxY =
-      template.anchorY === 'center'
-        ? H / 2
-        : template.anchorY === 'bottom'
-          ? H - padY - visualBottomInset
-          : padY + visualTopInset
-    const patternOffX = ((anchorPxX % gridUnit) + gridUnit) % gridUnit
-    const patternOffY = ((anchorPxY % gridUnit) + gridUnit) % gridUnit
-
     const root = template.build({
       W,
       H,
@@ -324,7 +235,6 @@ export async function GET(req: Request) {
       scaleFactor: s,
       textBlock,
       iconEl,
-      patternLayer: patternLayer(cfg, patternOffX, patternOffY),
       hasIcon,
       bgImage: hasIcon ? null : randomBackgroundDataUri(),
     })
@@ -342,7 +252,6 @@ export async function GET(req: Request) {
         'x-og-mode': fit.mode,
         'x-og-widest-line-px': String(fit.widestLinePx),
         'x-og-template': template.id,
-        'x-og-pattern': cfg.type,
       },
     })
   } catch (err) {

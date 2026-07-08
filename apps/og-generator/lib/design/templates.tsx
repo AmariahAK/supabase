@@ -2,7 +2,6 @@ import type { CSSProperties, ReactElement, ReactNode } from 'react'
 
 import type { Format } from '@/lib/design/formats'
 import { fullHeadlineBoxWidth } from '@/lib/design/formats'
-import type { PatternColor, PatternScale, PatternType } from '@/lib/design/patterns'
 
 /**
  * Multi-template registry (brief §5.6). Each template is a guardrailed layout
@@ -10,17 +9,10 @@ import type { PatternColor, PatternScale, PatternType } from '@/lib/design/patte
  * and customizes copy/icon within it, rather than building from a blank canvas.
  *
  * Templates are data: id, the headline text-box width the auto-fit measures
- * against, intrinsic text alignment, a default background pattern (§6.7), and a
- * `build` that arranges the pre-rendered pieces into the satori root. This shape
- * maps onto the future `templates` table's og_schema_json (§8).
+ * against, intrinsic text alignment, and a `build` that arranges the
+ * pre-rendered pieces into the satori root. This shape maps onto the future
+ * `templates` table's og_schema_json (§8).
  */
-
-export interface TemplateDefaultPattern {
-  type: PatternType | 'none'
-  scale: PatternScale
-  color: PatternColor
-  opacity: number
-}
 
 export interface TemplateParts {
   W: number
@@ -31,7 +23,6 @@ export interface TemplateParts {
   scaleFactor: number
   textBlock: ReactNode
   iconEl: ReactNode | null
-  patternLayer: ReactNode | null
   hasIcon: boolean
   /** Fallback art (data URI) for icon-less compositions — full-bleed, behind everything else. */
   bgImage?: string | null
@@ -43,10 +34,9 @@ export interface Template {
   /** Headline text-box width (1x px) the auto-fit measures against, for a given format. */
   headlineBox: (format: Format) => number
   textAlign: 'left' | 'center'
-  /** Where the content sits — used to grid-snap the background to it (§4). */
+  /** Where the content sits (§4). */
   anchorX: 'left' | 'center'
   anchorY: 'top' | 'center' | 'bottom'
-  defaultPattern: TemplateDefaultPattern
   build: (p: TemplateParts) => ReactElement
 }
 
@@ -76,7 +66,6 @@ export const TEMPLATES: Template[] = [
     textAlign: 'left',
     anchorX: 'left',
     anchorY: 'bottom',
-    defaultPattern: { type: 'dots', scale: 'md', color: 'white', opacity: 0.2 },
     build: (p) => (
       <div
         style={{
@@ -86,7 +75,6 @@ export const TEMPLATES: Template[] = [
           alignItems: 'flex-start',
         }}
       >
-        {p.patternLayer}
         {p.hasIcon ? (
           <div style={{ display: 'flex', width: p.W - p.padX * 2, justifyContent: 'flex-end' }}>
             {p.iconEl}
@@ -104,7 +92,6 @@ export const TEMPLATES: Template[] = [
     textAlign: 'left',
     anchorX: 'left',
     anchorY: 'center',
-    defaultPattern: { type: 'grid', scale: 'md', color: 'white', opacity: 0.2 },
     build: (p) => (
       <div
         style={{
@@ -115,7 +102,6 @@ export const TEMPLATES: Template[] = [
           gap: 56 * p.scaleFactor,
         }}
       >
-        {p.patternLayer}
         {p.textBlock}
         {p.iconEl}
       </div>
@@ -130,7 +116,6 @@ export const TEMPLATES: Template[] = [
     textAlign: 'center',
     anchorX: 'center',
     anchorY: 'center',
-    defaultPattern: { type: 'dots', scale: 'lg', color: 'green', opacity: 0.2 },
     build: (p) => (
       <div
         style={{
@@ -141,7 +126,6 @@ export const TEMPLATES: Template[] = [
           textAlign: 'center',
         }}
       >
-        {p.patternLayer}
         {p.hasIcon ? (
           <div style={{ display: 'flex', marginBottom: 36 * p.scaleFactor }}>{p.iconEl}</div>
         ) : null}
@@ -156,7 +140,6 @@ export const TEMPLATES: Template[] = [
     textAlign: 'left',
     anchorX: 'left',
     anchorY: 'top',
-    defaultPattern: { type: 'hlines', scale: 'md', color: 'white', opacity: 0.2 },
     build: (p) => (
       <div
         style={{
@@ -166,7 +149,6 @@ export const TEMPLATES: Template[] = [
           alignItems: 'flex-start',
         }}
       >
-        {p.patternLayer}
         {p.textBlock}
         {p.iconEl}
       </div>

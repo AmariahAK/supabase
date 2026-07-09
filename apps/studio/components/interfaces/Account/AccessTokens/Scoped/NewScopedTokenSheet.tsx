@@ -50,8 +50,8 @@ const DEFAULT_VALUES: TokenFormValues = {
   expiresAt: DEFAULT_EXPIRY,
   customExpiryDate: undefined,
   resourceAccess: 'single-project',
-  organizationSlugs: [],
-  projectRefs: [],
+  organizationSlug: undefined,
+  projectRef: undefined,
   accountConfirmed: false,
   permissions: {},
 }
@@ -83,10 +83,10 @@ export const NewScopedTokenSheet = ({
 
   const validateResource = (): string | undefined => {
     if (values.resourceAccess === 'single-project') {
-      if (values.projectRefs.length === 0) return 'Please select at least one project to continue.'
+      if (!values.organizationSlug) return 'Please select an organization to continue.'
+      if (!values.projectRef) return 'Please select a project to continue.'
     } else if (values.resourceAccess === 'organization') {
-      if (values.organizationSlugs.length === 0)
-        return 'Please select at least one organization to continue.'
+      if (!values.organizationSlug) return 'Please select an organization to continue.'
     } else if (values.resourceAccess === 'account') {
       if (!values.accountConfirmed) return 'Confirm account-level access to continue.'
     }
@@ -115,16 +115,12 @@ export const NewScopedTokenSheet = ({
 
   const resourceSummary = (): string => {
     if (values.resourceAccess === 'single-project') {
-      const names = values.projectRefs.map(
-        (ref) => projects.find((p) => p.ref === ref)?.name ?? ref
-      )
-      return `Projects: ${names.length > 0 ? names.join(', ') : '—'}`
+      const project = projects.find((p) => p.ref === values.projectRef)
+      return `Project: ${project?.name ?? values.projectRef ?? '—'}`
     }
     if (values.resourceAccess === 'organization') {
-      const names = values.organizationSlugs.map(
-        (slug) => organizations.find((o) => o.slug === slug)?.name ?? slug
-      )
-      return `Organizations: ${names.length > 0 ? names.join(', ') : '—'}`
+      const org = organizations.find((o) => o.slug === values.organizationSlug)
+      return `Organization: ${org?.name ?? values.organizationSlug ?? '—'}`
     }
     return 'Account: Account-level access'
   }
@@ -149,11 +145,11 @@ export const NewScopedTokenSheet = ({
       name: values.tokenName.trim(),
       permissions,
       ...(expires_at ? { expires_at } : {}),
-      ...(values.resourceAccess === 'single-project' && values.projectRefs.length > 0
-        ? { project_refs: values.projectRefs }
+      ...(values.resourceAccess === 'single-project' && values.projectRef
+        ? { project_refs: [values.projectRef] }
         : {}),
-      ...(values.resourceAccess === 'organization' && values.organizationSlugs.length > 0
-        ? { organization_slugs: values.organizationSlugs }
+      ...(values.resourceAccess === 'organization' && values.organizationSlug
+        ? { organization_slugs: [values.organizationSlug] }
         : {}),
     }
 

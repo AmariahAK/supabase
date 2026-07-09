@@ -310,8 +310,7 @@ changes = supabase.channel('schema-db-changes').on_postgres_changes(
   "*",
   schema="public",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -663,8 +662,7 @@ changes = supabase.channel('schema-db-changes').on_postgres_changes(
   "INSERT",
   schema="public",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -675,8 +673,7 @@ changes = supabase.channel('schema-db-changes').on_postgres_changes(
   "UPDATE",
   schema="public",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -687,8 +684,7 @@ changes = supabase.channel('schema-db-changes').on_postgres_changes(
   "DELETE",
   schema="public",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -699,8 +695,7 @@ changes = supabase.channel('schema-db-changes').on_postgres_changes(
   "*",
   schema="public",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -809,8 +804,7 @@ changes = supabase.channel('db-changes').on_postgres_changes(
   schema="public",
   table="todos",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -915,7 +909,7 @@ myChannel.subscribe()
 changes = supabase.channel('db-changes').on_postgres_changes(
   "*",
   schema="public",
-  table="messages"
+  table="messages",
   callback=lambda payload: print(payload)
 ).on_postgres_changes(
   "INSERT",
@@ -1034,8 +1028,7 @@ changes = supabase.channel('db-changes').on_postgres_changes(
   table="todos",
   filter="id=eq.1",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -1215,8 +1208,7 @@ changes = supabase.channel('db-changes').on_postgres_changes(
   table="messages",
   filter="body=eq.hey",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -1362,8 +1354,7 @@ changes = supabase.channel('db-changes').on_postgres_changes(
   table="messages",
   filter="body=neq.bye",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -1508,8 +1499,7 @@ changes = supabase.channel('db-changes').on_postgres_changes(
   table="profiles",
   filter="age=lt.65",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -1654,8 +1644,7 @@ changes = supabase.channel('db-changes').on_postgres_changes(
   table="profiles",
   filter="age=lte.65",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -1800,8 +1789,7 @@ changes = supabase.channel('db-changes').on_postgres_changes(
   table="products",
   filter="quantity=gt.10",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -1946,8 +1934,7 @@ changes = supabase.channel('db-changes').on_postgres_changes(
   table="products",
   filter="quantity=gte.10",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -2092,8 +2079,7 @@ changes = supabase.channel('db-changes').on_postgres_changes(
   table="products",
   filter="name=in.(red,blue,yellow)",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -2239,8 +2225,7 @@ changes = supabase.channel('db-changes').on_postgres_changes(
   table="articles",
   filter="title=ilike.%breaking%",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -2386,8 +2371,7 @@ changes = supabase.channel('db-changes').on_postgres_changes(
   table="posts",
   filter="slug=match.^post-\\d+$",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -2533,8 +2517,7 @@ changes = supabase.channel('db-changes').on_postgres_changes(
   table="todos",
   filter="completed_at=is.null",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -2680,8 +2663,7 @@ changes = supabase.channel('db-changes').on_postgres_changes(
   table="orders",
   filter="status=isdistinct.shipped",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -2826,8 +2808,7 @@ changes = supabase.channel('db-changes').on_postgres_changes(
   table="posts",
   filter="status=not.in.(draft,archived)",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -2983,8 +2964,7 @@ changes = supabase.channel('db-changes').on_postgres_changes(
   table="orders",
   filter="amount=gt.100,status=eq.open",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>
@@ -3060,6 +3040,21 @@ let changes = await myChannel.postgresChange(
 )
 
 await myChannel.subscribe()
+```
+
+</TabPanel>
+</$Show>
+<$Show if="sdk:python">
+<TabPanel id="python" label="Python">
+
+```python
+changes = supabase.channel('changes').on_postgres_changes(
+  "*",
+  schema="public",
+  table="profiles",
+  select=["id", "username"],
+  callback=lambda payload: print(payload)
+).subscribe()
 ```
 
 </TabPanel>
@@ -3229,8 +3224,7 @@ changes = supabase.channel('db-changes').on_postgres_changes(
   table="products",
   filter="name=in.(red,blue,yellow)",
   callback=lambda payload: print(payload)
-)
-.subscribe()
+).subscribe()
 ```
 
 </TabPanel>

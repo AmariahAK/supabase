@@ -531,6 +531,12 @@ export default function Page() {
   const [showSafeArea, setShowSafeArea] = useState(false)
   const [inContext, setInContext] = useState<InContextMode>('none')
   const [exportOpen, setExportOpen] = useState(false)
+  // Canvas zoom (brief follow-up) — scales the rendered image cards
+  // themselves, not the surrounding UI/controls.
+  const [zoom, setZoom] = useState(100)
+  const ZOOM_MIN = 25
+  const ZOOM_MAX = 200
+  const ZOOM_STEP = 25
 
   const [copied, setCopied] = useState<View | null>(null)
 
@@ -611,11 +617,14 @@ export default function Page() {
               the row centers within it. (flex-1 items don't shrink below
               their content, so this can't clip an overflowing row — it just
               grows.) */
-          <div className="flex w-full flex-1 flex-col items-center @4xl:justify-center">
+          <div
+            className={`flex w-full flex-1 flex-col @4xl:justify-center ${
+              zoom > 100 ? 'items-start' : 'items-center'
+            }`}
+          >
             <div
-              className={`flex flex-col gap-6 @4xl:flex-row @4xl:items-start ${
-                view === 'both' ? 'w-full' : 'w-[65%]'
-              }`}
+              className="flex flex-col gap-6 @4xl:flex-row @4xl:items-start"
+              style={{ width: `${Math.round((view === 'both' ? 100 : 65) * (zoom / 100))}%` }}
             >
               {showOg && (
                 <div className="min-w-0 @4xl:flex-1">
@@ -679,6 +688,46 @@ export default function Page() {
           />
         </div>
       </div>
+
+      {/* Canvas zoom — bottom-left corner, independent of the centered
+          toolbar. Scales the image cards themselves (via the row's width
+          style above), not the surrounding controls. */}
+      {inContext === 'none' && (
+        <div className="pointer-events-none absolute bottom-6 left-8 z-10 flex">
+          <div className="pointer-events-auto flex items-center gap-1 rounded-md border border-default bg-background px-1.5 py-1 shadow-lg">
+            <button
+              type="button"
+              onClick={() => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP))}
+              disabled={zoom <= ZOOM_MIN}
+              title="Zoom out"
+              className="flex h-6 w-6 items-center justify-center rounded text-foreground-light hover:text-foreground disabled:opacity-30"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M5 12h14" strokeLinecap="round" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoom(100)}
+              title="Reset zoom"
+              className="min-w-[3ch] px-1 text-center text-xs tabular-nums text-foreground-light hover:text-foreground"
+            >
+              {zoom}%
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP))}
+              disabled={zoom >= ZOOM_MAX}
+              title="Zoom in"
+              className="flex h-6 w-6 items-center justify-center rounded text-foreground-light hover:text-foreground disabled:opacity-30"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Floating guides / view-in-context toolbar — bottom-aligned, centered
           on the same content box as the View toggle above, and likewise

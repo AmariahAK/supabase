@@ -32,6 +32,12 @@ export interface TemplateParts {
 export interface Template {
   id: string
   label: string
+  /**
+   * Groups templates into labeled sections in the Layout picker (§ editor
+   * UI) — a flat grid stops scaling once a format has more than a
+   * handful of layouts.
+   */
+  category: string
   /** Headline text-box width (1x px) the auto-fit measures against, for a given format. */
   headlineBox: (format: Format) => number
   textAlign: 'left' | 'center' | 'right'
@@ -66,6 +72,7 @@ export const TEMPLATES: Template[] = [
   {
     id: 'bottom-left',
     label: 'Headline bottom-left',
+    category: 'Icon layouts',
     headlineBox: fullHeadlineBoxWidth,
     textAlign: 'left',
     anchorX: 'left',
@@ -91,6 +98,7 @@ export const TEMPLATES: Template[] = [
   {
     id: 'split-right',
     label: 'Headline left, icon right',
+    category: 'Icon layouts',
     // Leaves room for the icon column (764 at the OG/Twitter format's 1200 width).
     headlineBox: (format) => fullHeadlineBoxWidth(format) - format.iconSize - SPLIT_RIGHT_GAP,
     textAlign: 'left',
@@ -114,6 +122,7 @@ export const TEMPLATES: Template[] = [
   {
     id: 'centered',
     label: 'Centered',
+    category: 'Icon layouts',
     // 75% of the format width (900 at the OG/Twitter format's 1200 width) —
     // deliberately narrower than the full inset box for shorter, balanced lines.
     headlineBox: (format) => Math.round(format.width * 0.75),
@@ -140,6 +149,7 @@ export const TEMPLATES: Template[] = [
   {
     id: 'stacked',
     label: 'Headline top, icon bottom',
+    category: 'Icon layouts',
     headlineBox: fullHeadlineBoxWidth,
     textAlign: 'left',
     anchorX: 'left',
@@ -161,6 +171,7 @@ export const TEMPLATES: Template[] = [
   {
     id: 'logo-top-left',
     label: 'Logo top-left',
+    category: 'Logo layouts',
     headlineBox: fullHeadlineBoxWidth,
     textAlign: 'left',
     anchorX: 'left',
@@ -183,10 +194,14 @@ export const TEMPLATES: Template[] = [
   {
     id: 'logo-left-text-right',
     label: 'Logo left, text right',
+    category: 'Logo layouts',
     // Narrower fixed box (rather than a fraction of the format width) so the
     // headline reads as a tidy right-hand column regardless of format width.
     headlineBox: (format) => Math.min(580, fullHeadlineBoxWidth(format) - format.width * 0.28),
-    textAlign: 'right',
+    // The text block itself is left-aligned (ragged-right per line) — it's
+    // the block's bounding box, sized to the widest line, that's pinned to
+    // the column's right edge via the row's `justifyContent: flex-end`.
+    textAlign: 'left',
     anchorX: 'right',
     anchorY: 'center',
     noIcon: true,
@@ -218,6 +233,7 @@ export const TEMPLATES: Template[] = [
   {
     id: 'logo-center-left',
     label: 'Logo center, text bottom',
+    category: 'Logo layouts',
     headlineBox: fullHeadlineBoxWidth,
     textAlign: 'left',
     anchorX: 'left',
@@ -255,6 +271,7 @@ export const NEWSLETTER_TEMPLATES: Template[] = [
   {
     id: 'newsletter-cover',
     label: 'Newsletter cover',
+    category: 'Newsletter layouts',
     headlineBox: fullHeadlineBoxWidth,
     textAlign: 'left',
     anchorX: 'left',
@@ -280,6 +297,7 @@ export const NEWSLETTER_TEMPLATES: Template[] = [
   {
     id: 'newsletter-section',
     label: 'Section header',
+    category: 'Newsletter layouts',
     // A compact divider row, not a full banner — narrower box for a short,
     // single-line section title rather than a full headline.
     headlineBox: (format) => Math.round(fullHeadlineBoxWidth(format) * 0.6),
@@ -314,6 +332,7 @@ export const SOCIAL_TEMPLATES: Template[] = [
   {
     id: 'social-instagram',
     label: 'Instagram',
+    category: 'Social layouts',
     // Narrower box for the tighter, more square-cropped feed presentation.
     headlineBox: (format) => Math.round(format.width * 0.75),
     textAlign: 'center',
@@ -339,6 +358,7 @@ export const SOCIAL_TEMPLATES: Template[] = [
   {
     id: 'social-twitter',
     label: 'Twitter / X',
+    category: 'Social layouts',
     headlineBox: fullHeadlineBoxWidth,
     textAlign: 'left',
     anchorX: 'left',

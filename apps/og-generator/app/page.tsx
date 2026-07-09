@@ -440,6 +440,17 @@ export default function Page() {
   // of the standard 4 templates.
   const activeTemplates =
     formatId === 'newsletter' ? NEWSLETTER_TEMPLATES : formatId === 'twitter' ? SOCIAL_TEMPLATES : TEMPLATES
+  // Grouped by category (in first-seen order) so the Layout picker scales as
+  // more templates get added, instead of one ever-growing flat grid.
+  const templateGroups = useMemo(() => {
+    const groups: { category: string; templates: typeof activeTemplates }[] = []
+    for (const t of activeTemplates) {
+      const group = groups.find((g) => g.category === t.category)
+      if (group) group.templates.push(t)
+      else groups.push({ category: t.category, templates: [t] })
+    }
+    return groups
+  }, [activeTemplates])
 
   const [view, setView] = useState<View>('both')
   const [headline, setHeadline] = useState('Postgres full text search just got faster')
@@ -911,33 +922,40 @@ export default function Page() {
 
           {showContentControls && (
             <Group title="Layout" noDivider>
-              <div className="flex flex-col gap-2">
-                <div className="grid grid-cols-2 gap-2">
-                  {activeTemplates.map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setTemplate(t.id)}
-                      title={t.label}
-                      className={`flex h-16 flex-col rounded-md border p-1.5 ${
-                        template === t.id
-                          ? 'border-brand bg-brand/10'
-                          : 'border-default bg-surface-100 hover:border-strong'
-                      }`}
-                    >
-                      <div className="relative flex-1">
-                        <LayoutThumb id={t.id} />
-                      </div>
-                      <span
-                        className={`truncate text-[10px] ${
-                          template === t.id ? 'text-brand' : 'text-foreground-lighter'
-                        }`}
-                      >
-                        {t.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+              <div className="flex flex-col gap-4">
+                {templateGroups.map((g) => (
+                  <div key={g.category} className="flex flex-col gap-2">
+                    {templateGroups.length > 1 && (
+                      <span className="text-xs font-medium text-foreground-lighter">{g.category}</span>
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      {g.templates.map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setTemplate(t.id)}
+                          title={t.label}
+                          className={`flex h-16 flex-col rounded-md border p-1.5 ${
+                            template === t.id
+                              ? 'border-brand bg-brand/10'
+                              : 'border-default bg-surface-100 hover:border-strong'
+                          }`}
+                        >
+                          <div className="relative flex-1">
+                            <LayoutThumb id={t.id} />
+                          </div>
+                          <span
+                            className={`truncate text-[10px] ${
+                              template === t.id ? 'text-brand' : 'text-foreground-lighter'
+                            }`}
+                          >
+                            {t.label}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </Group>
           )}

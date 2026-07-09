@@ -1,3 +1,12 @@
+/**
+ * PARKED — not mounted anywhere. The user-journey timeline is on hold pending the
+ * auth_logs pipeline fix (auth events aren't reaching the analytics logs on local or
+ * staging, so the timeline has nothing to render). It is intended to return as a
+ * presentation layer over the Unified Logs "filter by user" (?user=) once auth_logs
+ * is populated. Kept intact — do not delete. Its identity-resolution queries
+ * (searchAuthUserByEmail / searchAuthUserById in UserJourneys.queries.ts) stay live
+ * because the Unified Logs user filter depends on them.
+ */
 import { useFlag, useParams } from 'common'
 import { AlertTriangle, Info, RefreshCw } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'

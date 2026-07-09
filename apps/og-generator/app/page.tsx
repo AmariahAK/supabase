@@ -23,6 +23,13 @@ import { IN_CONTEXT_OPTS, InContextPreview, type InContextMode } from './InConte
 
 const SOFT_LIMIT = 60
 const HARD_LIMIT = 70
+const EYEBROW_LIMIT = 25
+
+/** Truncate to a max grapheme count — matches the `[...s].length` counters below. */
+function clampChars(value: string, limit: number) {
+  const chars = [...value]
+  return chars.length > limit ? chars.slice(0, limit).join('') : value
+}
 
 /** Safe-area guide: a uniform 80px margin on every side, regardless of format. */
 function safeAreaInset(width: number, height: number) {
@@ -964,13 +971,19 @@ export default function Page() {
           <Group title="Content" noDivider>
             {showContentControls && showEyebrowControl && (
               <div className="flex flex-col gap-2">
-                <label htmlFor="eyebrow" className="text-sm font-medium text-foreground-light">
-                  Eyebrow <span className="text-foreground-lighter">(optional)</span>
-                </label>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="eyebrow" className="text-sm font-medium text-foreground-light">
+                    Eyebrow <span className="text-foreground-lighter">(optional)</span>
+                  </label>
+                  <span className="text-xs tabular-nums text-foreground-lighter">
+                    {[...eyebrow].length} / {EYEBROW_LIMIT}
+                  </span>
+                </div>
                 <input
                   id="eyebrow"
                   value={eyebrow}
-                  onChange={(e) => setEyebrow(e.target.value)}
+                  onChange={(e) => setEyebrow(clampChars(e.target.value, EYEBROW_LIMIT))}
+                  maxLength={EYEBROW_LIMIT}
                   className="rounded-md border border-default bg-surface-100 px-3 py-2 text-sm text-foreground outline-none focus:border-strong"
                   placeholder="e.g. Launch Week, Engineering"
                 />
@@ -990,7 +1003,7 @@ export default function Page() {
                 <textarea
                   id="headline"
                   value={headline}
-                  onChange={(e) => setHeadline(e.target.value)}
+                  onChange={(e) => setHeadline(clampChars(e.target.value, HARD_LIMIT))}
                   rows={3}
                   className="resize-none rounded-md border border-default bg-surface-100 px-3 py-2 text-sm text-foreground outline-none focus:border-strong"
                   placeholder="Type a blog headline…"

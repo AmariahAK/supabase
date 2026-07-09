@@ -10,6 +10,7 @@ import {
   useWarehouseProjectState,
 } from './warehouseDemoStore'
 import { useSchemasQuery } from '@/data/database/schemas-query'
+import { EMPTY_ARR } from '@/lib/void'
 
 interface WarehouseSchemaScopeProps {
   disabled?: boolean
@@ -17,12 +18,12 @@ interface WarehouseSchemaScopeProps {
 
 export function WarehouseSchemaScope({ disabled = false }: WarehouseSchemaScopeProps) {
   const { ref: projectRef } = useParams()
-  const { data: schemas = [] } = useSchemasQuery({ projectRef })
+  const { data: schemas } = useSchemasQuery({ projectRef })
   const warehouseState = useWarehouseProjectState(projectRef)
 
   const replicableSchemas = useMemo(
     () =>
-      schemas
+      (schemas ?? EMPTY_ARR)
         .map((s) => s.name)
         .filter(isReplicableSchema)
         .sort(),
@@ -80,6 +81,9 @@ export function WarehouseSchemaScope({ disabled = false }: WarehouseSchemaScopeP
 
 export function useDefaultWarehouseSchemas(): string[] {
   const { ref: projectRef } = useParams()
-  const { data: schemas = [] } = useSchemasQuery({ projectRef })
-  return useMemo(() => getDefaultIncludedSchemas(schemas.map((s) => s.name)), [schemas])
+  const { data: schemas } = useSchemasQuery({ projectRef })
+  return useMemo(
+    () => getDefaultIncludedSchemas((schemas ?? EMPTY_ARR).map((s) => s.name)),
+    [schemas]
+  )
 }

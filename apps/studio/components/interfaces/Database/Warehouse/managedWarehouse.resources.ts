@@ -5,4 +5,4 @@ export function isSupabaseManagedWarehousePublicationName(name: string): boolean
 }
 
 export const MANAGED_WAREHOUSE_PUBLICATION_TOOLTIP =
-  'Managed by Supabase for Warehouse replication. Configure schemas on the Warehouse card above.'
+  'Managed by Supabase for Warehouse replication. Use Manage to update replicated schemas.'

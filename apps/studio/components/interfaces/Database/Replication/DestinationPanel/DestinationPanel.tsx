@@ -1,3 +1,4 @@
+import { useParams } from 'common'
 import { ArrowUpRight } from 'lucide-react'
 import Link from 'next/link'
 import { parseAsInteger, parseAsStringEnum, useQueryState } from 'nuqs'
@@ -23,6 +24,8 @@ import { DestinationForm } from './DestinationForm'
 import { DestinationType } from './DestinationPanel.types'
 import { DestinationTypeSelection } from './DestinationTypeSelection'
 import { ReadReplicaForm } from './ReadReplicaForm'
+import { WarehouseDestinationForm } from './WarehouseDestinationForm'
+import { useWarehouseProjectState } from '@/components/interfaces/Database/Warehouse/warehouseDemoStore'
 import { DocsButton } from '@/components/ui/DocsButton'
 import { useCheckEntitlements } from '@/hooks/misc/useCheckEntitlements'
 import { DOCS_URL } from '@/lib/constants'
@@ -32,6 +35,8 @@ interface DestinationPanelProps {
 }
 
 export const DestinationPanel = ({ onSuccessCreateReadReplica }: DestinationPanelProps) => {
+  const { ref: projectRef } = useParams()
+  const warehouseState = useWarehouseProjectState(projectRef)
   const enablePgReplicate = useIsETLPrivateAlpha()
   const { hasAccess: hasETLReplicationAccess } = useCheckEntitlements('replication.etl')
 
@@ -39,6 +44,7 @@ export const DestinationPanel = ({ onSuccessCreateReadReplica }: DestinationPane
     'destinationType',
     parseAsStringEnum<DestinationType>([
       'Read Replica',
+      'Warehouse',
       'BigQuery',
       'Analytics Bucket',
       'DuckLake',
@@ -94,74 +100,85 @@ export const DestinationPanel = ({ onSuccessCreateReadReplica }: DestinationPane
     }
   }, [edit, invalidExistingDestination, setEdit])
 
+  useEffect(() => {
+    if (urlDestinationType === 'Warehouse' && warehouseState.enabled) {
+      setDestinationType(null)
+    }
+  }, [urlDestinationType, warehouseState.enabled, setDestinationType])
+
   return (
-    <>
-      <Sheet open={visible} onOpenChange={onClose}>
-        <SheetContent size="lg" showClose={false}>
-          <div className="flex flex-col h-full" tabIndex={-1}>
-            <SheetHeader>
-              <SheetTitle>{editMode ? 'Edit destination' : 'Add destination'}</SheetTitle>
-              <SheetDescription>
-                {editMode
-                  ? 'Update the configuration for this destination.'
-                  : 'A destination can be a read replica or an external destination that receives replicated data in near real time.'}
-              </SheetDescription>
-            </SheetHeader>
+    <Sheet
+      open={visible}
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+    >
+      <SheetContent size="lg" showClose={false}>
+        <div className="flex flex-col h-full" tabIndex={-1}>
+          <SheetHeader>
+            <SheetTitle>{editMode ? 'Edit destination' : 'Add destination'}</SheetTitle>
+            <SheetDescription>
+              {editMode
+                ? 'Update the configuration for this destination.'
+                : 'A destination can be a read replica or an external destination that receives replicated data in near real time.'}
+            </SheetDescription>
+          </SheetHeader>
 
-            <DestinationTypeSelection />
+          <DestinationTypeSelection />
 
-            <DialogSectionSeparator />
+          <DialogSectionSeparator />
 
-            {destinationType === 'Read Replica' ? (
-              <ReadReplicaForm onClose={onClose} onSuccess={() => onSuccessCreateReadReplica?.()} />
-            ) : !enablePgReplicate ? (
-              <SheetSection>
-                <div className={cn('border rounded-md p-6 flex flex-col gap-y-4')}>
-                  <div className="flex flex-col gap-y-1">
-                    <h4>Request Pipelines access</h4>
-                    <p className="text-sm text-foreground-light">
-                      Pipelines is in <span className="text-foreground">alpha</span> and being
-                      rolled out gradually. Request access below to join the waitlist. Read replicas
-                      are available now.
-                    </p>
-                  </div>
-                  <div className="flex gap-x-2">
-                    <Button
-                      asChild
-                      variant="secondary"
-                      iconRight={<ArrowUpRight size={16} strokeWidth={1.5} />}
-                    >
-                      <Link
-                        target="_blank"
-                        rel="noreferrer"
-                        href="https://forms.supabase.com/pg_replicate"
-                      >
-                        Request alpha access
-                      </Link>
-                    </Button>
-                    <DocsButton href={`${DOCS_URL}/guides/database/replication#pipelines`} />
-                  </div>
+          {destinationType === 'Read Replica' ? (
+            <ReadReplicaForm onClose={onClose} onSuccess={() => onSuccessCreateReadReplica?.()} />
+          ) : destinationType === 'Warehouse' ? (
+            <WarehouseDestinationForm onClose={onClose} />
+          ) : !enablePgReplicate ? (
+            <SheetSection>
+              <div className={cn('border rounded-md p-6 flex flex-col gap-y-4')}>
+                <div className="flex flex-col gap-y-1">
+                  <h4>Request Pipelines access</h4>
+                  <p className="text-sm text-foreground-light">
+                    Pipelines is in <span className="text-foreground">alpha</span> and being rolled
+                    out gradually. Request access below to join the waitlist. Read replicas are
+                    available now.
+                  </p>
                 </div>
-              </SheetSection>
-            ) : replicationNotEnabled ? (
-              <SheetSection>
-                <EnablePipelinesCallout
-                  className="p-6!"
-                  type={destinationType}
-                  hasAccess={hasETLReplicationAccess}
-                />
-              </SheetSection>
-            ) : (
-              <DestinationForm
-                visible={visible}
-                selectedType={destinationType ?? 'Read Replica'}
-                existingDestination={existingDestination}
-                onClose={onClose}
+                <div className="flex gap-x-2">
+                  <Button
+                    asChild
+                    variant="secondary"
+                    iconRight={<ArrowUpRight size={16} strokeWidth={1.5} />}
+                  >
+                    <Link
+                      target="_blank"
+                      rel="noreferrer"
+                      href="https://forms.supabase.com/pg_replicate"
+                    >
+                      Request alpha access
+                    </Link>
+                  </Button>
+                  <DocsButton href={`${DOCS_URL}/guides/database/replication#pipelines`} />
+                </div>
+              </div>
+            </SheetSection>
+          ) : replicationNotEnabled ? (
+            <SheetSection>
+              <EnablePipelinesCallout
+                className="p-6!"
+                type={destinationType}
+                hasAccess={hasETLReplicationAccess}
               />
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
-    </>
+            </SheetSection>
+          ) : (
+            <DestinationForm
+              visible={visible}
+              selectedType={destinationType ?? 'Read Replica'}
+              existingDestination={existingDestination}
+              onClose={onClose}
+            />
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }

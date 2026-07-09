@@ -6,9 +6,12 @@ import { INTERNAL_SCHEMAS } from '@/hooks/useProtectedSchemas'
 
 export type ReplicationPhase = 'idle' | 'provisioning' | 'backfilling' | 'streaming' | 'failed'
 
+export type WarehousePipelineStatus = 'running' | 'stopped'
+
 export interface WarehouseProjectState {
   enabled: boolean
   replicationPhase: ReplicationPhase
+  pipelineStatus: WarehousePipelineStatus
   lagSeconds: number | null
   includedSchemas: string[]
   pipelineId: string | null
@@ -21,6 +24,7 @@ export interface WarehouseProjectState {
 const DEFAULT_STATE: WarehouseProjectState = {
   enabled: false,
   replicationPhase: 'idle',
+  pipelineStatus: 'stopped',
   lagSeconds: null,
   includedSchemas: [],
   pipelineId: null,
@@ -71,7 +75,14 @@ export function getDefaultIncludedSchemas(availableSchemas: string[]): string[] 
 }
 
 function getProjectState(projectRef: string): WarehouseProjectState {
-  return warehouseDemoStore.projects[projectRef] ?? { ...DEFAULT_STATE }
+  const raw = warehouseDemoStore.projects[projectRef]
+  if (!raw) return { ...DEFAULT_STATE }
+  return {
+    ...DEFAULT_STATE,
+    ...raw,
+    pipelineStatus:
+      raw.pipelineStatus ?? (raw.replicationPhase === 'streaming' ? 'running' : 'stopped'),
+  }
 }
 
 function setProjectState(projectRef: string, next: WarehouseProjectState): void {
@@ -81,7 +92,14 @@ function setProjectState(projectRef: string, next: WarehouseProjectState): void 
 export function useWarehouseProjectState(projectRef: string | undefined) {
   const snap = useSnapshot(warehouseDemoStore)
   if (!projectRef) return { ...DEFAULT_STATE }
-  return snap.projects[projectRef] ?? { ...DEFAULT_STATE }
+  const raw = snap.projects[projectRef]
+  if (!raw) return { ...DEFAULT_STATE }
+  return {
+    ...DEFAULT_STATE,
+    ...raw,
+    pipelineStatus:
+      raw.pipelineStatus ?? (raw.replicationPhase === 'streaming' ? 'running' : 'stopped'),
+  }
 }
 
 export function isWarehouseProjectEnabled(projectRef: string | undefined): boolean {
@@ -129,6 +147,7 @@ function simulatePhaseProgression(projectRef: string): void {
       setProjectState(projectRef, {
         ...backfilling,
         replicationPhase: 'streaming',
+        pipelineStatus: 'running',
         lagSeconds: 2,
       })
     }, 6000)
@@ -140,6 +159,7 @@ export function enableWarehouseProject(projectRef: string, includedSchemas: stri
   setProjectState(projectRef, {
     enabled: true,
     replicationPhase: 'provisioning',
+    pipelineStatus: 'running',
     lagSeconds: null,
     includedSchemas,
     pipelineId,
@@ -154,6 +174,45 @@ export function enableWarehouseProject(projectRef: string, includedSchemas: stri
 export function disableWarehouseProject(projectRef: string): void {
   clearPhaseTimer()
   setProjectState(projectRef, { ...DEFAULT_STATE })
+}
+
+export function stopWarehousePipeline(projectRef: string): void {
+  const current = getProjectState(projectRef)
+  if (!current.enabled || current.replicationPhase !== 'streaming') return
+  setProjectState(projectRef, { ...current, pipelineStatus: 'stopped' })
+}
+
+export function startWarehousePipeline(projectRef: string): void {
+  const current = getProjectState(projectRef)
+  if (!current.enabled || current.pipelineStatus !== 'stopped') return
+  setProjectState(projectRef, {
+    ...current,
+    pipelineStatus: 'running',
+    lagSeconds: current.lagSeconds ?? 2,
+  })
+}
+
+export function restartWarehousePipeline(projectRef: string): void {
+  const current = getProjectState(projectRef)
+  if (!current.enabled) return
+  clearPhaseTimer()
+  setProjectState(projectRef, {
+    ...current,
+    pipelineStatus: 'running',
+    replicationPhase: 'backfilling',
+    lagSeconds: 30,
+  })
+
+  phaseTimer = setTimeout(() => {
+    const state = getProjectState(projectRef)
+    if (!state.enabled || state.replicationPhase !== 'backfilling') return
+    setProjectState(projectRef, {
+      ...state,
+      replicationPhase: 'streaming',
+      pipelineStatus: 'running',
+      lagSeconds: 2,
+    })
+  }, 4000)
 }
 
 export function updateWarehouseIncludedSchemas(
@@ -178,6 +237,7 @@ export function updateWarehouseIncludedSchemas(
       setProjectState(projectRef, {
         ...state,
         replicationPhase: 'streaming',
+        pipelineStatus: 'running',
         lagSeconds: 2,
       })
     }, 4000)

@@ -10,7 +10,7 @@ All platform behavior is mocked via `warehouseDemoStore` (localStorage). No real
 
 ## In scope
 
-- **Replication page** — `WarehouseProjectCard` (enable/disable, schema scope, observability)
+- **Replication page** — enable via **Add destination → Warehouse**; manage via separate **Manage replication** sheet (`?warehouseManage=true`)
 - **Destinations table** — read-only managed row (`DuckLake` / `supabase_warehouse`)
 - **Table list** — read-only **Replicated** column
 - **SQL Editor** — Postgres / Warehouse target toggle + mock "Served by: Warehouse" footer
@@ -43,7 +43,7 @@ Enable simulates `provisioning` → `backfilling` → `streaming` phase progress
 ## QA checklist
 
 1. Flag off → no Warehouse UI
-2. Flag on, disabled → Replication card with Enable CTA only
+2. Flag on, disabled → empty state **Add destination** opens sheet with Warehouse as default type
 3. Enable → observability metrics, schema checkboxes, Destinations row, Replicated column, SQL toggle, Connect Warehouse tab
 4. Uncheck schema → tables in that schema show Replicated = No
 5. Disable → confirm destructive modal, all Warehouse UI hidden

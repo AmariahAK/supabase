@@ -17,9 +17,14 @@ import { disableWarehouseProject } from './warehouseDemoStore'
 interface WarehouseDisableModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onDisabled?: () => void
 }
 
-export function WarehouseDisableModal({ open, onOpenChange }: WarehouseDisableModalProps) {
+export function WarehouseDisableModal({
+  open,
+  onOpenChange,
+  onDisabled,
+}: WarehouseDisableModalProps) {
   const { ref: projectRef } = useParams()
   const [isDisabling, setIsDisabling] = useState(false)
 
@@ -29,6 +34,7 @@ export function WarehouseDisableModal({ open, onOpenChange }: WarehouseDisableMo
     disableWarehouseProject(projectRef)
     setIsDisabling(false)
     onOpenChange(false)
+    onDisabled?.()
   }
 
   return (

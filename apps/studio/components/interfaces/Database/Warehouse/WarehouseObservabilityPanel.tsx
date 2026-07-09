@@ -24,7 +24,10 @@ export function WarehouseObservabilityPanel() {
               className="[&_span]:text-sm"
             />
             <div className="mt-2">
-              <WarehouseSyncChip phase={state.replicationPhase} />
+              <WarehouseSyncChip
+                phase={state.replicationPhase}
+                pipelineStatus={state.pipelineStatus}
+              />
             </div>
           </div>
           <div className="px-4 py-3">

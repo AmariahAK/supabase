@@ -2,7 +2,6 @@ import { GenericSkeletonLoader } from 'ui-patterns/ShimmeringLoader'
 
 import { Destinations } from '@/components/interfaces/Database/Replication/Destinations'
 import { ReplicationDiagram } from '@/components/interfaces/Database/Replication/ReplicationDiagram'
-import { WarehouseProjectCard } from '@/components/interfaces/Database/Warehouse/WarehouseProjectCard'
 import DatabaseLayout from '@/components/layouts/DatabaseLayout/DatabaseLayout'
 import { DefaultLayout } from '@/components/layouts/DefaultLayout'
 import { ScaffoldContainer, ScaffoldSection } from '@/components/layouts/Scaffold'
@@ -43,8 +42,7 @@ const DatabaseReplicationPage: NextPageWithLayout = () => {
               <h3 className="text-foreground text-xl prose">Replication</h3>
             </div>
             <p className="prose text-sm max-w-full">
-              Deploy Read Replicas across multiple regions, or use Pipelines to replicate database
-              changes to analytics destinations.
+              Replicate to another region, an analytics destination, or Warehouse.
             </p>
           </div>
         </ScaffoldSection>
@@ -56,11 +54,6 @@ const DatabaseReplicationPage: NextPageWithLayout = () => {
         </ScaffoldContainer>
       ) : (
         <>
-          <ScaffoldContainer>
-            <ScaffoldSection isFullWidth>
-              <WarehouseProjectCard />
-            </ScaffoldSection>
-          </ScaffoldContainer>
           <ReplicationDiagram />
           <ScaffoldContainer>
             <ScaffoldSection isFullWidth className="pt-6!">

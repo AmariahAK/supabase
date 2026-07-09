@@ -1,4 +1,8 @@
-import type { ReplicationPhase, WarehouseProjectState } from './warehouseDemoStore'
+import type {
+  ReplicationPhase,
+  WarehousePipelineStatus,
+  WarehouseProjectState,
+} from './warehouseDemoStore'
 
 export function formatReplicationPhase(phase: ReplicationPhase): string {
   switch (phase) {
@@ -25,7 +29,11 @@ export function formatReplicationLagSeconds(lagSeconds: number | null): string {
   return `${(lagSeconds / 3600).toFixed(1)}h`
 }
 
-export function getWarehouseDestinationStatusLabel(phase: ReplicationPhase): string {
+export function getWarehouseDestinationStatusLabel(
+  phase: ReplicationPhase,
+  pipelineStatus: WarehousePipelineStatus = 'running'
+): string {
+  if (pipelineStatus === 'stopped' && phase === 'streaming') return 'Stopped'
   switch (phase) {
     case 'provisioning':
       return 'Starting'
@@ -58,5 +66,10 @@ export function buildWarehouseConnectionString({
 }
 
 export function isWarehouseReplicationHealthy(state: WarehouseProjectState): boolean {
-  return state.enabled && state.replicationPhase === 'streaming' && (state.lagSeconds ?? 0) < 120
+  return (
+    state.enabled &&
+    state.replicationPhase === 'streaming' &&
+    state.pipelineStatus === 'running' &&
+    (state.lagSeconds ?? 0) < 120
+  )
 }

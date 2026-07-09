@@ -1,6 +1,8 @@
+import { useParams } from 'common'
 import { AnalyticsBucket, BigQuery, Database } from 'icons'
-import { Snowflake } from 'lucide-react'
+import { Snowflake, Warehouse } from 'lucide-react'
 import { parseAsInteger, parseAsStringEnum, useQueryState } from 'nuqs'
+import type { ElementType } from 'react'
 import {
   Badge,
   Select,
@@ -21,14 +23,16 @@ import {
   useIsETLSnowflakePrivateAlpha,
 } from '../useIsETLPrivateAlpha'
 import { DestinationType } from './DestinationPanel.types'
+import { useWarehouseProjectState } from '@/components/interfaces/Database/Warehouse/warehouseDemoStore'
 import { InlineLink } from '@/components/ui/InlineLink'
 import { useIsFeatureEnabled } from '@/hooks/misc/useIsFeatureEnabled'
+import { useIsWarehouseEnabled } from '@/hooks/misc/useIsWarehouseEnabled'
 
 interface DestinationTypeOption {
   value: DestinationType
   label: string
   description: string
-  icon: typeof Database
+  icon: ElementType<{ size?: number; className?: string }>
   isAlpha: boolean
   enabled: boolean
 }
@@ -38,17 +42,34 @@ interface DestinationTypeGroup {
   options: DestinationTypeOption[]
 }
 
+const LUCIDE_DESTINATION_TYPES = new Set<DestinationType>(['Warehouse', 'Snowflake'])
+
+function DestinationOptionIcon({ option }: { option: DestinationTypeOption }) {
+  const Icon = option.icon
+  const className = 'shrink-0 text-foreground-light'
+
+  if (LUCIDE_DESTINATION_TYPES.has(option.value)) {
+    return <Icon size={20} strokeWidth={1.5} className={className} />
+  }
+
+  return <Icon size={20} className={className} />
+}
+
 export const DestinationTypeSelection = () => {
+  const { ref: projectRef } = useParams()
   const etlEnableBigQuery = useIsETLBigQueryPrivateAlpha()
   const etlEnableIceberg = useIsETLIcebergPrivateAlpha()
   const etlEnableDucklake = useIsETLDucklakePrivateAlpha()
   const etlEnableSnowflake = useIsETLSnowflakePrivateAlpha()
+  const isWarehouseFeatureEnabled = useIsWarehouseEnabled()
+  const warehouseState = useWarehouseProjectState(projectRef)
   const { infrastructureReadReplicas } = useIsFeatureEnabled(['infrastructure:read_replicas'])
 
   const [urlDestinationType, setDestinationType] = useQueryState(
     'destinationType',
     parseAsStringEnum<DestinationType>([
       'Read Replica',
+      'Warehouse',
       'BigQuery',
       'Analytics Bucket',
       'DuckLake',
@@ -91,6 +112,17 @@ export const DestinationTypeSelection = () => {
     {
       label: 'Pipelines',
       options: [
+        {
+          value: 'Warehouse',
+          label: 'Warehouse',
+          description: 'Replicate to a managed Warehouse endpoint for analytics',
+          icon: Warehouse,
+          isAlpha: true,
+          enabled: isOptionVisible(
+            'Warehouse',
+            isWarehouseFeatureEnabled && !warehouseState.enabled
+          ),
+        },
         {
           value: 'Analytics Bucket',
           label: 'Analytics Bucket',
@@ -146,8 +178,7 @@ export const DestinationTypeSelection = () => {
       description={
         selectedOption?.isAlpha && (
           <span className="block text-sm text-foreground-light mb-1">
-            This destination type is in alpha and may be unstable or introduce breaking changes
-            while we iterate based on customer feedback.{' '}
+            In alpha and may change.{' '}
             <InlineLink href="https://github.com/orgs/supabase/discussions/39416">
               Leave feedback
             </InlineLink>
@@ -163,7 +194,7 @@ export const DestinationTypeSelection = () => {
         <SelectTrigger className="h-auto py-2">
           {selectedOption ? (
             <div className="flex items-center gap-x-3 text-left">
-              <selectedOption.icon size={20} className="shrink-0 text-foreground-light" />
+              <DestinationOptionIcon option={selectedOption} />
               <div className="flex items-center gap-x-2">
                 <span className="text-sm text-foreground">{selectedOption.label}</span>
                 {selectedOption.isAlpha && <Badge variant="warning">Alpha</Badge>}
@@ -181,7 +212,7 @@ export const DestinationTypeSelection = () => {
               {group.options.map((option) => (
                 <SelectItem key={option.value} value={option.value} className="py-2">
                   <div className="flex items-center gap-x-3">
-                    <option.icon size={20} className="shrink-0 text-foreground-light" />
+                    <DestinationOptionIcon option={option} />
                     <div className="flex flex-col gap-y-0.5">
                       <div className="flex items-center gap-x-2">
                         <span className="text-foreground">{option.label}</span>

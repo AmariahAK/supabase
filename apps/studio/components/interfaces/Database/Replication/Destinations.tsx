@@ -38,6 +38,7 @@ import {
 } from './useIsETLPrivateAlpha'
 import { useWarehouseProjectState } from '@/components/interfaces/Database/Warehouse/warehouseDemoStore'
 import { WarehouseDestinationRow } from '@/components/interfaces/Database/Warehouse/WarehouseDestinationRow'
+import { WarehouseManageSheet } from '@/components/interfaces/Database/Warehouse/WarehouseManageSheet'
 import { AlertError } from '@/components/ui/AlertError'
 import { DocsButton } from '@/components/ui/DocsButton'
 import { Shortcut } from '@/components/ui/Shortcut'
@@ -67,17 +68,22 @@ export const Destinations = () => {
   const hasManagedWarehouse = isWarehouseFeatureEnabled && warehouseState.enabled
   const { infrastructureReadReplicas } = useIsFeatureEnabled(['infrastructure:read_replicas'])
 
-  const newDestinationDefaultType = infrastructureReadReplicas
-    ? 'Read Replica'
-    : etlEnableBigQuery
-      ? 'BigQuery'
-      : etlEnableIceberg
-        ? 'Analytics Bucket'
-        : etlEnableDucklake
-          ? 'DuckLake'
-          : etlEnableSnowflake
-            ? 'Snowflake'
-            : null
+  const newDestinationDefaultType: DestinationType | null =
+    isWarehouseFeatureEnabled && !warehouseState.enabled
+      ? 'Warehouse'
+      : infrastructureReadReplicas
+        ? 'Read Replica'
+        : etlEnableBigQuery
+          ? 'BigQuery'
+          : etlEnableIceberg
+            ? 'Analytics Bucket'
+            : etlEnableDucklake
+              ? 'DuckLake'
+              : etlEnableSnowflake
+                ? 'Snowflake'
+                : isWarehouseFeatureEnabled
+                  ? 'Warehouse'
+                  : null
 
   const prefetchedRef = useRef(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -89,6 +95,7 @@ export const Destinations = () => {
     'destinationType',
     parseAsStringEnum<DestinationType>([
       'Read Replica',
+      'Warehouse',
       'BigQuery',
       'Analytics Bucket',
       'DuckLake',
@@ -361,7 +368,7 @@ export const Destinations = () => {
             <EmptyStatePresentational
               icon={Database}
               title="Add a replication destination"
-              description="Deploy a Read Replica to reduce latency and isolate workloads, or connect a Pipelines destination for analytics."
+              description="Replicate to another region, an analytics destination, or Warehouse."
               className="mt-4"
             >
               <Button
@@ -378,6 +385,7 @@ export const Destinations = () => {
       </div>
 
       <DestinationPanel onSuccessCreateReadReplica={() => setStatusRefetchInterval(5000)} />
+      <WarehouseManageSheet />
 
       <DisablePipelinesDialog
         open={showDisablePipelinesDialog}

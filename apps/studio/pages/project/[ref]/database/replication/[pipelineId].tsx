@@ -4,18 +4,29 @@ import { useContext, useEffect } from 'react'
 
 import { ReplicationPipelineStatus } from '@/components/interfaces/Database/Replication/ReplicationPipelineStatus/ReplicationPipelineStatus'
 import { useIsETLPrivateAlpha } from '@/components/interfaces/Database/Replication/useIsETLPrivateAlpha'
+import { useWarehouseProjectState } from '@/components/interfaces/Database/Warehouse/warehouseDemoStore'
+import {
+  isWarehouseMockPipelineId,
+  WarehouseReplicationPipelineStatus,
+} from '@/components/interfaces/Database/Warehouse/WarehouseReplicationPipelineStatus'
 import DatabaseLayout from '@/components/layouts/DatabaseLayout/DatabaseLayout'
 import { DefaultLayout } from '@/components/layouts/DefaultLayout'
 import { ScaffoldContainer, ScaffoldSection } from '@/components/layouts/Scaffold'
 import { FormHeader } from '@/components/ui/Forms/FormHeader'
+import { useIsWarehouseEnabled } from '@/hooks/misc/useIsWarehouseEnabled'
 import { PipelineRequestStatusProvider } from '@/state/replication-pipeline-request-status'
 import type { NextPageWithLayout } from '@/types'
 
 const DatabaseReplicationPage: NextPageWithLayout = () => {
   const router = useRouter()
   const { ref: projectRef } = useParams()
+  const pipelineId = router.query.pipelineId as string | undefined
   const { hasLoaded } = useContext(FeatureFlagContext)
   const enablePgReplicate = useIsETLPrivateAlpha()
+  const isWarehouseFeatureEnabled = useIsWarehouseEnabled()
+  const warehouseState = useWarehouseProjectState(projectRef)
+  const isWarehouseMockPipeline =
+    isWarehouseFeatureEnabled && isWarehouseMockPipelineId(projectRef, pipelineId, warehouseState)
 
   useEffect(() => {
     if (hasLoaded && !enablePgReplicate) {
@@ -31,7 +42,11 @@ const DatabaseReplicationPage: NextPageWithLayout = () => {
             <ScaffoldSection>
               <div className="col-span-12">
                 <FormHeader title="Replication" />
-                <ReplicationPipelineStatus />
+                {isWarehouseMockPipeline ? (
+                  <WarehouseReplicationPipelineStatus />
+                ) : (
+                  <ReplicationPipelineStatus />
+                )}
               </div>
             </ScaffoldSection>
           </ScaffoldContainer>

@@ -32,6 +32,14 @@ vi.mock('@/hooks/misc/useIsFeatureEnabled', () => ({
   useIsFeatureEnabled: () => ({ infrastructureReadReplicas: true }),
 }))
 
+vi.mock('@/hooks/misc/useIsWarehouseEnabled', () => ({
+  useIsWarehouseEnabled: () => false,
+}))
+
+vi.mock('@/components/interfaces/Database/Warehouse/warehouseDemoStore', () => ({
+  useWarehouseProjectState: () => ({ enabled: false }),
+}))
+
 // Background queries from useDestinationInformation (sources + pipelines fire
 // even in create mode). Prevent retries so unmatched handlers fail fast.
 vi.mock('@/data/replication/utils', () => ({
@@ -125,7 +133,7 @@ describe('DestinationTypeSelection', () => {
     fireEvent.click(await screen.findByRole('combobox'))
     fireEvent.click(await screen.findByText('BigQuery'))
 
-    expect(await screen.findByText(/This destination type is in alpha/)).toBeInTheDocument()
+    expect(await screen.findByText(/In alpha and may change/)).toBeInTheDocument()
   })
 
   test('disables the selector in edit mode so the destination type cannot be changed', async () => {

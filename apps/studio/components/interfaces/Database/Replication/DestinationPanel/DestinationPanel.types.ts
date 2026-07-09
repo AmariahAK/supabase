@@ -1,5 +1,6 @@
 export type DestinationType =
   | 'Read Replica'
+  | 'Warehouse'
   | 'BigQuery'
   | 'Analytics Bucket'
   | 'DuckLake'

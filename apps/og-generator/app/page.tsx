@@ -105,7 +105,7 @@ function Segmented<T extends string>({
 /** Small illustrative diagram of where the headline/icon sit for a template. */
 function LayoutThumb({ id }: { id: string }) {
   const iconBox = <div className="absolute h-3 w-3 rounded-sm bg-surface-300" />
-  const bars = (align: 'items-start' | 'items-center') => (
+  const bars = (align: 'items-start' | 'items-center' | 'items-end') => (
     <div className={`absolute flex flex-col gap-0.5 ${align}`}>
       <div className="h-1 w-6 rounded-full bg-foreground-lighter" />
       <div className="h-1 w-4 rounded-full bg-foreground-lighter" />
@@ -139,6 +139,27 @@ function LayoutThumb({ id }: { id: string }) {
         <div className="relative h-full w-full">
           <div className="absolute left-1.5 top-1/2 -translate-y-1/2">{iconBox}</div>
           <div className="absolute left-6 top-1/2 h-1 w-6 -translate-y-1/2 rounded-full bg-foreground-lighter" />
+        </div>
+      )
+    case 'logo-top-left':
+      return (
+        <div className="relative h-full w-full">
+          <div className="absolute left-1.5 top-1.5 h-1.5 w-4 rounded-sm bg-surface-300" />
+          <div className="absolute bottom-1.5 left-1.5">{bars('items-start')}</div>
+        </div>
+      )
+    case 'logo-left-text-right':
+      return (
+        <div className="relative h-full w-full">
+          <div className="absolute left-1.5 top-1/2 h-1.5 w-3 -translate-y-1/2 rounded-sm bg-surface-300" />
+          <div className="absolute right-1.5 top-1/2 -translate-y-1/2">{bars('items-end')}</div>
+        </div>
+      )
+    case 'logo-center-left':
+      return (
+        <div className="relative h-full w-full">
+          <div className="absolute left-1.5 top-1/2 h-1.5 w-4 -translate-y-1/2 rounded-sm bg-surface-300" />
+          <div className="absolute bottom-1.5 left-1.5">{bars('items-start')}</div>
         </div>
       )
     case 'newsletter-cover':
@@ -431,6 +452,13 @@ export default function Page() {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const allIcons = useMemo(() => [...ICON_LIBRARY, ...uploadedIcons], [uploadedIcons])
+  const selectedTemplateObj = useMemo(
+    () => activeTemplates.find((t) => t.id === template) ?? activeTemplates[0],
+    [activeTemplates, template]
+  )
+  // Fixed-logo templates render the Supabase wordmark directly — there's no
+  // user-selectable icon for them to affect, so hide the control entirely.
+  const showIconControl = !selectedTemplateObj?.noIcon
   const selectedIcon = useMemo(() => allIcons.find((i) => i.name === icon) ?? null, [allIcons, icon])
 
   // Load the shared asset library (uploaded icons) for the active brand; empty
@@ -955,6 +983,7 @@ export default function Page() {
               </div>
             )}
 
+            {showIconControl && (
             <div className="flex flex-col gap-2">
               <span className="text-sm font-medium text-foreground-light">
                 Icon
@@ -1096,6 +1125,7 @@ export default function Page() {
                 )}
               </div>
             </div>
+            )}
           </Group>
         </div>
       </aside>

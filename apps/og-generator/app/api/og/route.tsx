@@ -6,6 +6,7 @@ import { getBrand, color } from '@/lib/design/brands'
 import { satoriFonts, measurementFont } from '@/lib/design/fonts'
 import { getFormat } from '@/lib/design/formats'
 import { iconDataUri } from '@/lib/design/icons'
+import { SUPABASE_WORDMARK_ASPECT, SUPABASE_WORDMARK_DATA_URI } from '@/lib/design/logo'
 import { DEFAULT_TEMPLATE_ID, TEMPLATE_MAP } from '@/lib/design/templates'
 import { typography } from '@/lib/design/tokens'
 import { fitHeadline } from '@/lib/text/fit-headline'
@@ -23,6 +24,8 @@ const EYEBROW = typography.roles.eyebrow
 // One step below EYEBROW's own weight — the pill reads better slightly lighter
 // than the headline at this size.
 const EYEBROW_PILL_WEIGHT = 400
+// Wordmark display height (1x design px) for the fixed-logo templates.
+const WORDMARK_HEIGHT_1X = 36
 
 /** Scale (naturalW, naturalH) to fit within a boxSize square, preserving aspect ratio. */
 function fitBox(naturalW: number, naturalH: number, boxSize: number): { width: number; height: number } {
@@ -138,7 +141,8 @@ export async function GET(req: Request) {
       : null
 
     const hasIcon = !!iconObj
-    const centerText = template.textAlign === 'center'
+    const textCrossAlign =
+      template.textAlign === 'center' ? 'center' : template.textAlign === 'right' ? 'flex-end' : 'flex-start'
     const headline = sentenceCase ? toSentenceCase(rawHeadline) : rawHeadline
 
     const headlineFont = await measurementFont(HEADLINE.weight)
@@ -166,7 +170,7 @@ export async function GET(req: Request) {
         style={{
           display: 'flex',
           flexDirection: 'column',
-          alignItems: centerText ? 'center' : 'flex-start',
+          alignItems: textCrossAlign,
         }}
       >
         {eyebrow ? (
@@ -192,7 +196,7 @@ export async function GET(req: Request) {
           style={{
             display: 'flex',
             flexDirection: 'column',
-            alignItems: centerText ? 'center' : 'flex-start',
+            alignItems: textCrossAlign,
           }}
         >
           {fit.lines.map((line, i) => (
@@ -233,6 +237,12 @@ export async function GET(req: Request) {
         />
       ) : null
 
+    const logoHeight = WORDMARK_HEIGHT_1X * s
+    const logoEl = (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img width={logoHeight * SUPABASE_WORDMARK_ASPECT} height={logoHeight} src={SUPABASE_WORDMARK_DATA_URI} />
+    )
+
     const root = template.build({
       W,
       H,
@@ -241,6 +251,8 @@ export async function GET(req: Request) {
       bg,
       scaleFactor: s,
       textBlock,
+      logoEl,
+      logoHeight,
       iconEl,
       hasIcon,
     })

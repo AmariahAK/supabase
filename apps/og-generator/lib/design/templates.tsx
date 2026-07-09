@@ -24,6 +24,9 @@ export interface TemplateParts {
   textBlock: ReactNode
   iconEl: ReactNode | null
   hasIcon: boolean
+  /** Fixed Supabase wordmark, pre-sized to `logoHeight` — for `noIcon` templates. */
+  logoEl: ReactNode
+  logoHeight: number
 }
 
 export interface Template {
@@ -31,11 +34,17 @@ export interface Template {
   label: string
   /** Headline text-box width (1x px) the auto-fit measures against, for a given format. */
   headlineBox: (format: Format) => number
-  textAlign: 'left' | 'center'
+  textAlign: 'left' | 'center' | 'right'
   /** Where the content sits (§4). */
-  anchorX: 'left' | 'center'
+  anchorX: 'left' | 'center' | 'right'
   anchorY: 'top' | 'center' | 'bottom'
   build: (p: TemplateParts) => ReactElement
+  /**
+   * Renders the fixed Supabase wordmark instead of the user-selectable
+   * icon/logo system — hides the Icon control in the sidebar since there's
+   * nothing for it to affect.
+   */
+  noIcon?: boolean
 }
 
 // Gap (1x px) between the headline and the icon column in split-right.
@@ -146,6 +155,90 @@ export const TEMPLATES: Template[] = [
       >
         {p.textBlock}
         {p.iconEl}
+      </div>
+    ),
+  },
+  {
+    id: 'logo-top-left',
+    label: 'Logo top-left',
+    headlineBox: fullHeadlineBoxWidth,
+    textAlign: 'left',
+    anchorX: 'left',
+    anchorY: 'bottom',
+    noIcon: true,
+    build: (p) => (
+      <div
+        style={{
+          ...rootBase(p),
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+        }}
+      >
+        <div style={{ display: 'flex' }}>{p.logoEl}</div>
+        {p.textBlock}
+      </div>
+    ),
+  },
+  {
+    id: 'logo-left-text-right',
+    label: 'Logo left, text right',
+    // Narrower fixed box (rather than a fraction of the format width) so the
+    // headline reads as a tidy right-hand column regardless of format width.
+    headlineBox: (format) => Math.min(580, fullHeadlineBoxWidth(format) - format.width * 0.28),
+    textAlign: 'right',
+    anchorX: 'right',
+    anchorY: 'center',
+    noIcon: true,
+    build: (p) => (
+      <div style={{ ...rootBase(p), flexDirection: 'row', alignItems: 'stretch' }}>
+        <div
+          style={{
+            display: 'flex',
+            flex: '0 0 28%',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+          }}
+        >
+          {p.logoEl}
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            flex: '1 1 auto',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <div style={{ display: 'flex', maxWidth: 580 * p.scaleFactor }}>{p.textBlock}</div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'logo-center-left',
+    label: 'Logo center, text bottom',
+    headlineBox: fullHeadlineBoxWidth,
+    textAlign: 'left',
+    anchorX: 'left',
+    anchorY: 'bottom',
+    noIcon: true,
+    build: (p) => (
+      <div style={{ ...rootBase(p), position: 'relative' }}>
+        <div
+          style={{
+            display: 'flex',
+            position: 'absolute',
+            left: p.padX,
+            top: '50%',
+            marginTop: -(p.logoHeight / 2),
+          }}
+        >
+          {p.logoEl}
+        </div>
+        <div style={{ display: 'flex', position: 'absolute', left: p.padX, bottom: p.padY }}>
+          {p.textBlock}
+        </div>
       </div>
     ),
   },

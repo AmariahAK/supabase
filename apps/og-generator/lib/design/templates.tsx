@@ -51,6 +51,8 @@ export interface Template {
    * nothing for it to affect.
    */
   noIcon?: boolean
+  /** Hides the Eyebrow control and omits the eyebrow pill from the render. */
+  noEyebrow?: boolean
 }
 
 // Gap (1x px) between the headline and the icon column in split-right.
@@ -239,6 +241,7 @@ export const TEMPLATES: Template[] = [
     anchorX: 'left',
     anchorY: 'bottom',
     noIcon: true,
+    noEyebrow: true,
     build: (p) => (
       <div style={{ ...rootBase(p), position: 'relative' }}>
         <div

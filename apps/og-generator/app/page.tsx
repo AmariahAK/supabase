@@ -470,6 +470,7 @@ export default function Page() {
   // Fixed-logo templates render the Supabase wordmark directly — there's no
   // user-selectable icon for them to affect, so hide the control entirely.
   const showIconControl = !selectedTemplateObj?.noIcon
+  const showEyebrowControl = !selectedTemplateObj?.noEyebrow
   const selectedIcon = useMemo(() => allIcons.find((i) => i.name === icon) ?? null, [allIcons, icon])
 
   // Load the shared asset library (uploaded icons) for the active brand; empty
@@ -961,7 +962,7 @@ export default function Page() {
           )}
 
           <Group title="Content" noDivider>
-            {showContentControls && (
+            {showContentControls && showEyebrowControl && (
               <div className="flex flex-col gap-2">
                 <label htmlFor="eyebrow" className="text-sm font-medium text-foreground-light">
                   Eyebrow <span className="text-foreground-lighter">(optional)</span>

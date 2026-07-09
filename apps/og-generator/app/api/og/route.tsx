@@ -128,7 +128,7 @@ export async function GET(req: Request) {
     const template = TEMPLATE_MAP[searchParams.get('template') ?? ''] ?? TEMPLATE_MAP[DEFAULT_TEMPLATE_ID]
 
     const rawHeadline = (searchParams.get('headline') ?? DEFAULT_HEADLINE).slice(0, 200)
-    const eyebrow = searchParams.get('eyebrow')?.trim() || null
+    const eyebrow = template.noEyebrow ? null : searchParams.get('eyebrow')?.trim() || null
     const sentenceCase = searchParams.get('sentenceCase') !== '0'
     const manualBreaks = searchParams.get('manual') === '1' || /\n/.test(rawHeadline)
 

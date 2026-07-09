@@ -5,35 +5,23 @@ import { Button } from 'ui'
 import { Input } from 'ui-patterns/DataInputs/Input'
 
 import { AccessTokenList } from '@/components/interfaces/Account/AccessTokens/AccessTokenList'
-import { AccessTokenNewBanner } from '@/components/interfaces/Account/AccessTokens/AccessTokenNewBanner/AccessTokenNewBanner'
-import { NewTokenButton } from '@/components/interfaces/Account/AccessTokens/Classic/NewTokenButton'
 import { MigrationAdmonition } from '@/components/interfaces/Account/AccessTokens/MigrationAdmonition'
 import { NewScopedTokenButton } from '@/components/interfaces/Account/AccessTokens/Scoped/NewScopedTokenButton'
 import { AccessTokensLayout } from '@/components/layouts/AccessTokens/AccessTokensLayout'
 import AccountLayout from '@/components/layouts/AccountLayout/AccountLayout'
 import { AppLayout } from '@/components/layouts/AppLayout/AppLayout'
 import { DefaultLayout } from '@/components/layouts/DefaultLayout'
-import { NewAccessToken } from '@/data/access-tokens/access-tokens-create-mutation'
 import { DOCS_URL } from '@/lib/constants'
 import type { NextPageWithLayout } from '@/types'
 
 const UserAccessTokens: NextPageWithLayout = () => {
   const scopedTokensEnabled = useFlag('scopedPAT')
-  const [newToken, setNewToken] = useState<NewAccessToken | undefined>()
   const [searchString, setSearchString] = useState('')
 
   return (
     <AccessTokensLayout>
       <div className="space-y-4">
         {scopedTokensEnabled && <MigrationAdmonition />}
-
-        {newToken && (
-          <AccessTokenNewBanner
-            token={newToken}
-            onClose={() => setNewToken(undefined)}
-            getTokenValue={(token) => token.token}
-          />
-        )}
 
         <div>
           <h3 className="text-sm text-foreground">Tokens</h3>
@@ -64,29 +52,11 @@ const UserAccessTokens: NextPageWithLayout = () => {
                 CLI docs
               </a>
             </Button>
-            {scopedTokensEnabled ? (
-              <>
-                {/* TODO(product): classic minting kept as a secondary action per the migration plan. */}
-                <NewTokenButton
-                  onCreateToken={setNewToken}
-                  label="Classic token"
-                  variant="default"
-                />
-                <NewScopedTokenButton onCreateToken={() => {}} />
-              </>
-            ) : (
-              <NewTokenButton onCreateToken={setNewToken} />
-            )}
+            <NewScopedTokenButton onCreateToken={() => {}} />
           </div>
         </div>
 
-        <AccessTokenList
-          searchString={searchString}
-          scopedEnabled={scopedTokensEnabled}
-          onDeleteSuccess={(id) => {
-            if (id === newToken?.id) setNewToken(undefined)
-          }}
-        />
+        <AccessTokenList searchString={searchString} scopedEnabled={scopedTokensEnabled} />
       </div>
     </AccessTokensLayout>
   )

@@ -68,10 +68,7 @@ export const TokenDetails = ({ form }: TokenDetailsProps) => {
               <FormControl className="grow">
                 <Select value={field.value} onValueChange={handleExpiryChange}>
                   <SelectTrigger>
-                    <div className="flex items-center gap-2">
-                      <SelectValue placeholder="Select an expiry" />
-                      {field.value === '7d' && <Badge variant="success">Recommended</Badge>}
-                    </div>
+                    <SelectValue placeholder="Select an expiry" />
                   </SelectTrigger>
                   <SelectContent>
                     {EXPIRY_OPTIONS.map((option) => (

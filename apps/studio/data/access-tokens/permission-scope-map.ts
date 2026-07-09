@@ -1,12 +1,12 @@
-import rawScopeMap from './permission-scope-map.json'
+import { PERMISSION_SCOPE_MAP_DATA } from './permission-scope-map.constants'
 
 /**
  * Cross-reference between OpenFGA permission scopes, Management API endpoints, and MCP tools.
  *
- * TODO: replace with control-plane endpoint. This map is currently checked in as a static
- * snapshot generated from the mgmt-api OpenAPI specs + the MCP server tool list. Once the
- * control plane exposes a scope -> endpoints/tools endpoint, fetch it via a react-query hook
- * instead of importing this JSON.
+ * TODO: replace with control-plane endpoint. The underlying data lives in
+ * permission-scope-map.constants.ts as a static snapshot generated from the mgmt-api OpenAPI specs
+ * + the MCP server tool list. Once the control plane exposes a scope -> endpoints/tools endpoint,
+ * fetch it via a react-query hook instead.
  */
 
 export interface ScopeMapEntry {
@@ -24,7 +24,7 @@ export interface PermissionScopeMap {
   mcp_tools: Record<string, string[]>
 }
 
-export const PERMISSION_SCOPE_MAP = rawScopeMap as unknown as PermissionScopeMap
+export const PERMISSION_SCOPE_MAP = PERMISSION_SCOPE_MAP_DATA as unknown as PermissionScopeMap
 
 export interface EnabledEndpoint {
   /** HTTP method, e.g. "GET" */

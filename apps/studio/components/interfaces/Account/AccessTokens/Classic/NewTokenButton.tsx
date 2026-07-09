@@ -13,17 +13,9 @@ import { type NewAccessToken } from '@/data/access-tokens/access-tokens-create-m
 
 export interface NewAccessTokenButtonProps {
   onCreateToken: (token: NewAccessToken) => void
-  /** Label for the primary button; defaults to "Generate new token". */
-  label?: string
-  /** Visual variant for the primary button; use "default" to present classic minting as secondary. */
-  variant?: 'primary' | 'default'
 }
 
-export const NewTokenButton = ({
-  onCreateToken,
-  label = 'Generate new token',
-  variant = 'primary',
-}: NewAccessTokenButtonProps) => {
+export const NewTokenButton = ({ onCreateToken }: NewAccessTokenButtonProps) => {
   const [visible, setVisible] = useState(false)
   const [tokenScope, setTokenScope] = useState<'V0' | undefined>(undefined)
 
@@ -31,19 +23,18 @@ export const NewTokenButton = ({
     <>
       <div className="flex items-center">
         <Button
-          variant={variant}
           className="rounded-r-none px-3"
           onClick={() => {
             setTokenScope(undefined)
             setVisible(true)
           }}
         >
-          {label}
+          Generate new token
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              variant={variant}
+              variant="primary"
               title="Choose token scope"
               className="rounded-l-none px-[4px] py-[5px]"
               icon={<ChevronDown />}

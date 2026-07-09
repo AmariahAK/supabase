@@ -1,4 +1,11 @@
-{
+/**
+ * Static cross-reference between OpenFGA permission scopes, Management API endpoints, and MCP
+ * tools, generated from the mgmt-api OpenAPI specs + the MCP server tool list.
+ *
+ * TODO: replace with control-plane endpoint. This is a checked-in snapshot; once the control plane
+ * exposes a scope -> endpoints/tools endpoint, fetch it via a react-query hook instead.
+ */
+export const PERMISSION_SCOPE_MAP_DATA = {
   "_meta": {
     "description": "Cross-reference between OpenFGA permission scopes, Management API endpoints, and MCP tools. scopes: scope -> what it authorizes. endpoints: endpoint -> ALL scopes it requires. mcp_tools: tool -> ALL scopes it requires.",
     "generated_from": {
@@ -1315,4 +1322,4 @@
       "storage_config_write"
     ]
   }
-}
+} as const

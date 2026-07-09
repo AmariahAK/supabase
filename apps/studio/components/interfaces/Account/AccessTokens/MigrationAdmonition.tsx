@@ -31,8 +31,8 @@ export const MigrationAdmonition = () => {
     >
       <div className="space-y-3">
         <p className="text-sm text-foreground-light">
-          Your existing classic tokens keep working, and you can still create new classic tokens for
-          now. We recommend creating scoped tokens with the minimum access each integration needs.
+          Your existing classic tokens keep working. New tokens are now scoped — we recommend
+          granting each token the minimum access its integration needs.
         </p>
         <Button asChild variant="default" size="tiny">
           {/* TODO: replace with the scoped tokens docs route once published */}

@@ -769,51 +769,53 @@ export default function Page() {
           {inContext === 'none' && (
             <>
               <div className="h-5 border-l border-default" />
-              <button
-                type="button"
-                onClick={() => setZoomToolActive((v) => !v)}
-                title="Zoom tool (Z) — click to zoom in, Alt+click to zoom out"
-                className={`flex h-7 w-7 items-center justify-center rounded ${
-                  zoomToolActive ? 'bg-brand/20 text-brand' : 'text-foreground-light hover:text-foreground'
-                }`}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
-                  <path d="M8 11h6" strokeLinecap="round" />
-                  {!altHeld && <path d="M11 8v6" strokeLinecap="round" />}
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={() => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP))}
-                disabled={zoom <= ZOOM_MIN}
-                title="Zoom out"
-                className="flex h-7 w-7 items-center justify-center rounded text-foreground-light hover:text-foreground disabled:opacity-30"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M5 12h14" strokeLinecap="round" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={() => setZoom(100)}
-                title="Reset zoom"
-                className="min-w-[3ch] px-1 text-center text-xs tabular-nums text-foreground-light hover:text-foreground"
-              >
-                {zoom}%
-              </button>
-              <button
-                type="button"
-                onClick={() => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP))}
-                disabled={zoom >= ZOOM_MAX}
-                title="Zoom in"
-                className="flex h-7 w-7 items-center justify-center rounded text-foreground-light hover:text-foreground disabled:opacity-30"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-0.5">
+                <button
+                  type="button"
+                  onClick={() => setZoomToolActive((v) => !v)}
+                  title="Zoom tool (Z) — click to zoom in, Alt+click to zoom out"
+                  className={`flex h-6 w-6 items-center justify-center rounded ${
+                    zoomToolActive ? 'bg-brand/20 text-brand' : 'text-foreground-light hover:text-foreground'
+                  }`}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
+                    <path d="M8 11h6" strokeLinecap="round" />
+                    {!altHeld && <path d="M11 8v6" strokeLinecap="round" />}
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP))}
+                  disabled={zoom <= ZOOM_MIN}
+                  title="Zoom out"
+                  className="flex h-6 w-6 items-center justify-center rounded text-foreground-light hover:text-foreground disabled:opacity-30"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path d="M5 12h14" strokeLinecap="round" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoom(100)}
+                  title="Reset zoom"
+                  className="w-9 text-center text-xs tabular-nums text-foreground-light hover:text-foreground"
+                >
+                  {zoom}%
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP))}
+                  disabled={zoom >= ZOOM_MAX}
+                  title="Zoom in"
+                  className="flex h-6 w-6 items-center justify-center rounded text-foreground-light hover:text-foreground disabled:opacity-30"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
             </>
           )}
         </div>

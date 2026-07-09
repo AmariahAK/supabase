@@ -31,12 +31,6 @@ function safeAreaInset(width: number, height: number) {
 
 type View = 'og' | 'thumb' | 'both'
 
-const VIEW_OPTS: { value: View; label: string }[] = [
-  { value: 'og', label: 'OG' },
-  { value: 'thumb', label: 'Thumb' },
-  { value: 'both', label: 'Both' },
-]
-
 interface FitInfo {
   fontSize: number
   lineCount: number
@@ -405,6 +399,22 @@ export default function Page() {
   const [formatId, setFormatId] = useState<FormatId>(DEFAULT_FORMAT_ID)
   const format = useMemo(() => getFormat(formatId), [formatId])
   const hasThumb = !!format.thumb
+  const hasSecondary = !!format.secondary
+  // Second preview slot exists either as a classic icon-only Thumb, or as a
+  // format's second full composition (e.g. Social's Instagram variant).
+  const hasSecondSlot = hasThumb || hasSecondary
+  const primarySlotLabel = format.primaryLabel ?? format.label
+  const secondSlotLabel = format.secondary?.label ?? 'Thumb'
+  const secondSlotWidth = format.secondary?.width ?? format.width
+  const secondSlotHeight = format.secondary?.height ?? format.height
+  const viewOptions = useMemo(
+    () => [
+      { value: 'og' as const, label: primarySlotLabel },
+      ...(hasSecondSlot ? [{ value: 'thumb' as const, label: secondSlotLabel }] : []),
+      { value: 'both' as const, label: 'Both' },
+    ],
+    [primarySlotLabel, secondSlotLabel, hasSecondSlot]
+  )
   // Newsletter and Social each have their own two-tile layout set instead
   // of the standard 4 templates.
   const activeTemplates =
@@ -446,10 +456,11 @@ export default function Page() {
     }
   }, [formatId, activeTemplates, template])
 
-  // Format may drop the Thumb view (e.g. Twitter) — fall back to OG.
+  // Format may drop the second preview slot (e.g. Newsletter/Luma have
+  // neither a Thumb nor a secondary composition) — fall back to OG.
   useEffect(() => {
-    if (!hasThumb && view === 'thumb') setView('og')
-  }, [hasThumb, view])
+    if (!hasSecondSlot && view === 'thumb') setView('og')
+  }, [hasSecondSlot, view])
 
   // Close the icon dropdown on an outside click, like a real dropdown.
   useEffect(() => {
@@ -590,7 +601,12 @@ export default function Page() {
   const [copied, setCopied] = useState<View | null>(null)
 
   const showOg = view !== 'thumb'
-  const showThumb = view !== 'og' && hasThumb
+  const showThumb = view !== 'og' && hasSecondSlot
+  // Content controls (Layout/Eyebrow/Headline) stay visible whenever a full
+  // composition is on screen — that includes viewing just the second slot
+  // when it's a full composition too (e.g. Social's Instagram), unlike the
+  // classic icon-only Thumb which has no headline to edit.
+  const showContentControls = showOg || (view === 'thumb' && hasSecondary)
 
   const ogEndpoint = useMemo(() => {
     const p = new URLSearchParams()
@@ -612,12 +628,25 @@ export default function Page() {
     const p = new URLSearchParams()
     if (brandId !== DEFAULT_BRAND_ID) p.set('brand', brandId)
     if (formatId !== DEFAULT_FORMAT_ID) p.set('format', formatId)
-    p.set('type', 'thumb')
-    if (icon) p.set('icon', icon)
+    if (hasSecondary) {
+      // Full second composition (e.g. Instagram) — same recipe as the
+      // primary render, just a different canvas via `variant`.
+      p.set('headline', headline)
+      if (eyebrow.trim()) {
+        p.set('eyebrow', eyebrow.trim())
+        p.set('eyebrowStyle', 'pill')
+      }
+      p.set('template', template)
+      if (icon) p.set('icon', icon)
+      p.set('variant', 'secondary')
+    } else {
+      p.set('type', 'thumb')
+      if (icon) p.set('icon', icon)
+    }
     if (scale === 2) p.set('scale', '2')
     return `/api/og?${p.toString()}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandId, formatId, icon, scale])
+  }, [brandId, formatId, hasSecondary, headline, eyebrow, template, icon, scale])
 
   const og = useRenderedImage(ogEndpoint, showOg)
   const thumb = useRenderedImage(thumbEndpoint, showThumb)
@@ -680,7 +709,7 @@ export default function Page() {
               {showOg && (
                 <div className="min-w-0 @4xl:flex-1">
                   <PreviewCard
-                    label={format.label}
+                    label={primarySlotLabel}
                     width={format.width}
                     height={format.height}
                     imgUrl={og.url}
@@ -695,9 +724,9 @@ export default function Page() {
               {showThumb && (
                 <div className="min-w-0 @4xl:flex-1">
                   <PreviewCard
-                    label="Thumb"
-                    width={format.width}
-                    height={format.height}
+                    label={secondSlotLabel}
+                    width={secondSlotWidth}
+                    height={secondSlotHeight}
                     imgUrl={thumb.url}
                     loading={thumb.loading}
                     error={thumb.error}
@@ -732,11 +761,7 @@ export default function Page() {
           main's scroll (a sibling, not a child of the scroll container). */}
       <div className="pointer-events-none absolute left-8 right-[380px] top-6 z-10 flex justify-center">
         <div className="pointer-events-auto flex items-center gap-3 rounded-md border border-default bg-background px-3 py-2 shadow-lg">
-          <Segmented
-            value={view}
-            onChange={setView}
-            options={hasThumb ? VIEW_OPTS : VIEW_OPTS.filter((o) => o.value !== 'thumb')}
-          />
+          <Segmented value={view} onChange={setView} options={viewOptions} />
         </div>
       </div>
 
@@ -855,7 +880,7 @@ export default function Page() {
             </div>
           </Group>
 
-          {showOg && (
+          {showContentControls && (
             <Group title="Layout" noDivider>
               <div className="flex flex-col gap-2">
                 <div className="grid grid-cols-2 gap-2">
@@ -889,7 +914,7 @@ export default function Page() {
           )}
 
           <Group title="Content" noDivider>
-            {showOg && (
+            {showContentControls && (
               <div className="flex flex-col gap-2">
                 <label htmlFor="eyebrow" className="text-sm font-medium text-foreground-light">
                   Eyebrow <span className="text-foreground-lighter">(optional)</span>
@@ -904,7 +929,7 @@ export default function Page() {
               </div>
             )}
 
-            {showOg && (
+            {showContentControls && (
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <label htmlFor="headline" className="text-sm font-medium text-foreground-light">
@@ -1081,7 +1106,7 @@ export default function Page() {
           setScale={setScale}
           rows={[
             {
-              label: format.label,
+              label: primarySlotLabel,
               endpoint: ogEndpoint,
               imgUrl: og.url,
               downloadName: `og${suffix}.png`,
@@ -1089,16 +1114,16 @@ export default function Page() {
               onCopy: () => copyUrl(ogEndpoint, 'og'),
               onDownload: () => download(og.url, `og${suffix}.png`),
             },
-            ...(hasThumb
+            ...(hasSecondSlot
               ? [
                   {
-                    label: 'Thumb',
+                    label: secondSlotLabel,
                     endpoint: thumbEndpoint,
                     imgUrl: thumb.url,
-                    downloadName: `thumb${suffix}.png`,
+                    downloadName: `${secondSlotLabel.toLowerCase()}${suffix}.png`,
                     copied: copied === 'thumb',
                     onCopy: () => copyUrl(thumbEndpoint, 'thumb'),
-                    onDownload: () => download(thumb.url, `thumb${suffix}.png`),
+                    onDownload: () => download(thumb.url, `${secondSlotLabel.toLowerCase()}${suffix}.png`),
                   },
                 ]
               : []),

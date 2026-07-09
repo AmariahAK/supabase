@@ -40,7 +40,14 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
 
     const brand = getBrand(searchParams.get('brand'))
-    const format = getFormat(searchParams.get('format'))
+    const baseFormat = getFormat(searchParams.get('format'))
+    // `variant=secondary` swaps in a format's second full-composition size
+    // (e.g. Social's Instagram alongside its primary Twitter/X/LinkedIn size)
+    // — same recipe, different canvas dimensions.
+    const format =
+      searchParams.get('variant') === 'secondary' && baseFormat.secondary
+        ? { ...baseFormat, width: baseFormat.secondary.width, height: baseFormat.secondary.height }
+        : baseFormat
     const ICON_STROKE = brand.illustration.defaultStrokePx
 
     const scale = searchParams.get('scale') === '2' ? 2 : 1

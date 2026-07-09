@@ -26,6 +26,15 @@ export interface Format {
    * don't have a Thumb concept (e.g. a single social post image like Twitter).
    */
   thumb?: { default: number; min: number; max: number }
+  /** Label for the PRIMARY composition's preview card, if different from `label`. */
+  primaryLabel?: string
+  /**
+   * A second FULL composition at different dimensions (not an icon-only crop
+   * like `thumb`) — e.g. Social's Instagram variant alongside its primary
+   * Twitter/X/LinkedIn size. Rendered with the same headline/icon/template
+   * recipe as the primary, just a different canvas.
+   */
+  secondary?: { id: string; label: string; width: number; height: number }
 }
 
 export const FORMATS: Record<FormatId, Format> = {
@@ -43,13 +52,16 @@ export const FORMATS: Record<FormatId, Format> = {
     id: 'twitter',
     label: 'Social',
     width: 1200,
-    height: 675, // Twitter/X's recommended link-card size — same width as OG,
-    // so template headline widths carry over unchanged; only the vertical
-    // anchor math (already H-parametric) adapts.
+    height: 627, // Twitter/X/LinkedIn's shared link-card size — same width as
+    // OG, so template headline widths carry over unchanged; only the
+    // vertical anchor math (already H-parametric) adapts.
     outerMargin: 64,
     headlineInset: { x: 80, y: 72 },
     iconSize: 220,
-    // No Thumb for a single social post image (brief follow-up, this phase).
+    primaryLabel: 'Twitter/X/LinkedIn',
+    // Full second composition (not an icon-only crop) at Instagram's 4:5 feed
+    // ratio — same headline/icon/template recipe, different canvas.
+    secondary: { id: 'instagram', label: 'Instagram', width: 1080, height: 1350 },
   },
   newsletter: {
     id: 'newsletter',

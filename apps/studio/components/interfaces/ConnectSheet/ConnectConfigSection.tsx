@@ -245,30 +245,37 @@ interface ModeSelectorProps {
 }
 
 export function ModeSelector({ modes, selected, onChange }: ModeSelectorProps) {
+  const cols = 3
+  const rows = Math.ceil(modes.length / cols)
+
   return (
-    <div
-      className="grid rounded-lg border overflow-hidden"
-      style={{ gridTemplateColumns: `repeat(${modes.length}, minmax(0, 1fr))` }}
-    >
-      {modes.map((mode) => (
-        <button
-          key={mode.id}
-          type="button"
-          onClick={() => onChange(mode.id)}
-          className={cn(
-            'flex flex-col items-center gap-2 p-4 transition-colors border-r last:border-r-0',
-            selected === mode.id
-              ? 'bg-surface-200'
-              : 'border-default hover:border-strong hover:bg-surface-100 '
-          )}
-        >
-          <span className="text-foreground-light">{MODE_ICONS[mode.id]}</span>
-          <div>
-            <p className="heading-default text-center">{mode.label}</p>
-            <p className="text-sm text-foreground-lighter text-center">{mode.description}</p>
-          </div>
-        </button>
-      ))}
+    <div className="grid grid-cols-3 rounded-lg border overflow-hidden">
+      {modes.map((mode, index) => {
+        const col = index % cols
+        const row = Math.floor(index / cols)
+
+        return (
+          <button
+            key={mode.id}
+            type="button"
+            onClick={() => onChange(mode.id)}
+            className={cn(
+              'flex flex-col items-center gap-2 p-4 transition-colors',
+              col < cols - 1 && 'border-r',
+              row < rows - 1 && 'border-b',
+              selected === mode.id ? 'bg-surface-300' : 'hover:bg-surface-100'
+            )}
+          >
+            <span className="text-foreground-light">{MODE_ICONS[mode.id]}</span>
+            <div>
+              <p className="heading-default text-center">{mode.label}</p>
+              <p className="text-sm leading-tight text-foreground-lighter text-center">
+                {mode.description}
+              </p>
+            </div>
+          </button>
+        )
+      })}
     </div>
   )
 }

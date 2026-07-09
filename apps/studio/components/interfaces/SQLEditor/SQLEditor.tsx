@@ -42,11 +42,7 @@ import {
   suffixWithLimit,
 } from './SQLEditor.utils'
 import { SqlEditorQueryBar } from './SqlEditorQueryBar'
-import { useSqlQueryTarget } from './SqlEditorQueryTargetSelector'
-import {
-  DEFAULT_SQL_EDITOR_SEARCH_PATH,
-  getSqlEditorSearchPathStorageKey,
-} from './SqlEditorSearchPathSelector'
+import { SQL_EDITOR_WAREHOUSE_SOURCE_ID, useSqlEditorSource } from './SqlEditorSourceSelector'
 import { resolveSqlWarehouseResultSource } from './SqlEditorWarehouseDemo'
 import { useAddDefinitions } from './useAddDefinitions'
 import { UtilityPanel } from './UtilityPanel/UtilityPanel'
@@ -64,7 +60,6 @@ import { lintKeys } from '@/data/lint/keys'
 import { useReadReplicasQuery } from '@/data/read-replicas/replicas-query'
 import { useExecuteSqlMutation } from '@/data/sql/execute-sql-mutation'
 import { isError } from '@/data/utils/error-check'
-import { useLocalStorageQuery } from '@/hooks/misc/useLocalStorage'
 import { useOrgAiOptInLevel } from '@/hooks/misc/useOrgOptedIntoAi'
 import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganization'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
@@ -119,13 +114,9 @@ export const SQLEditor = () => {
   const sessionSnap = useSqlEditorSessionSnapshot()
   const diffRequest = useSqlEditorDiffRequestSnapshot()
   const getImpersonatedRoleState = useGetImpersonatedRoleState()
-  const [searchPath] = useLocalStorageQuery(
-    getSqlEditorSearchPathStorageKey(ref ?? 'unknown'),
-    DEFAULT_SQL_EDITOR_SEARCH_PATH
-  )
+  const { isWarehouse } = useSqlEditorSource()
   const databaseSelectorState = useDatabaseSelectorStateSnapshot()
   const { aiOptInLevel } = useOrgAiOptInLevel()
-  const sqlQueryTarget = useSqlQueryTarget()
 
   // [Ali] Kill switch to hide the SQL Editor Explain tab and its entry points
   const disablePrettyExplain = useFlag('DisablePrettyExplainOnSqlEditor')
@@ -419,8 +410,13 @@ export const SQLEditor = () => {
       }
 
       const impersonatedRoleState = getImpersonatedRoleState()
+      const postgresDatabaseId =
+        databaseSelectorState.selectedDatabaseId === SQL_EDITOR_WAREHOUSE_SOURCE_ID ||
+        !databaseSelectorState.selectedDatabaseId
+          ? ref
+          : databaseSelectorState.selectedDatabaseId
       const connectionString = databases?.find(
-        (db) => db.identifier === databaseSelectorState.selectedDatabaseId
+        (db) => db.identifier === postgresDatabaseId
       )?.connectionString
       if (!isValidConnString(connectionString)) {
         clearPendingRunRefocus()
@@ -430,19 +426,19 @@ export const SQLEditor = () => {
       const userSql = rawSql(sql)
       const { appendAutoLimit } = checkIfAppendLimitRequired(userSql, limit)
       const formattedSql = suffixWithLimit(userSql, limit)
-      const warehouseResultSource = resolveSqlWarehouseResultSource(
-        userSql,
-        searchPath,
-        sqlQueryTarget
-      )
+      const warehouseResultSource = resolveSqlWarehouseResultSource(userSql, isWarehouse)
+      const shouldImpersonateRole =
+        !isWarehouse && isRoleImpersonationEnabled(impersonatedRoleState.role)
 
       execute({
         projectRef: project.ref,
         connectionString: connectionString,
-        sql: wrapWithRoleImpersonation(formattedSql, impersonatedRoleState),
+        sql: shouldImpersonateRole
+          ? wrapWithRoleImpersonation(formattedSql, impersonatedRoleState)
+          : formattedSql,
         autoLimit: appendAutoLimit ? limit : undefined,
         warehouseResultSource,
-        isRoleImpersonationEnabled: isRoleImpersonationEnabled(impersonatedRoleState.role),
+        isRoleImpersonationEnabled: shouldImpersonateRole,
         isStatementTimeoutDisabled: true,
         contextualInvalidation: true,
         handleError: (error) => {
@@ -467,8 +463,7 @@ export const SQLEditor = () => {
       databases,
       eventTriggers,
       limit,
-      searchPath,
-      sqlQueryTarget,
+      isWarehouse,
       track,
     ]
   )
@@ -837,7 +832,6 @@ export const SQLEditor = () => {
       const primaryDatabase = databases.find((db) => db.identifier === ref)
       databaseSelectorState.setSelectedDatabaseId(primaryDatabase?.identifier)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuccessReadReplicas, databases, ref])
 
   const drainDiffRequest = useEffectEvent(() => {

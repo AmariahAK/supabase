@@ -120,7 +120,7 @@ export const DestinationPanel = ({ onSuccessCreateReadReplica }: DestinationPane
             <SheetDescription>
               {editMode
                 ? 'Update the configuration for this destination.'
-                : 'A destination can be a read replica or an external destination that receives replicated data in near real time.'}
+                : 'Add a read replica or an external destination that receives replicated data in near real time.'}
             </SheetDescription>
           </SheetHeader>
 

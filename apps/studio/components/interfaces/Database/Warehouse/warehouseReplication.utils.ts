@@ -3,6 +3,7 @@ import type {
   WarehousePipelineStatus,
   WarehouseProjectState,
 } from './warehouseDemoStore'
+import { isTableReplicated } from './warehouseDemoStore'
 
 export function formatReplicationPhase(phase: ReplicationPhase): string {
   switch (phase) {
@@ -54,14 +55,16 @@ export function getMockWarehouseHost(projectRef: string): string {
 
 export function buildWarehouseConnectionString({
   projectRef,
+  warehouseHost,
   databaseName = 'postgres',
   port = 5432,
 }: {
   projectRef: string
+  warehouseHost?: string
   databaseName?: string
   port?: number
 }): string {
-  const host = getMockWarehouseHost(projectRef)
+  const host = warehouseHost?.length ? warehouseHost : getMockWarehouseHost(projectRef)
   return `postgresql://postgres.[YOUR-PASSWORD]@${host}:${port}/${databaseName}`
 }
 
@@ -72,4 +75,61 @@ export function isWarehouseReplicationHealthy(state: WarehouseProjectState): boo
     state.pipelineStatus === 'running' &&
     (state.lagSeconds ?? 0) < 120
   )
+}
+
+export type WarehousePipelineTableRow = {
+  schema: string
+  name: string
+}
+
+const MOCK_WAREHOUSE_TABLES_BY_SCHEMA: Record<string, string[]> = {
+  public: ['users', 'profiles', 'events', 'orders'],
+  auth: ['users', 'sessions', 'refresh_tokens'],
+  storage: ['objects', 'buckets'],
+}
+
+type WarehousePipelineTablesState = {
+  includedSchemas: readonly string[]
+}
+
+export function getMockWarehousePipelineTables(
+  state: WarehousePipelineTablesState
+): WarehousePipelineTableRow[] {
+  const schemas = state.includedSchemas.length > 0 ? state.includedSchemas : ['public']
+
+  return schemas.flatMap((schema) =>
+    (MOCK_WAREHOUSE_TABLES_BY_SCHEMA[schema] ?? ['sample_table']).map((name) => ({
+      schema,
+      name,
+    }))
+  )
+}
+
+export function getWarehousePipelineTableLagSeconds(
+  tableIndex: number,
+  pipelineLagSeconds: number | null
+): number | null {
+  if (pipelineLagSeconds === null) return null
+  if (pipelineLagSeconds === 0) return 0
+  return Math.max(0, pipelineLagSeconds - tableIndex)
+}
+
+export function resolveWarehousePipelineTables({
+  projectRef,
+  state,
+  tables,
+}: {
+  projectRef: string | undefined
+  state: WarehousePipelineTablesState
+  tables: WarehousePipelineTableRow[] | undefined
+}): WarehousePipelineTableRow[] {
+  if (!tables) return getMockWarehousePipelineTables(state)
+
+  const replicated = tables
+    .filter((table) => isTableReplicated(projectRef, table.schema, table.name))
+    .sort((a, b) => `${a.schema}.${a.name}`.localeCompare(`${b.schema}.${b.name}`))
+
+  if (replicated.length > 0) return replicated
+
+  return getMockWarehousePipelineTables(state)
 }

@@ -3,23 +3,25 @@ import { useMemo } from 'react'
 import { Checkbox, Label } from 'ui'
 import { FormItemLayout } from 'ui-patterns/form/FormItemLayout/FormItemLayout'
 
-import {
-  getDefaultIncludedSchemas,
-  isReplicableSchema,
-  updateWarehouseIncludedSchemas,
-  useWarehouseProjectState,
-} from './warehouseDemoStore'
+import { isReplicableSchema } from './warehouseDemoStore'
 import { useSchemasQuery } from '@/data/database/schemas-query'
 import { EMPTY_ARR } from '@/lib/void'
 
 interface WarehouseSchemaScopeProps {
   disabled?: boolean
+  variant?: 'stacked' | 'form'
+  includedSchemas: string[]
+  onIncludedSchemasChange: (schemas: string[]) => void
 }
 
-export function WarehouseSchemaScope({ disabled = false }: WarehouseSchemaScopeProps) {
+export function WarehouseSchemaScope({
+  disabled = false,
+  variant = 'stacked',
+  includedSchemas,
+  onIncludedSchemasChange,
+}: WarehouseSchemaScopeProps) {
   const { ref: projectRef } = useParams()
   const { data: schemas } = useSchemasQuery({ projectRef })
-  const warehouseState = useWarehouseProjectState(projectRef)
 
   const replicableSchemas = useMemo(
     () =>
@@ -30,17 +32,45 @@ export function WarehouseSchemaScope({ disabled = false }: WarehouseSchemaScopeP
     [schemas]
   )
 
-  const includedSet = new Set(warehouseState.includedSchemas)
+  const includedSet = new Set(includedSchemas)
 
   const onToggle = (schema: string, checked: boolean) => {
-    if (!projectRef) return
     const next = checked
-      ? [...warehouseState.includedSchemas, schema]
-      : warehouseState.includedSchemas.filter((s) => s !== schema)
-    updateWarehouseIncludedSchemas(projectRef, next)
+      ? [...includedSchemas, schema]
+      : includedSchemas.filter((s) => s !== schema)
+    onIncludedSchemasChange(next)
   }
 
-  if (!warehouseState.enabled) return null
+  const schemaList = (
+    <div className="flex w-full flex-col gap-y-3">
+      <div className="flex max-h-64 flex-col gap-y-2 overflow-y-auto">
+        {replicableSchemas.map((schema) => (
+          <div key={schema} className="flex items-center gap-x-2">
+            <Checkbox
+              id={`warehouse-schema-${schema}`}
+              checked={includedSet.has(schema)}
+              disabled={disabled}
+              onCheckedChange={(checked) => onToggle(schema, checked === true)}
+            />
+            <Label htmlFor={`warehouse-schema-${schema}`} className="text-sm font-normal">
+              {schema}
+            </Label>
+          </div>
+        ))}
+        {replicableSchemas.length === 0 && (
+          <p className="text-sm text-foreground-light">No replicable schemas found.</p>
+        )}
+      </div>
+    </div>
+  )
+
+  if (variant === 'form') {
+    return (
+      <FormItemLayout isReactForm={false} layout="horizontal" label="Replicated schemas">
+        {schemaList}
+      </FormItemLayout>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-y-3">
@@ -51,39 +81,7 @@ export function WarehouseSchemaScope({ disabled = false }: WarehouseSchemaScopeP
           names.
         </p>
       </div>
-      <div className="flex flex-col gap-y-2">
-        {replicableSchemas.map((schema) => (
-          <FormItemLayout
-            key={schema}
-            isReactForm={false}
-            layout="flex"
-            label={schema}
-            className="items-center"
-          >
-            <Checkbox
-              id={`warehouse-schema-${schema}`}
-              checked={includedSet.has(schema)}
-              disabled={disabled}
-              onCheckedChange={(checked) => onToggle(schema, checked === true)}
-            />
-            <Label htmlFor={`warehouse-schema-${schema}`} className="sr-only">
-              Replicate schema {schema}
-            </Label>
-          </FormItemLayout>
-        ))}
-        {replicableSchemas.length === 0 && (
-          <p className="text-sm text-foreground-light">No replicable schemas found.</p>
-        )}
-      </div>
+      {schemaList}
     </div>
-  )
-}
-
-export function useDefaultWarehouseSchemas(): string[] {
-  const { ref: projectRef } = useParams()
-  const { data: schemas } = useSchemasQuery({ projectRef })
-  return useMemo(
-    () => getDefaultIncludedSchemas((schemas ?? EMPTY_ARR).map((s) => s.name)),
-    [schemas]
   )
 }

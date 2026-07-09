@@ -1,15 +1,10 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from 'ui'
 import { proxy, useSnapshot } from 'valtio'
 
-import type { SqlQueryTarget } from './SqlEditorQueryTargetSelector'
-
 export type SqlWarehouseHealthPreset = 'healthy' | 'catching_up' | 'degraded' | 'error'
 export type SqlEditorQueryControlMode = 'compact' | 'separate'
 
-export type SqlWarehouseResultSource =
-  | { type: 'query_target' }
-  | { type: 'search_path'; schema: string }
-  | { type: 'query_reference' }
+export type SqlWarehouseResultSource = { type: 'query_target' } | { type: 'query_reference' }
 
 const SQL_WAREHOUSE_SCHEMA_PATTERN = /\b[a-zA-Z_][\w$]*_warehouse\s*\./i
 
@@ -53,15 +48,10 @@ export function setSqlEditorQueryControlMode(mode: SqlEditorQueryControlMode) {
 
 export function resolveSqlWarehouseResultSource(
   sql: string,
-  searchPath: string,
-  queryTarget: SqlQueryTarget = 'postgres'
+  isWarehouse: boolean
 ): SqlWarehouseResultSource | undefined {
-  if (queryTarget === 'warehouse') {
+  if (isWarehouse) {
     return { type: 'query_target' }
-  }
-
-  if (searchPath.endsWith('_warehouse')) {
-    return { type: 'search_path', schema: searchPath }
   }
 
   if (SQL_WAREHOUSE_SCHEMA_PATTERN.test(sql)) {
@@ -74,10 +64,6 @@ export function resolveSqlWarehouseResultSource(
 function getWarehouseResultSourceTooltip(source: SqlWarehouseResultSource) {
   if (source.type === 'query_target') {
     return 'Results are served from the Warehouse endpoint. Schemas and table names match Postgres.'
-  }
-
-  if (source.type === 'search_path') {
-    return `Results are served from Warehouse because the search path starts with ${source.schema}.`
   }
 
   return 'Results include a linked Warehouse table referenced directly in the SQL.'

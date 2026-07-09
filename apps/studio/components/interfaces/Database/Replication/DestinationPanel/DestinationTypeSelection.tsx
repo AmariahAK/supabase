@@ -168,23 +168,20 @@ export const DestinationTypeSelection = () => {
     .flatMap((group) => group.options)
     .find((option) => option.value === destinationType)
 
+  const typeDescription =
+    destinationType === 'Warehouse'
+      ? 'Replicates your project database into Warehouse for analytical workloads.'
+      : editMode
+        ? undefined
+        : 'Destination type cannot be changed after creation.'
+
   return (
     <FormItemLayout
       isReactForm={false}
       layout="horizontal"
       className="p-5 [&>div]:gap-y-1 [&>div>span]:text-foreground-lighter"
       label="Type"
-      labelOptional="Destination type cannot be changed after creation"
-      description={
-        selectedOption?.isAlpha && (
-          <span className="block text-sm text-foreground-light mb-1">
-            In alpha and may change.{' '}
-            <InlineLink href="https://github.com/orgs/supabase/discussions/39416">
-              Leave feedback
-            </InlineLink>
-          </span>
-        )
-      }
+      description={typeDescription}
     >
       <Select
         disabled={editMode}

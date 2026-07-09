@@ -24,14 +24,12 @@ describe('sqlEditorSessionState', () => {
 
     it('addResult stores Warehouse result metadata', () => {
       sqlEditorSessionState.addResult('a', [{ x: 1 }], undefined, {
-        type: 'search_path',
-        schema: 'public_warehouse',
+        type: 'query_target',
       })
 
       const result = sqlEditorSessionState.results['a']?.[0]
       expect(result?.warehouseResultSource).toEqual({
-        type: 'search_path',
-        schema: 'public_warehouse',
+        type: 'query_target',
       })
     })
 

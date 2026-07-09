@@ -1,12 +1,12 @@
 import { useParams } from 'common'
 import { Database, Minus } from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
 import { Button, TableCell, TableRow, Tooltip, TooltipContent, TooltipTrigger } from 'ui'
 
 import { DeleteDestination } from '../Replication/DeleteDestination'
 import { MANAGED_WAREHOUSE_PUBLICATION_TOOLTIP } from './managedWarehouse.resources'
-import { disableWarehouseProject, useWarehouseProjectState } from './warehouseDemoStore'
+import { useWarehouseDestinationDelete } from './useWarehouseDestinationDelete'
+import { useWarehouseProjectState } from './warehouseDemoStore'
 import { WarehouseDestinationRowMenu } from './WarehouseDestinationRowMenu'
 import {
   formatReplicationLagSeconds,
@@ -17,12 +17,15 @@ import { WarehouseSyncChip } from './WarehouseSyncChip'
 export function WarehouseDestinationRow() {
   const { ref: projectRef } = useParams()
   const state = useWarehouseProjectState(projectRef)
-  const [showDeleteDestinationForm, setShowDeleteDestinationForm] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const {
+    destinationName,
+    showDeleteDestinationForm,
+    setShowDeleteDestinationForm,
+    isDeleting,
+    onDeleteDestination,
+  } = useWarehouseDestinationDelete()
 
   if (!state.enabled || !state.pipelineId) return null
-
-  const destinationName = `DuckLake (Pipeline ID: ${state.pipelineId})`
   const statusLabel = getWarehouseDestinationStatusLabel(
     state.replicationPhase,
     state.pipelineStatus
@@ -34,14 +37,6 @@ export function WarehouseDestinationRow() {
   const showLag =
     !isPipelineStopped &&
     (state.replicationPhase === 'streaming' || state.replicationPhase === 'backfilling')
-
-  const onDeleteDestination = async () => {
-    if (!projectRef) return
-    setIsDeleting(true)
-    disableWarehouseProject(projectRef)
-    setIsDeleting(false)
-    setShowDeleteDestinationForm(false)
-  }
 
   return (
     <>

@@ -33,7 +33,8 @@ import { useDatabaseSelectorStateSnapshot } from '@/state/database-selector'
 interface DatabaseSelectorProps {
   selectedDatabaseId?: string // To override initial state
   variant?: 'regular' | 'connected-on-right' | 'connected-on-left' | 'connected-on-both'
-  additionalOptions?: { id: string; name: string }[]
+  additionalOptions?: { id: string; name: string; description?: string }[]
+  trailingAdditionalOptions?: { id: string; name: string; description?: string }[]
   buttonProps?: ButtonProps
   onSelectId?: (id: string) => void // Optional callback
   className?: string
@@ -46,6 +47,7 @@ export const DatabaseSelector = ({
   selectedDatabaseId: _selectedDatabaseId,
   variant = 'regular',
   additionalOptions = [],
+  trailingAdditionalOptions = [],
   onSelectId = noop,
   buttonProps,
   align = 'end',
@@ -73,7 +75,9 @@ export const DatabaseSelector = ({
   const selectedDatabaseRegion = formatDatabaseRegion(selectedDatabase?.region ?? '')
   const formattedDatabaseId = formatDatabaseID(selectedDatabaseId ?? '')
 
-  const selectedAdditionalOption = additionalOptions.find((x) => x.id === selectedDatabaseId)
+  const selectedAdditionalOption = [...additionalOptions, ...trailingAdditionalOptions].find(
+    (x) => x.id === selectedDatabaseId
+  )
 
   const newReplicaURL = `/project/${projectRef}/database/replication?destinationType=Read+Replica`
 
@@ -162,8 +166,13 @@ export const DatabaseSelector = ({
                       onSelectId(option.id)
                     }}
                   >
-                    <div className="w-full flex items-center justify-between">
-                      <p>{option.name}</p>
+                    <div className="w-full flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p>{option.name}</p>
+                        {option.description !== undefined && (
+                          <p className="text-xs text-foreground-lighter">{option.description}</p>
+                        )}
+                      </div>
                       {option.id === selectedDatabaseId && <Check size={14} />}
                     </div>
                   </CommandItem>
@@ -232,6 +241,38 @@ export const DatabaseSelector = ({
                 })}
               </ScrollArea>
             </CommandGroup>
+
+            {trailingAdditionalOptions.length > 0 && (
+              <CommandGroup className="border-t">
+                {trailingAdditionalOptions.map((option) => (
+                  <CommandItem
+                    key={option.id}
+                    value={option.id}
+                    className="cursor-pointer w-full"
+                    onSelect={() => {
+                      if (!isForm) state.setSelectedDatabaseId(option.id)
+                      setOpen(false)
+                      onSelectId(option.id)
+                    }}
+                    onClick={() => {
+                      if (!isForm) state.setSelectedDatabaseId(option.id)
+                      setOpen(false)
+                      onSelectId(option.id)
+                    }}
+                  >
+                    <div className="w-full flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p>{option.name}</p>
+                        {option.description !== undefined && (
+                          <p className="text-xs text-foreground-lighter">{option.description}</p>
+                        )}
+                      </div>
+                      {option.id === selectedDatabaseId && <Check size={16} />}
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
 
             {IS_PLATFORM && infrastructureReadReplicas && (
               <CommandGroup className="border-t">

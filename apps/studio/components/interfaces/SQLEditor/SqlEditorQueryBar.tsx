@@ -19,12 +19,11 @@ import {
 } from 'ui'
 import { useSnapshot } from 'valtio'
 
-import { SqlEditorQueryTargetSelector, useSqlQueryTarget } from './SqlEditorQueryTargetSelector'
 import {
-  DEFAULT_SQL_EDITOR_SEARCH_PATH,
-  getSqlEditorSearchPathStorageKey,
-  SqlEditorSearchPathSelector,
-} from './SqlEditorSearchPathSelector'
+  getSqlEditorSourceSummary,
+  SqlEditorSourceSelector,
+  useSqlEditorSource,
+} from './SqlEditorSourceSelector'
 import { sqlEditorWarehouseDemoStore } from './SqlEditorWarehouseDemo'
 import { AutosaveStatus } from './UtilityPanel/AutosaveStatus'
 import { SqlRunButton } from './UtilityPanel/RunButton'
@@ -33,7 +32,6 @@ import SavingIndicator from './UtilityPanel/SavingIndicator'
 import { SqlEditorLimitSelector } from './UtilityPanel/SqlEditorLimitSelector'
 import { useIsSqlEditorManualSaveEnabled } from '@/components/interfaces/App/FeaturePreview/FeaturePreviewContext'
 import { RoleImpersonationPopover } from '@/components/interfaces/RoleImpersonationSelector/RoleImpersonationPopover'
-import { DatabaseSelector } from '@/components/ui/DatabaseSelector'
 import { useLocalStorageQuery } from '@/hooks/misc/useLocalStorage'
 import { IS_PLATFORM } from '@/lib/constants'
 import { useRoleImpersonationStateSnapshot } from '@/state/role-impersonation-state'
@@ -67,6 +65,7 @@ export function SqlEditorQueryBar({
   const isManualSaveEnabled = useIsSqlEditorManualSaveEnabled()
   const roleImpersonationState = useRoleImpersonationStateSnapshot()
   const warehouseDemoSnap = useSnapshot(sqlEditorWarehouseDemoStore)
+  const { isWarehouse, sourceId } = useSqlEditorSource()
   const queryBarRef = useRef<HTMLDivElement>(null)
   const [areSeparateQueryControlsCollapsed, setAreSeparateQueryControlsCollapsed] = useState(false)
 
@@ -74,15 +73,10 @@ export function SqlEditorQueryBar({
     LOCAL_STORAGE_KEYS.SQL_EDITOR_INTELLISENSE,
     true
   )
-  const [lastSelectedDb, setLastSelectedDb] = useLocalStorageQuery(
+  const [lastSelectedSource, setLastSelectedSource] = useLocalStorageQuery(
     LOCAL_STORAGE_KEYS.SQL_EDITOR_LAST_SELECTED_DB(ref as string),
     ''
   )
-  const [searchPath] = useLocalStorageQuery(
-    getSqlEditorSearchPathStorageKey(ref ?? 'unknown'),
-    DEFAULT_SQL_EDITOR_SEARCH_PATH
-  )
-  const queryTarget = useSqlQueryTarget()
 
   const snippet = snapV2.snippets[id]
   const isFavorite = snippet !== undefined ? snippet.snippet.favorite : false
@@ -109,9 +103,9 @@ export function SqlEditorQueryBar({
     }
   }
 
-  const onSelectDatabase = (databaseId: string) => {
+  const onSelectSource = (sourceId: string) => {
     sessionSnap.resetResults(id)
-    setLastSelectedDb(databaseId)
+    setLastSelectedSource(sourceId)
   }
 
   useEffect(() => {
@@ -138,6 +132,7 @@ export function SqlEditorQueryBar({
   const isSeparateQueryControlMode = warehouseDemoSnap.queryControlMode === 'separate'
   const shouldShowCollapsedQueryControls =
     isSeparateQueryControlMode && areSeparateQueryControlsCollapsed
+  const selectedSourceId = lastSelectedSource || sourceId
 
   return (
     <div
@@ -146,7 +141,6 @@ export function SqlEditorQueryBar({
     >
       <div className="flex min-w-0 items-center gap-x-2">
         {IS_PLATFORM && <AutosaveStatus />}
-        {/* SavingIndicator reports auto-save progress. In manual mode the Save button owns status. */}
         {IS_PLATFORM && !isManualSaveEnabled && <SavingIndicator id={id} />}
       </div>
 
@@ -167,8 +161,9 @@ export function SqlEditorQueryBar({
                 <div className="space-y-1 px-1 py-1.5">
                   <p className="px-2 py-1 text-xs text-foreground-lighter">Query context</p>
                   <SeparateQueryControls
-                    onSelectDatabase={onSelectDatabase}
-                    selectedDatabaseId={lastSelectedDb}
+                    isWarehouse={isWarehouse}
+                    onSelectSource={onSelectSource}
+                    selectedSourceId={selectedSourceId}
                     fullWidth
                   />
                 </div>
@@ -206,17 +201,17 @@ export function SqlEditorQueryBar({
         {isSeparateQueryControlMode ? (
           <div className="hidden items-center gap-x-2 @4xl:flex">
             <SeparateQueryControls
-              onSelectDatabase={onSelectDatabase}
-              selectedDatabaseId={lastSelectedDb}
+              isWarehouse={isWarehouse}
+              onSelectSource={onSelectSource}
+              selectedSourceId={selectedSourceId}
             />
           </div>
         ) : (
           <QueryContextDropdown
             currentRole={currentRole}
-            onSelectDatabase={onSelectDatabase}
-            queryTarget={queryTarget}
-            searchPath={searchPath}
-            selectedDatabaseId={lastSelectedDb}
+            isWarehouse={isWarehouse}
+            onSelectSource={onSelectSource}
+            selectedSourceId={selectedSourceId}
           />
         )}
         <SqlEditorLimitSelector />
@@ -234,62 +229,58 @@ export function SqlEditorQueryBar({
 
 type QueryContextDropdownProps = {
   currentRole: string
-  onSelectDatabase: (databaseId: string) => void
-  queryTarget: ReturnType<typeof useSqlQueryTarget>
-  searchPath: string
-  selectedDatabaseId: string
+  isWarehouse: boolean
+  onSelectSource: (sourceId: string) => void
+  selectedSourceId: string
 }
 
 type SeparateQueryControlsProps = {
   fullWidth?: boolean
-  onSelectDatabase: (databaseId: string) => void
-  selectedDatabaseId: string
+  isWarehouse: boolean
+  onSelectSource: (sourceId: string) => void
+  selectedSourceId: string
 }
 
 function SeparateQueryControls({
   fullWidth = false,
-  onSelectDatabase,
-  selectedDatabaseId,
+  isWarehouse,
+  onSelectSource,
+  selectedSourceId,
 }: SeparateQueryControlsProps) {
-  const controlClassName = fullWidth ? 'w-full [&>span]:w-full' : undefined
-
   return (
     <>
-      {IS_PLATFORM && (
-        <DatabaseSelector
-          selectedDatabaseId={selectedDatabaseId.length === 0 ? undefined : selectedDatabaseId}
-          onSelectId={onSelectDatabase}
-          className={controlClassName}
+      <SqlEditorSourceSelector
+        fullWidth={fullWidth}
+        onSelectSource={onSelectSource}
+        selectedSourceId={selectedSourceId}
+      />
+      {!isWarehouse && (
+        <RoleImpersonationPopover
+          serviceRoleLabel="postgres"
+          header="Run SQL query as a role"
           align="end"
+          className={fullWidth ? 'w-full justify-start [&>span]:w-full' : undefined}
         />
       )}
-      <SqlEditorQueryTargetSelector className={controlClassName} align="end" />
-      <SqlEditorSearchPathSelector className={controlClassName} align="end" />
-      <RoleImpersonationPopover
-        serviceRoleLabel="postgres"
-        header="Run SQL query as a role"
-        align="end"
-        className={fullWidth ? 'w-full justify-start [&>span]:w-full' : undefined}
-      />
     </>
   )
 }
 
 function QueryContextDropdown({
   currentRole,
-  onSelectDatabase,
-  queryTarget,
-  searchPath,
-  selectedDatabaseId,
+  isWarehouse,
+  onSelectSource,
+  selectedSourceId,
 }: QueryContextDropdownProps) {
   const { ref } = useParams()
-  const isPrimaryConnection = selectedDatabaseId.length === 0 || selectedDatabaseId === ref
-  const selectedConnectionLabel = isPrimaryConnection ? 'Primary' : 'Replica'
+  const sourceSummary = getSqlEditorSourceSummary({
+    projectRef: ref,
+    sourceId: selectedSourceId,
+    isWarehouse,
+  })
   const activeContextLabels = [
-    queryTarget === 'warehouse' ? 'Warehouse' : undefined,
-    !isPrimaryConnection ? selectedConnectionLabel : undefined,
-    searchPath !== DEFAULT_SQL_EDITOR_SEARCH_PATH ? searchPath : undefined,
-    currentRole !== 'postgres' ? currentRole : undefined,
+    sourceSummary,
+    !isWarehouse && currentRole !== 'postgres' ? currentRole : undefined,
   ].filter((label): label is string => label !== undefined)
   const contextSummary =
     activeContextLabels.length === 0
@@ -317,27 +308,24 @@ function QueryContextDropdown({
         <div className="border-b px-4 py-3">
           <p className="text-sm text-foreground">Query context</p>
           <p className="text-xs leading-snug text-foreground-light">
-            These settings apply together when this query runs.
+            Choose where this query runs. Role impersonation applies to Postgres only.
           </p>
         </div>
         <div className="space-y-1 p-2">
-          {IS_PLATFORM && (
-            <DatabaseSelector
-              selectedDatabaseId={selectedDatabaseId.length === 0 ? undefined : selectedDatabaseId}
-              onSelectId={onSelectDatabase}
-              className="w-full [&>span]:w-full"
+          <SqlEditorSourceSelector
+            className="w-full [&>span]:w-full"
+            align="end"
+            onSelectSource={onSelectSource}
+            selectedSourceId={selectedSourceId}
+          />
+          {!isWarehouse && (
+            <RoleImpersonationPopover
+              serviceRoleLabel="postgres"
+              header="Run SQL query as a role"
               align="end"
-              label="Connection"
+              className="w-full justify-start [&>span]:w-full"
             />
           )}
-          <SqlEditorQueryTargetSelector className="w-full [&>span]:w-full" align="end" />
-          <SqlEditorSearchPathSelector className="w-full [&>span]:w-full" align="end" />
-          <RoleImpersonationPopover
-            serviceRoleLabel="postgres"
-            header="Run SQL query as a role"
-            align="end"
-            className="w-full justify-start [&>span]:w-full"
-          />
         </div>
       </PopoverContent>
     </Popover>

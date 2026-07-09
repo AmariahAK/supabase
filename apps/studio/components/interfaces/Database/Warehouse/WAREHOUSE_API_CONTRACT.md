@@ -8,6 +8,162 @@ Prototype Studio code uses `?view=warehouse` on table detail URLs and `warehouse
 - Replace `warehouseDemoStore` enable/detach/sync fields with API responses
 - Support **copy mode** (postgres + warehouse) and **warehouse-only** (post-Move, no postgres table)
 
+## Platform REST endpoints (staging)
+
+Base path: `/platform/warehouse/{ref}`
+
+All endpoints require bearer auth, Warehouse feature access, and an active healthy project.
+
+- **Read** endpoints: `replication:Admin:Read`
+- **Write** endpoints: `replication:Admin:Write` plus the `replication.etl` entitlement
+
+### Shared types
+
+```ts
+type WarehouseTable = {
+  schema: string
+  name: string
+}
+
+type WarehouseLinkedTable = WarehouseTable & {
+  state: 'syncing' | 'live' | 'error'
+  lag_ms?: number
+  copy_name: string // e.g. "public_warehouse.orders"
+}
+```
+
+**Studio vocabulary mapping** (apply in a thin adapter when wiring queries):
+
+| Platform API       | Studio prototype / UI                                                             |
+| ------------------ | --------------------------------------------------------------------------------- |
+| `state: 'syncing'` | `copyStatus: 'backfilling'` → label **Backfilling**                               |
+| `state: 'live'`    | `copyStatus: 'live'` → label **Live**                                             |
+| `state: 'error'`   | `copyStatus: 'error'` → label **Error**                                           |
+| `copy_name`        | `warehouse_qualified_name` / `getWarehouseQualifiedTableName()`                   |
+| `lag_ms`           | Not shown in everyday UI; prefer project `replication_lag_bytes` in Observability |
+
+### `GET /platform/warehouse/{ref}/setup-status`
+
+Primary polling endpoint after link. Poll until `setup_status` is `complete` or `error`. Show `steps[].message` when present.
+
+```ts
+type SetupStatusResponse = {
+  setup_status: 'not_started' | 'setting_up' | 'copying' | 'installing_fdw' | 'complete' | 'error'
+  pipeline_id?: number
+  steps: Array<{
+    name: 'warehouse_pipeline' | 'warehouse_copy' | 'warehouse_fdw'
+    status: 'waiting' | 'running' | 'completed' | 'error'
+    message?: string
+  }>
+  tables: WarehouseLinkedTable[]
+  fdw_status: {
+    extension_installed: boolean
+    wrapper_installed: boolean
+    server_configured: boolean
+    schema_created: boolean
+    foreign_schema_imported: boolean
+  }
+}
+```
+
+### `GET /platform/warehouse/{ref}/tables`
+
+```ts
+type TablesResponse = {
+  tables: WarehouseLinkedTable[]
+}
+```
+
+`state` semantics:
+
+- `syncing`: initial copy queued/running or status unavailable
+- `live`: table is following WAL
+- `error`: replication failed for that table
+
+### `POST /platform/warehouse/{ref}/tables`
+
+Status: `202 Accepted`
+
+```ts
+type LinkTableBody = {
+  schema: string // e.g. "public"
+  name: string // e.g. "orders"
+}
+
+type LinkTableResponse = WarehouseLinkedTable
+```
+
+Creates Warehouse replication resources if needed, adds the table to the Warehouse publication, starts or restarts the pipeline, and enqueues async FDW setup. Response is immediate; poll `GET /setup-status` for progress.
+
+### `DELETE /platform/warehouse/{ref}/tables/{schema}/{name}`
+
+Status: `204 No Content`
+
+Removes the table from the Warehouse publication and restarts the running pipeline. Existing Warehouse/DuckLake data is left in place.
+
+### `GET /platform/warehouse/{ref}/tables/{schema}/{name}/snapshots?limit=50`
+
+`limit`: optional integer, `1..100`, default `50`.
+
+```ts
+type SnapshotsResponse = {
+  snapshots: Array<{
+    snapshot_id: string
+    snapshot_time: string | null
+    schema_version: string | null
+    changes: string | null
+    author: string | null
+    commit_message: string | null
+    commit_extra_info: string | null
+  }>
+}
+```
+
+Returns `404` if the table is not linked. Depends on FDW setup — expose snapshots only after `setup_status` is `complete`.
+
+### `GET /platform/warehouse/{ref}/catalog`
+
+```ts
+type CatalogResponse = {
+  enabled: boolean
+  credentials?: {
+    catalog_url: string
+    data_path: string
+    s3_endpoint: string
+    s3_region: string
+    s3_access_key_id: string
+    s3_secret_access_key: string
+    metadata_schema: string // usually "ducklake"
+  }
+}
+```
+
+`credentials` is present only when `enabled` is true.
+
+### `POST /platform/warehouse/{ref}/catalog`
+
+```ts
+type CatalogBody = {
+  enabled: boolean
+}
+
+type CatalogPostResponse = CatalogResponse
+```
+
+- `enabled: true`: provisions or returns external Warehouse catalog credentials
+- `enabled: false`: disables access and deletes Warehouse catalog storage credentials
+
+### Recommended Studio wiring flow
+
+1. Load `GET /tables` and `GET /setup-status` on Warehouse surfaces mount
+2. User confirms link → `POST /tables` with `{ schema, name }`
+3. Show returned table immediately as `syncing` (UI: **Backfilling**)
+4. Poll `GET /setup-status` until `complete` or `error`
+5. Detach via `DELETE /tables/{schema}/{name}`
+6. Snapshots: linked tables only, preferably after setup is `complete`
+
+Target react-query layer: `apps/studio/data/warehouse/` (not created yet).
+
 ## Project-level replication status
 
 One Warehouse replication pipeline serves all linked tables. Lag and phase are **project-scoped**, not per-table.
@@ -139,10 +295,10 @@ Detach (link removed, postgres remains): `storage_mode` returns to `postgres`; w
 
 Linking a table and backfilling it are **two phases**:
 
-| Phase           | User action       | API                                               | Studio                                                |
-| --------------- | ----------------- | ------------------------------------------------- | ----------------------------------------------------- |
-| **1. Link**     | Confirm in dialog | `POST` linked-table (accepts quickly)             | Button loading only; dialog closes on `2xx`           |
-| **2. Backfill** | (background)      | `warehouse_copy_status: 'backfilling'` → `'live'` | Sync status chip + Storage panel; poll table metadata |
+| Phase           | User action       | API                                                                | Studio                                      |
+| --------------- | ----------------- | ------------------------------------------------------------------ | ------------------------------------------- |
+| **1. Link**     | Confirm in dialog | `POST /platform/warehouse/{ref}/tables` → `202`, returns `syncing` | Button loading only; dialog closes on `2xx` |
+| **2. Backfill** | (background)      | Poll `GET /setup-status`; table `state: 'syncing'` → `'live'`      | Sync status chip + Storage panel            |
 
 The dialog must **not** block until backfill completes. Failures during link return an error in the dialog; failures during backfill set `warehouse_copy_status: 'error'`.
 
@@ -159,18 +315,20 @@ Long-running work does not use a notifications inbox in MVP; in-session sonner t
 
 ## Demo store mapping (interim)
 
-| Demo store                                       | API equivalent                                 |
-| ------------------------------------------------ | ---------------------------------------------- |
-| `mode: 'postgres'`                               | `storage_mode: 'postgres'`                     |
-| `mode: 'has_warehouse_copy'`                     | `storage_mode: 'postgres_with_warehouse_copy'` |
-| `copyStatus: 'backfilling' \| 'live' \| 'error'` | `warehouse_copy_status`                        |
-| `sourceTableId`                                  | Postgres table OID (for completion toast CTA)  |
-| `projectReplication.replicationLagBytes`         | `replication_lag_bytes` (project)              |
-| `projectReplication.replicationPhase`            | `replication_phase` (project)                  |
-| (not implemented)                                | `storage_mode: 'warehouse_only'`               |
-| `catalogEnabled`                                 | `catalog_enabled` (project)                    |
+| Demo store                                       | Platform API equivalent                                            |
+| ------------------------------------------------ | ------------------------------------------------------------------ |
+| `mode: 'postgres'`                               | Table absent from `GET /tables`                                    |
+| `mode: 'has_warehouse_copy'`                     | Row in `GET /tables` with `state` + `copy_name`                    |
+| `copyStatus: 'backfilling' \| 'live' \| 'error'` | `WarehouseLinkedTable.state` (`syncing` → `backfilling` in UI)     |
+| `copyName` (implicit via naming utils)           | `copy_name`                                                        |
+| `sourceTableId`                                  | Postgres table OID (for completion toast CTA; not on platform API) |
+| `projectReplication.replicationLagBytes`         | `replication_lag_bytes` (project; future monitor/setup-status)     |
+| `projectReplication.replicationPhase`            | Derived from `setup_status` / pipeline state                       |
+| (not implemented)                                | `storage_mode: 'warehouse_only'`                                   |
+| `catalogEnabled`                                 | `GET /catalog` → `enabled`                                         |
+| `WAREHOUSE_CATALOG_CREDENTIALS` (constants)      | `GET /catalog` → `credentials`                                     |
 
-Remove `warehouseDemoStore` when list/detail queries return `WarehouseTableMetadata` and a project replication endpoint exists.
+Remove `warehouseDemoStore` when `GET /tables` + `GET /setup-status` replace local state and list/detail queries return `WarehouseTableMetadata`.
 
 ## Connect sheet (catalog mode)
 

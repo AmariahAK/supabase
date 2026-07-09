@@ -1004,6 +1004,7 @@ export default function Page() {
                   id="headline"
                   value={headline}
                   onChange={(e) => setHeadline(clampChars(e.target.value, HARD_LIMIT))}
+                  maxLength={HARD_LIMIT}
                   rows={3}
                   className="resize-none rounded-md border border-default bg-surface-100 px-3 py-2 text-sm text-foreground outline-none focus:border-strong"
                   placeholder="Type a blog headline…"

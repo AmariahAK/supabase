@@ -697,13 +697,14 @@ export default function Page() {
               the row centers within it. (flex-1 items don't shrink below
               their content, so this can't clip an overflowing row — it just
               grows.) */
-          <div
-            className={`flex w-full flex-1 flex-col @4xl:justify-center ${
-              zoom > 100 ? 'items-start' : 'items-center'
-            }`}
-          >
+          <div className="flex w-full flex-1 flex-col">
+            {/* `mx-auto`/`my-auto` center the card while it fits, and
+                automatically collapse to 0 (i.e. start-aligned) once it
+                overflows — so zooming in never clips the leading edge, but
+                also never forces an off-center position once the zoomed
+                card still fits on screen. */}
             <div
-              className="flex flex-col gap-6 @4xl:flex-row @4xl:items-start"
+              className="mx-auto flex flex-col gap-6 @4xl:my-auto @4xl:flex-row @4xl:items-start"
               style={{ width: `${Math.round((view === 'both' ? 100 : 65) * (zoom / 100))}%` }}
             >
               {showOg && (

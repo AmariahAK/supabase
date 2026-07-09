@@ -21,9 +21,9 @@ import { IN_CONTEXT_OPTS, InContextPreview, type InContextMode } from './InConte
  * "Both" renders the OG and Thumb together from two independent renders.
  */
 
-const SOFT_LIMIT = 60
-const HARD_LIMIT = 70
-const EYEBROW_LIMIT = 25
+const SOFT_LIMIT = 40
+const HARD_LIMIT = 50
+const EYEBROW_LIMIT = 20
 
 /** Truncate to a max grapheme count — matches the `[...s].length` counters below. */
 function clampChars(value: string, limit: number) {

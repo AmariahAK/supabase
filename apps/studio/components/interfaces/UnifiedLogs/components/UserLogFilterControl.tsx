@@ -2,19 +2,21 @@ import { useParams } from 'common'
 import { User, X } from 'lucide-react'
 import { parseAsString, useQueryState } from 'nuqs'
 import { useEffect, useState, type KeyboardEvent } from 'react'
-import { Button, InputGroup, InputGroupAddon, InputGroupInput } from 'ui'
+import { AccordionContent, AccordionItem, AccordionTrigger, Button } from 'ui'
 
 import { searchAuthUserByEmail } from '@/components/interfaces/UserJourneys/UserJourneys.queries'
+import { InputWithAddons } from '@/components/ui/DataTable/primitives/InputWithAddons'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
 import { UUID_REGEX } from '@/lib/constants'
 
 /**
- * Dedicated "filter by user" control for Unified Logs. Writes the `?user=` key
- * (not the generic `filter=` array) since the filter is cross-cutting — see
- * SEARCH_PARAMS_PARSER / applySearchParamsFilter. An email is resolved to a user id
- * on submit (so it also matches postgres error text, which carries the id not the
- * email); an identifier with no auth.users row is kept as-is so failed signups still
- * match on their auth email.
+ * "User" filter as a native sidebar accordion item (matching the Level/Status/etc.
+ * sections). Writes the dedicated `?user=` key — not the generic `filter=` array —
+ * because the filter is cross-cutting (it gates which sources are eligible rather than
+ * filtering one column); see SEARCH_PARAMS_PARSER / applySearchParamsFilter. An email is
+ * resolved to a user id on submit (so it also matches postgres error text, which carries
+ * the id, not the email); an identifier with no auth.users row is kept as-is so failed
+ * signups still match on their auth email.
  */
 export const UserLogFilterControl = () => {
   const { ref: projectRef } = useParams()
@@ -24,7 +26,7 @@ export const UserLogFilterControl = () => {
   const [value, setValue] = useState(user ?? '')
   const [isResolving, setIsResolving] = useState(false)
 
-  // Keep the input in sync when the filter is set/cleared elsewhere (deep link, clear button).
+  // Keep the input in sync when the filter is set/cleared elsewhere (deep link, reset).
   useEffect(() => {
     setValue(user ?? '')
   }, [user])
@@ -61,35 +63,45 @@ export const UserLogFilterControl = () => {
   }
 
   return (
-    <div className="px-2 pt-2 pb-1 flex flex-col gap-1.5">
-      <span className="text-xs text-foreground-light">Filter by user</span>
-      <InputGroup>
-        <InputGroupInput
-          size="tiny"
-          placeholder="Email or user id"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={onKeyDown}
-          onBlur={apply}
-          disabled={isResolving}
-        />
-        <InputGroupAddon>
-          <User size={14} />
-        </InputGroupAddon>
+    <AccordionItem value="user" className="border-none">
+      <div className="flex items-center gap-2 pr-2">
+        <AccordionTrigger className="flex-1 px-2 py-0 hover:no-underline data-[state=closed]:text-muted-foreground data-open:text-foreground focus-within:data-closed:text-foreground hover:data-closed:text-foreground">
+          <div className="flex items-center gap-2 truncate py-2">
+            <p className="text-sm">User</p>
+          </div>
+        </AccordionTrigger>
         {user ? (
-          <InputGroupAddon align="inline-end">
-            <Button
-              type="button"
-              variant="text"
-              size="tiny"
-              className="px-1"
-              aria-label="Clear user filter"
-              icon={<X size={14} />}
-              onClick={() => setUser(null)}
-            />
-          </InputGroupAddon>
+          <Button
+            type="button"
+            variant="outline"
+            icon={<X />}
+            className="h-5 rounded-full px-1.5 py-1 font-mono text-[10px] [&>span]:translate-y-[-0.6px] space-x-1"
+            aria-label="Clear user filter"
+            onClick={(e) => {
+              e.stopPropagation()
+              setUser(null)
+            }}
+          >
+            1
+          </Button>
         ) : null}
-      </InputGroup>
-    </div>
+      </div>
+      <AccordionContent>
+        <div className="p-1">
+          <InputWithAddons
+            placeholder="Email or user id"
+            leading={<User className="h-4 w-4" />}
+            containerClassName="h-9 rounded-sm"
+            name="user"
+            id="user"
+            value={value}
+            disabled={isResolving}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={onKeyDown}
+            onBlur={apply}
+          />
+        </div>
+      </AccordionContent>
+    </AccordionItem>
   )
 }

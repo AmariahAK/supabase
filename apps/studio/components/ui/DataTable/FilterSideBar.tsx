@@ -66,8 +66,10 @@ export function FilterSideBar({
       <UnifiedLogsBanner />
 
       <div className="flex-1 p-2 sm:overflow-y-scroll">
-        <UserLogFilterControl />
-        <DataTableFilterControls dateRangeDisabled={dateRangeDisabled} />
+        <DataTableFilterControls
+          dateRangeDisabled={dateRangeDisabled}
+          itemsAfter={{ level: <UserLogFilterControl /> }}
+        />
         <FeaturePreviewSidebarPanel
           className="mx-2 my-4"
           title="Capture your logs"

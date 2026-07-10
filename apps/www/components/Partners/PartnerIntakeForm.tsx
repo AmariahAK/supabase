@@ -35,10 +35,10 @@ const partnerTypeOptions = [
 
 const fields: MarketingFormField[] = [
   // ----- General -----
-  { name: 'first_name', label: 'First name', type: 'text', required: true, half: true },
-  { name: 'last_name', label: 'Last name', type: 'text', required: true, half: true },
-  { name: 'email', label: 'Work email', type: 'email', required: true, half: true },
-  { name: 'company_name', label: 'Company name', type: 'text', required: true, half: true },
+  { name: 'first_name', label: 'First name', type: 'text', required: true, half: true, placeholder: "John" },
+  { name: 'last_name', label: 'Last name', type: 'text', required: true, half: true, placeholder: "Doe" },
+  { name: 'email', label: 'Work email', type: 'email', required: true, half: true, placeholder: "john.doe@company.com" },
+  { name: 'company_name', label: 'Company name', type: 'text', required: true, half: true, placeholder: "Company Inc." },
   {
     name: 'company_website',
     label: 'Company website',
@@ -201,6 +201,7 @@ const fields: MarketingFormField[] = [
     label: 'Any other details you’d like us to know?',
     type: 'textarea',
     rows: 4,
+    placeholder: 'Tell us more about your project, your team, and your goals for this partnership.',
   },
 ]
 

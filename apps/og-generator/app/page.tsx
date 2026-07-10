@@ -112,8 +112,11 @@ function Segmented<T extends string>({
 /** Small illustrative diagram of where the headline/icon sit for a template. */
 function LayoutThumb({ id }: { id: string }) {
   const iconBox = <div className="absolute h-3 w-3 rounded-sm bg-surface-300" />
+  // Not `absolute` — it's always nested inside an already-positioned wrapper,
+  // and stacking two position:absolute boxes with no offsets on this one left
+  // its width ambiguous, overflowing the card for the items-end case.
   const bars = (align: 'items-start' | 'items-center' | 'items-end') => (
-    <div className={`absolute flex flex-col gap-0.5 ${align}`}>
+    <div className={`flex flex-col gap-0.5 ${align}`}>
       <div className="h-1 w-6 rounded-full bg-foreground-lighter" />
       <div className="h-1 w-4 rounded-full bg-foreground-lighter" />
     </div>
@@ -832,9 +835,6 @@ export default function Page() {
                     : 'border-default bg-surface-100 hover:border-strong'
                 }`}
               >
-                <div className="relative flex-1">
-                  <LayoutThumb id={t.id} />
-                </div>
                 <span
                   className={`truncate text-[10px] ${
                     template === t.id ? 'text-brand' : 'text-foreground-lighter'
@@ -842,6 +842,9 @@ export default function Page() {
                 >
                   {t.label}
                 </span>
+                <div className="relative flex-1">
+                  <LayoutThumb id={t.id} />
+                </div>
               </button>
             ))}
           </div>

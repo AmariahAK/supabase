@@ -75,7 +75,7 @@ function Group({
         noDivider ? '' : 'border-t border-default first:border-t-0'
       }`}
     >
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-foreground">{title}</h2>
+      <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-foreground">{title}</h2>
       {children}
     </section>
   )
@@ -959,16 +959,14 @@ export default function Page() {
                       key={f.id}
                       type="button"
                       onClick={() => setFormatId(f.id)}
-                      className={`flex w-full items-center justify-between rounded-md border px-3 py-2.5 text-left transition ${
+                      className={`flex w-full flex-col rounded-md border px-3 py-2.5 text-left transition ${
                         active ? 'border-brand bg-brand/10' : 'border-default bg-surface-100 hover:border-strong'
                       }`}
                     >
                       <span className={`text-sm font-medium ${active ? 'text-brand' : 'text-foreground'}`}>
                         {f.label}
                       </span>
-                      <span className="text-xs tabular-nums text-foreground-lighter">
-                        {fmt.width} × {fmt.height}
-                      </span>
+                      <span className="text-xs text-foreground-lighter">{fmt.blurb}</span>
                     </button>
                   )
                 })}

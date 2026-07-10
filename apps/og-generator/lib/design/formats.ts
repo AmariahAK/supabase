@@ -15,6 +15,8 @@ export interface Format {
   id: FormatId
   /** Display name, shown in the Format selector. */
   label: string
+  /** One-line description shown under the label in the Format selector. */
+  blurb: string
   width: number
   height: number
   outerMargin: number
@@ -41,6 +43,7 @@ export const FORMATS: Record<FormatId, Format> = {
   og: {
     id: 'og',
     label: 'OG',
+    blurb: 'Blog posts and articles',
     width: 1200,
     height: 630, // -> effective safe area 1072 x 502, centered (outerMargin 64)
     outerMargin: 64,
@@ -51,6 +54,7 @@ export const FORMATS: Record<FormatId, Format> = {
   twitter: {
     id: 'twitter',
     label: 'Social',
+    blurb: 'Twitter/X, LinkedIn & Instagram',
     width: 1200,
     height: 627, // Twitter/X/LinkedIn's shared link-card size — same width as
     // OG, so template headline widths carry over unchanged; only the
@@ -66,6 +70,7 @@ export const FORMATS: Record<FormatId, Format> = {
   newsletter: {
     id: 'newsletter',
     label: 'Newsletter',
+    blurb: 'Email header banners',
     width: 1200,
     height: 600, // common 2:1 email-header banner width, same headline-box math as OG.
     outerMargin: 64,
@@ -76,11 +81,12 @@ export const FORMATS: Record<FormatId, Format> = {
   luma: {
     id: 'luma',
     label: 'Luma',
-    width: 1600,
-    height: 900, // Luma's standard 16:9 event cover size.
-    outerMargin: 86,
-    headlineInset: { x: 107, y: 96 }, // same proportions as OG's inset, scaled to 1600 wide
-    iconSize: 290,
+    blurb: 'Event cover images',
+    width: 800,
+    height: 800, // Luma's square event cover size.
+    outerMargin: 43,
+    headlineInset: { x: 54, y: 48 }, // same proportions as before, scaled to 800 wide
+    iconSize: 145,
     // No Thumb — an event cover isn't cropped down to an icon-only variant.
   },
 }

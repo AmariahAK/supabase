@@ -136,7 +136,6 @@ functions:
           - Requires swift-tools-version 6.1 or later (trait support).
           - The trait is **off by default** — no OTel dependency is linked unless you opt in.
           - When no span is active, the header is not added; it is always safe to call unconditionally.
-          - Exception: `FunctionsClient._invokeWithStreamedResponse` uses its own `URLSession` outside the shared fetch pipeline and does not receive the header.
   - id: auth-api
     title: 'Overview'
     notes: |

@@ -21,9 +21,8 @@ const DEFAULT_HEADLINE = 'Postgres full text search just got faster'
 
 const HEADLINE = typography.roles.headline
 const EYEBROW = typography.roles.eyebrow
-// One step below EYEBROW's own weight — the pill reads better slightly lighter
-// than the headline at this size.
-const EYEBROW_PILL_WEIGHT = 400
+// Matches EYEBROW's own weight — reads best at the current 20px pill size.
+const EYEBROW_PILL_WEIGHT = 500 as const
 // Wordmark display height (1x design px) for the fixed-logo templates.
 const WORDMARK_HEIGHT_1X = 36
 
@@ -176,7 +175,7 @@ export async function GET(req: Request) {
     const eyebrowLetterSpacing = EYEBROW.letterSpacing * eyebrowSize
     const eyebrowGap = 16 * s
 
-    const fonts = await satoriFonts([...new Set([HEADLINE.weight])])
+    const fonts = await satoriFonts([...new Set([HEADLINE.weight, EYEBROW_PILL_WEIGHT])])
 
     const textBlock = (
       <div

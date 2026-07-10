@@ -31,7 +31,7 @@ export const typography = {
     },
     eyebrow: {
       weight: 500 as const,
-      size: 22,
+      size: 20,
       lineHeight: 1.2,
       letterSpacing: 0.06, // em — slight tracking for the kicker label
     },

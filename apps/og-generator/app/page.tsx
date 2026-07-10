@@ -1019,15 +1019,22 @@ export default function Page() {
                   className="resize-none rounded-md border border-default bg-surface-100 px-3 py-2 text-sm text-foreground outline-none focus:border-strong"
                   placeholder="Type a blog headline…"
                 />
-                <p className="flex items-start gap-1.5 text-xs text-foreground-lighter">
-                  <kbd className="mt-0.5 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 px-1 font-mono text-[10px] leading-none text-foreground-light">
-                    ↵
-                  </kbd>
-                  <span>
-                    (ENTER) - Manual line break. Wrap text in [brackets] to keep its exact casing (e.g.
-                    type &quot;[P]ostgreSQL&quot;).
-                  </span>
-                </p>
+                <div className="flex flex-col gap-1.5">
+                  <p className="flex items-start gap-1.5 text-xs text-foreground-lighter">
+                    <kbd className="mt-0.5 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 px-1 font-mono text-[10px] leading-none text-foreground-light">
+                      ↵
+                    </kbd>
+                    <span>(ENTER) - Manual line break.</span>
+                  </p>
+                  <p className="flex items-start gap-1.5 text-xs text-foreground-lighter">
+                    <kbd className="mt-0.5 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 px-1 font-mono text-[10px] leading-none text-foreground-light">
+                      []
+                    </kbd>
+                    <span>
+                      (BRACKETS) - Keep exact casing (e.g. type &quot;[P]ostgreSQL&quot;).
+                    </span>
+                  </p>
+                </div>
               </div>
             )}
 

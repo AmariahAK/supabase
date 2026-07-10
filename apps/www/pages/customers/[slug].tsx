@@ -8,12 +8,14 @@ import { mdxSerialize } from '~/lib/mdx/mdxSerialize'
 import { getAllPostSlugs, getPostdata, getSortedPosts } from '~/lib/posts'
 import matter from 'gray-matter'
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react'
-import { MDXRemote } from 'next-mdx-remote'
+import { MDXClient } from 'next-mdx-remote-client/csr'
 import { NextSeo } from 'next-seo'
 import Head from 'next/head'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from 'ui'
+
+import SectionContainer from '@/components/Layouts/SectionContainer'
 
 // table of contents extractor
 const toc = require('markdown-toc')
@@ -128,12 +130,7 @@ function CaseStudyPage(props: any) {
         />
       </Head>
       <DefaultLayout>
-        <div
-          className="
-            container mx-auto p-8 sm:py-16 sm:px-16
-            xl:px-20
-          "
-        >
+        <SectionContainer className="py-8 sm:py-16!">
           <div className="grid grid-cols-12 gap-4">
             <div className="hidden xl:block col-span-12 mb-2 xl:col-span-2">
               {/* Back button */}
@@ -215,7 +212,7 @@ function CaseStudyPage(props: any) {
                         <div>
                           <p>Ready to get started?</p>
                           <div>
-                            <Button asChild type="default" iconRight={<ChevronRight />}>
+                            <Button asChild variant="default" iconRight={<ChevronRight />}>
                               <Link
                                 href="https://supabase.com/contact/enterprise"
                                 className="no-underline"
@@ -228,14 +225,14 @@ function CaseStudyPage(props: any) {
                       </div>
                     </div>
                     <div className="xm:col-span-7 col-span-12 lg:col-span-8 xl:col-span-8 ">
-                      <MDXRemote {...content} components={mdxComponents()} />
+                      <MDXClient {...content} components={mdxComponents()} />
                     </div>
                   </div>
                 </article>
               </div>
             </div>
           </div>
-        </div>
+        </SectionContainer>
 
         <CTABanner />
       </DefaultLayout>

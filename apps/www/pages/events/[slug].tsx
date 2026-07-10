@@ -13,7 +13,7 @@ import utc from 'dayjs/plugin/utc'
 import matter from 'gray-matter'
 import { ChevronLeft, X as XIcon } from 'lucide-react'
 import type { GetStaticProps, InferGetStaticPropsType } from 'next'
-import { MDXRemote } from 'next-mdx-remote'
+import { MDXClient } from 'next-mdx-remote-client/csr'
 import { NextSeo } from 'next-seo'
 import Head from 'next/head'
 import NextImage from 'next/image'
@@ -293,7 +293,7 @@ const EventPage = ({ event }: InferGetStaticPropsType<typeof getStaticProps>) =>
                   <h1 className="text-foreground text-3xl md:text-4xl xl:pr-9">{event.title}</h1>
                   <p>{event.subtitle}</p>
                   <Button
-                    type="primary"
+                    variant="primary"
                     size="medium"
                     className="mt-2"
                     disabled={
@@ -306,7 +306,7 @@ const EventPage = ({ event }: InferGetStaticPropsType<typeof getStaticProps>) =>
                       target={event.main_cta?.target ? event.main_cta?.target : undefined}
                       onClick={() =>
                         sendTelemetryEvent({
-                          action: 'www_pricing_plan_cta_clicked',
+                          action: 'www_event_page_cta_clicked',
                           properties: { eventTitle: event.title },
                         })
                       }
@@ -388,11 +388,11 @@ const EventPage = ({ event }: InferGetStaticPropsType<typeof getStaticProps>) =>
                 <h2 className="text-foreground-light text-sm font-mono uppercase">
                   About this event
                 </h2>
-                <MDXRemote {...content} components={mdxComponents()} />
+                <MDXClient {...content} components={mdxComponents()} />
               </div>
               <aside className="mt-8">
                 <Button
-                  type="primary"
+                  variant="primary"
                   size="medium"
                   className="mt-2"
                   disabled={!IS_REGISTRATION_OPEN || event.main_cta?.disabled}

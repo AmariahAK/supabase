@@ -1,8 +1,9 @@
+import { safeSql } from '@supabase/pg-meta/src/pg-format'
 import { useQuery } from '@tanstack/react-query'
 
 import { databaseEventTriggerKeys } from './keys'
 import type { EventTrigger } from '@/components/interfaces/Database/Triggers/EventTriggersList/EventTriggerList.utils'
-import { executeSql } from '@/data/sql/execute-sql-query'
+import { executeSql } from '@/data/sql/execute-sql-mutation'
 import type { ResponseError, UseCustomQueryOptions } from '@/types'
 
 export type DatabaseEventTriggersVariables = {
@@ -22,7 +23,7 @@ export type DatabaseEventTrigger = {
   function_definition: string | null
 }
 
-const EVENT_TRIGGERS_SQL = `
+const EVENT_TRIGGERS_SQL = safeSql`
 select
   evt.oid,
   evt.evtname as name,

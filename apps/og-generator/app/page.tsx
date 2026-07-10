@@ -441,8 +441,12 @@ export default function Page() {
   const viewOptions = useMemo(
     () => [
       { value: 'og' as const, label: primarySlotLabel },
-      ...(hasSecondSlot ? [{ value: 'thumb' as const, label: secondSlotLabel }] : []),
-      { value: 'both' as const, label: 'Both' },
+      ...(hasSecondSlot
+        ? [
+            { value: 'thumb' as const, label: secondSlotLabel },
+            { value: 'both' as const, label: 'Both' },
+          ]
+        : []),
     ],
     [primarySlotLabel, secondSlotLabel, hasSecondSlot]
   )
@@ -498,7 +502,7 @@ export default function Page() {
   // Format may drop the second preview slot (e.g. Newsletter/Luma have
   // neither a Thumb nor a secondary composition) — fall back to OG.
   useEffect(() => {
-    if (!hasSecondSlot && view === 'thumb') setView('og')
+    if (!hasSecondSlot && view !== 'og') setView('og')
   }, [hasSecondSlot, view])
 
   // Close the icon dropdown on an outside click, like a real dropdown.
@@ -807,12 +811,16 @@ export default function Page() {
       </main>
 
       {/* View toggle — anchored to the top of the canvas, independent of
-          main's scroll (a sibling, not a child of the scroll container). */}
-      <div className="pointer-events-none absolute left-8 right-[380px] top-6 z-10 flex justify-center">
-        <div className="pointer-events-auto flex items-center gap-3 rounded-md border border-default bg-background px-3 py-2 shadow-lg">
-          <Segmented value={view} onChange={setView} options={viewOptions} />
+          main's scroll (a sibling, not a child of the scroll container).
+          Hidden entirely when a format only has one view (e.g. Newsletter,
+          Luma) — nothing to toggle between. */}
+      {viewOptions.length > 1 && (
+        <div className="pointer-events-none absolute left-8 right-[380px] top-6 z-10 flex justify-center">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-md border border-default bg-background px-3 py-2 shadow-lg">
+            <Segmented value={view} onChange={setView} options={viewOptions} />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Floating guides / view-in-context / zoom toolbar — bottom-aligned,
           centered on the same content box as the View toggle above, and
@@ -836,13 +844,13 @@ export default function Page() {
                 }`}
               >
                 <span
-                  className={`truncate text-[10px] ${
+                  className={`truncate text-left text-[10px] ${
                     template === t.id ? 'text-brand' : 'text-foreground-lighter'
                   }`}
                 >
                   {t.label}
                 </span>
-                <div className="relative flex-1">
+                <div data-theme="dark" className="relative flex-1 overflow-hidden rounded bg-background">
                   <LayoutThumb id={t.id} />
                 </div>
               </button>
@@ -1017,19 +1025,17 @@ export default function Page() {
                   placeholder="Type a blog headline…"
                 />
                 <div className="flex flex-col gap-1.5">
-                  <p className="flex items-start gap-1.5 text-xs text-foreground-lighter">
-                    <kbd className="mt-0.5 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 px-1 font-mono text-[10px] leading-none text-foreground-light">
+                  <p className="flex items-center gap-1.5 text-xs text-foreground-lighter">
+                    <kbd className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 font-mono text-[10px] leading-none text-foreground-light">
                       ↵
                     </kbd>
-                    <span>Manual line break</span>
+                    <span>ENTER - Manual line break</span>
                   </p>
-                  <p className="flex items-start gap-1.5 text-xs text-foreground-lighter">
-                    <kbd className="mt-0.5 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 px-1 font-mono text-[10px] leading-none text-foreground-light">
+                  <p className="flex items-center gap-1.5 text-xs text-foreground-lighter">
+                    <kbd className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 font-mono text-[10px] leading-none text-foreground-light">
                       []
                     </kbd>
-                    <span>
-                      Capitalize letter <span className="text-foreground-light">e.g. [P]ostgreSQL</span>
-                    </span>
+                    <span>BRACKETS - Capitalize letter e.g. [P]ostgreSQL</span>
                   </p>
                 </div>
               </div>

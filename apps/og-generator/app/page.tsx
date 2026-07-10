@@ -31,11 +31,6 @@ function clampChars(value: string, limit: number) {
   return chars.length > limit ? chars.slice(0, limit).join('') : value
 }
 
-/** Safe-area guide: a uniform 80px margin on every side, regardless of format. */
-function safeAreaInset(width: number, height: number) {
-  return { x: (80 / width) * 100, y: (80 / height) * 100 }
-}
-
 type View = 'og' | 'thumb' | 'both'
 
 interface FitInfo {
@@ -56,7 +51,7 @@ function Hint({ text }: { text: string }) {
       <span className="flex h-3.5 w-3.5 cursor-help items-center justify-center rounded-full border border-default text-[9px] leading-none text-foreground-lighter">
         ?
       </span>
-      <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 w-max max-w-[220px] -translate-x-1/2 rounded-md border border-default bg-background px-2 py-1.5 text-[11px] font-normal normal-case leading-snug text-foreground opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+      <span className="pointer-events-none absolute bottom-full left-0 z-30 mb-1.5 w-max max-w-[200px] rounded-md border border-default bg-background px-2 py-1.5 text-[11px] font-normal normal-case leading-snug text-foreground opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
         {text}
       </span>
     </span>
@@ -372,7 +367,6 @@ function PreviewCard({
   loading,
   error,
   alt,
-  showSafeArea,
   children,
 }: {
   label: string
@@ -382,10 +376,8 @@ function PreviewCard({
   loading: boolean
   error: string | null
   alt: string
-  showSafeArea: boolean
   children?: React.ReactNode
 }) {
-  const safeArea = safeAreaInset(width, height)
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <span className="text-xs font-medium text-foreground-light">
@@ -403,19 +395,6 @@ function PreviewCard({
         {imgUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={imgUrl} alt={alt} className="h-full w-full" />
-        )}
-        {showSafeArea && (
-          <div className="pointer-events-none absolute inset-0">
-            <div
-              className="absolute border border-dotted border-brand/40"
-              style={{
-                top: `${safeArea.y}%`,
-                bottom: `${safeArea.y}%`,
-                left: `${safeArea.x}%`,
-                right: `${safeArea.x}%`,
-              }}
-            />
-          </div>
         )}
       </div>
 
@@ -632,7 +611,6 @@ export default function Page() {
     }
   }
   const [scale, setScale] = useState<1 | 2>(1)
-  const [showSafeArea, setShowSafeArea] = useState(false)
   const [inContext, setInContext] = useState<InContextMode>('none')
   const [exportOpen, setExportOpen] = useState(false)
   // Canvas zoom (brief follow-up) — scales the rendered image cards
@@ -756,7 +734,7 @@ export default function Page() {
                 also never forces an off-center position once the zoomed
                 card still fits on screen. */}
             <div
-              className="mx-auto flex flex-col gap-6 @4xl:my-auto @4xl:flex-row @4xl:items-start"
+              className="mx-auto my-auto flex flex-col gap-6 @4xl:flex-row @4xl:items-start"
               style={{ width: `${Math.round((view === 'both' ? 100 : 65) * (zoom / 100))}%` }}
             >
               {showOg && (
@@ -769,7 +747,6 @@ export default function Page() {
                     loading={og.loading}
                     error={og.error}
                     alt={headline}
-                    showSafeArea={showSafeArea}
                   />
                 </div>
               )}
@@ -784,7 +761,6 @@ export default function Page() {
                     loading={thumb.loading}
                     error={thumb.error}
                     alt="Thumbnail preview"
-                    showSafeArea={showSafeArea}
                   />
                 </div>
               )}
@@ -842,11 +818,7 @@ export default function Page() {
                 type="button"
                 onClick={() => setTemplate(t.id)}
                 title={t.label}
-                className={`flex h-16 w-24 shrink-0 flex-col rounded-md border p-1.5 ${
-                  template === t.id
-                    ? 'border-brand bg-brand/10'
-                    : 'border-default bg-surface-100 hover:border-strong'
-                }`}
+                className="flex w-28 shrink-0 flex-col gap-1"
               >
                 <span
                   className={`truncate text-left text-[10px] ${
@@ -855,7 +827,13 @@ export default function Page() {
                 >
                   {t.label}
                 </span>
-                <div data-theme="dark" className="relative flex-1 overflow-hidden rounded bg-background">
+                <div
+                  data-theme="dark"
+                  className={`relative w-full overflow-hidden rounded-md border bg-background ${
+                    template === t.id ? 'border-brand' : 'border-default hover:border-strong'
+                  }`}
+                  style={{ aspectRatio: `${format.width} / ${format.height}` }}
+                >
                   <LayoutThumb id={t.id} />
                 </div>
               </button>
@@ -863,22 +841,9 @@ export default function Page() {
           </div>
         )}
         <div className="pointer-events-auto flex items-center gap-3 rounded-md border border-default bg-background px-3 py-2 shadow-lg">
-          <button
-            type="button"
-            onClick={() => setShowSafeArea((v) => !v)}
-            title="Show safe-area guide"
-            className={`flex h-7 w-7 items-center justify-center rounded ${
-              showSafeArea ? 'bg-surface-300 text-foreground' : 'text-foreground-light hover:text-foreground'
-            }`}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <rect x="4" y="4" width="16" height="16" rx="2" strokeDasharray="0.1 4.2" strokeLinecap="round" />
-            </svg>
-          </button>
           {showOg && (
             <>
-              <div className="h-5 border-l border-default" />
-              <span className="pl-1 text-xs font-medium text-foreground-light">Preview</span>
+              <span className="text-xs font-medium text-foreground-light">Preview</span>
               <Segmented value={inContext} onChange={setInContext} options={IN_CONTEXT_OPTS} />
             </>
           )}
@@ -1030,23 +995,33 @@ export default function Page() {
                   placeholder="Type a blog headline…"
                 />
                 <div className="flex flex-col gap-1.5">
-                  <p className="flex items-center gap-1.5 text-xs text-foreground-lighter">
-                    <kbd className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 font-mono text-[10px] leading-none text-foreground-light">
-                      ↵
-                    </kbd>
-                    <span>ENTER - Manual line break</span>
+                  <span className="text-[11px] font-medium text-foreground-lighter">Text overrides</span>
+                  <p className="flex items-center justify-between gap-1.5 text-xs text-foreground-lighter">
+                    <span>Manual line break</span>
+                    <span className="flex shrink-0 items-center gap-1">
+                      <kbd className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 font-mono text-[10px] leading-none text-foreground-light">
+                        ↵
+                      </kbd>
+                      ENTER
+                    </span>
                   </p>
-                  <p className="flex items-center gap-1.5 text-xs text-foreground-lighter">
-                    <kbd className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 font-mono text-[10px] leading-none text-foreground-light">
-                      []
-                    </kbd>
-                    <span>BRACKETS - Capitalize letter e.g. [P]ostgreSQL</span>
+                  <p className="flex items-center justify-between gap-1.5 text-xs text-foreground-lighter">
+                    <span>Capitalize letter e.g. [P]ostgre[SQL]</span>
+                    <span className="flex shrink-0 items-center gap-1">
+                      <kbd className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 font-mono text-[10px] leading-none text-foreground-light">
+                        []
+                      </kbd>
+                      BRACKETS
+                    </span>
                   </p>
-                  <p className="flex items-center gap-1.5 text-xs text-foreground-lighter">
-                    <kbd className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 font-mono text-[10px] leading-none text-foreground-light">
-                      &quot;
-                    </kbd>
-                    <span>QUOTATION - Green highlight</span>
+                  <p className="flex items-center justify-between gap-1.5 text-xs text-foreground-lighter">
+                    <span>Green highlight</span>
+                    <span className="flex shrink-0 items-center gap-1">
+                      <kbd className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 font-mono text-[10px] leading-none text-foreground-light">
+                        &quot;
+                      </kbd>
+                      QUOTATION
+                    </span>
                   </p>
                 </div>
               </div>

@@ -1004,6 +1004,7 @@ export default function Page() {
                 <div className="flex items-center justify-between">
                   <label htmlFor="headline" className="text-sm font-medium text-foreground-light">
                     Headline
+                    <Hint text="Sentence case is applied to headlines. See the instructions below for overrides." />
                   </label>
                   <span className={`text-xs tabular-nums ${counterColor}`}>
                     {count} / {HARD_LIMIT}
@@ -1018,9 +1019,14 @@ export default function Page() {
                   className="resize-none rounded-md border border-default bg-surface-100 px-3 py-2 text-sm text-foreground outline-none focus:border-strong"
                   placeholder="Type a blog headline…"
                 />
-                <p className="text-xs text-foreground-lighter">
-                  Press Enter for a manual line break. Sentence case is applied automatically — wrap
-                  text in [brackets] to keep its exact casing (e.g. type "[P]ostgreSQL").
+                <p className="flex items-start gap-1.5 text-xs text-foreground-lighter">
+                  <kbd className="mt-0.5 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 px-1 font-mono text-[10px] leading-none text-foreground-light">
+                    ↵
+                  </kbd>
+                  <span>
+                    (ENTER) - Manual line break. Wrap text in [brackets] to keep its exact casing (e.g.
+                    type &quot;[P]ostgreSQL&quot;).
+                  </span>
                 </p>
               </div>
             )}

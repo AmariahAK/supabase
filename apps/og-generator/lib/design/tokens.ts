@@ -17,8 +17,15 @@ export const typography = {
   roles: {
     headline: {
       weight: 500 as const,
-      minSize: 40,
-      maxSize: 64,
+      // Two auto-fit size tiers instead of one fixed range: `default` (no
+      // icon, headline fits in <=2 lines) reads larger since there's nothing
+      // else competing for attention; `compact` kicks in whenever an icon is
+      // present or the headline needs a 3rd line, so the extra content
+      // doesn't crowd the composition.
+      sizeTiers: {
+        default: { minSize: 48, maxSize: 64 },
+        compact: { minSize: 40, maxSize: 56 },
+      },
       lineHeight: 1.1,
       letterSpacing: -0.02, // em
     },

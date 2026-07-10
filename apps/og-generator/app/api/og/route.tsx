@@ -132,29 +132,42 @@ export async function GET(req: Request) {
     const sentenceCase = searchParams.get('sentenceCase') !== '0'
     const manualBreaks = searchParams.get('manual') === '1' || /\n/.test(rawHeadline)
 
+    const hasIcon = !!iconObj
+
     // Manual font-size override (brief §3 power-user mode). Guard the absent case
     // — Number(null) === 0 would wrongly pin every auto-fit render to the min.
+    // Clamped to the full range across both tiers (40-64) — a manual override
+    // is a deliberate escape hatch, not subject to the auto-fit tier rules.
     const fontSizeParam = searchParams.get('fontSize')
     const manualSizeNum = fontSizeParam ? Number(fontSizeParam) : NaN
     const manualSize = Number.isFinite(manualSizeNum)
-      ? Math.min(HEADLINE.maxSize, Math.max(HEADLINE.minSize, Math.round(manualSizeNum)))
+      ? Math.min(HEADLINE.sizeTiers.default.maxSize, Math.max(HEADLINE.sizeTiers.compact.minSize, Math.round(manualSizeNum)))
       : null
 
-    const hasIcon = !!iconObj
     const textCrossAlign =
       template.textAlign === 'center' ? 'center' : template.textAlign === 'right' ? 'flex-end' : 'flex-start'
     const headline = sentenceCase ? toSentenceCase(rawHeadline) : rawHeadline
 
     const headlineFont = await measurementFont(HEADLINE.weight)
-    const fit = fitHeadline(headline, headlineFont, {
-      boxWidth: template.headlineBox(format),
-      minSize: manualSize ?? HEADLINE.minSize,
-      maxSize: manualSize ?? HEADLINE.maxSize,
-      step: 2,
-      maxLines: 2,
-      letterSpacingEm: HEADLINE.letterSpacing,
-      manualBreaks,
-    })
+    // Compact tier (40-56) whenever an icon is showing; default tier (48-64)
+    // otherwise. Either way, a headline that still needs a 3rd line always
+    // drops to the compact tier — checked after the first fit since line
+    // count isn't known up front.
+    const initialTier = hasIcon ? HEADLINE.sizeTiers.compact : HEADLINE.sizeTiers.default
+    const fitAt = (tier: { minSize: number; maxSize: number }) =>
+      fitHeadline(headline, headlineFont, {
+        boxWidth: template.headlineBox(format),
+        minSize: manualSize ?? tier.minSize,
+        maxSize: manualSize ?? tier.maxSize,
+        step: 2,
+        maxLines: 3,
+        letterSpacingEm: HEADLINE.letterSpacing,
+        manualBreaks,
+      })
+    let fit = fitAt(initialTier)
+    if (!manualSize && initialTier === HEADLINE.sizeTiers.default && fit.lineCount === 3) {
+      fit = fitAt(HEADLINE.sizeTiers.compact)
+    }
 
     const headlineSize = fit.fontSize * s
     const headlineLineHeight = Math.round(headlineSize * HEADLINE.lineHeight)

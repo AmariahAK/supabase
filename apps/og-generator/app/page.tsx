@@ -795,7 +795,7 @@ export default function Page() {
           <div className="flex w-full flex-1 flex-col items-center justify-center">
             <div
               className={`flex w-full flex-col gap-2 ${
-                inContext === 'blog-post' ? 'max-w-5xl' : 'max-w-2xl'
+                inContext === 'blog-post' || inContext === 'blog' ? 'max-w-5xl' : 'max-w-2xl'
               }`}
             >
               <span className="text-xs font-medium text-foreground-light">

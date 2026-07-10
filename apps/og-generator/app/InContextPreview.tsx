@@ -168,6 +168,29 @@ const BLOG_POST_HERO_ASPECT = '1.91 / 1'
 // Primary nav labels, verbatim (apps/www/data/nav.tsx).
 const NAV_ITEMS = ['Product', 'Developers', 'Solutions', 'Pricing', 'Docs']
 
+// Shared by both Blog mockups — same real nav (apps/www/components/Nav/index.tsx).
+function SiteNav() {
+  return (
+    <div className="flex h-16 items-center justify-between gap-4 border-b border-default px-6">
+      <div className="flex items-center gap-8">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand-logos/supabase-wordmark.svg" alt="Supabase" className="h-5 w-auto" />
+        <div className="hidden items-center gap-6 text-sm text-foreground sm:flex">
+          {NAV_ITEMS.map((item) => (
+            <span key={item}>{item}</span>
+          ))}
+        </div>
+      </div>
+      <div className="flex items-center gap-4 text-sm">
+        <span className="hidden text-foreground sm:inline">Sign in</span>
+        <span className="rounded-full bg-foreground px-4 py-1.5 font-medium text-background">
+          Start your project
+        </span>
+      </div>
+    </div>
+  )
+}
+
 function BlogPostMockup({ imgUrl, thumbImgUrl, headline, eyebrow }: Props) {
   const heroSrc = thumbImgUrl ?? imgUrl
   return (
@@ -179,24 +202,7 @@ function BlogPostMockup({ imgUrl, thumbImgUrl, headline, eyebrow }: Props) {
       data-theme="dark"
       className="w-full overflow-hidden rounded-lg border border-default bg-background text-foreground"
     >
-      {/* Site nav — labels/CTAs verbatim, dropdowns omitted (static mockup). */}
-      <div className="flex h-16 items-center justify-between gap-4 border-b border-default px-6">
-        <div className="flex items-center gap-8">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand-logos/supabase-wordmark.svg" alt="Supabase" className="h-5 w-auto" />
-          <div className="hidden items-center gap-6 text-sm text-foreground sm:flex">
-            {NAV_ITEMS.map((item) => (
-              <span key={item}>{item}</span>
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center gap-4 text-sm">
-          <span className="hidden text-foreground sm:inline">Sign in</span>
-          <span className="rounded-full bg-foreground px-4 py-1.5 font-medium text-background">
-            Start your project
-          </span>
-        </div>
-      </div>
+      <SiteNav />
 
       <div className="grid grid-cols-12 gap-4 px-6 py-10 sm:px-10">
         <div className="col-span-2 hidden xl:block">
@@ -253,35 +259,100 @@ function BlogPostMockup({ imgUrl, thumbImgUrl, headline, eyebrow }: Props) {
   )
 }
 
-function BlogListingMockup({ imgUrl, headline, eyebrow, aspect }: Props) {
-  const fillerCards = [
-    { eyebrow: 'Engineering', title: 'Scaling Postgres connections with Supavisor' },
-    { eyebrow: 'Launch Week', title: 'Introducing Edge Functions v2' },
-  ]
+// Category pills shown on the real /blog filter bar (BlogFilters.tsx), verbatim.
+const BLOG_CATEGORIES = ['All', 'Product', 'Company', 'Postgres', 'Developers', 'Engineering', 'Launch Week']
+
+// Grid cards use a 1.91:1 image (BlogGridItem.tsx); the featured post above
+// the grid uses a wider ~3:2 hero (FeaturedThumb.tsx) — genuinely different
+// crops, so both need their own aspect box like the real page.
+const GRID_CARD_ASPECT = '1.91 / 1'
+const FEATURED_ASPECT = '3 / 2'
+
+function BlogGridCard({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
-    <div className="grid w-full max-w-[760px] grid-cols-1 gap-4 sm:grid-cols-3">
-      {[
-        { yours: true, eyebrow: eyebrow ?? 'Engineering', title: headline },
-        fillerCards[0],
-        fillerCards[1],
-      ].map((c, i) => (
-        <div key={i} className="flex flex-col gap-2">
-          <div
-            className="w-full overflow-hidden rounded-lg border border-default bg-surface-100"
-            style={{ aspectRatio: aspect }}
-          >
-            {i === 0 && imgUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={imgUrl} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <div className="h-full w-full bg-surface-200" />
-            )}
+    <div className="flex flex-col gap-3 rounded-xl p-2">
+      <div
+        className="w-full overflow-hidden rounded-lg border border-default bg-surface-100"
+        style={{ aspectRatio: GRID_CARD_ASPECT }}
+      >
+        <div className="h-full w-full bg-surface-200" />
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="flex items-center gap-1.5 text-sm text-foreground-lighter">
+          <span>10 Jul 2026</span>
+          <span>·</span>
+          <span>{eyebrow}</span>
+        </span>
+        <span className="max-w-sm text-xl text-foreground">{title}</span>
+      </div>
+    </div>
+  )
+}
+
+function BlogListingMockup({ imgUrl, headline, eyebrow }: Props) {
+  return (
+    // Same forced-dark scoping as the Blog-post mockup — /blog uses the same
+    // Nav + dark theme as individual posts.
+    <div
+      data-theme="dark"
+      className="w-full overflow-hidden rounded-lg border border-default bg-background text-foreground"
+    >
+      <SiteNav />
+
+      <div className="px-6 py-10 sm:px-10">
+        <h1 className="mb-6 text-4xl">Blog</h1>
+
+        {/* Filter bar (apps/www/components/Blog/BlogFilters.tsx) — static, not
+            functional in this mockup. */}
+        <div className="mb-10 flex items-center justify-between gap-4 border-b border-default pb-4">
+          <div className="flex flex-wrap items-center gap-4 text-sm">
+            {BLOG_CATEGORIES.map((cat) => (
+              <span key={cat} className={cat === 'All' ? 'text-foreground' : 'text-foreground-lighter'}>
+                {cat}
+              </span>
+            ))}
           </div>
-          <span className="text-[11px] font-medium uppercase tracking-wide text-brand">{c.eyebrow}</span>
-          <span className="text-sm font-medium leading-snug text-foreground">{c.title}</span>
-          <span className="text-xs text-foreground-lighter">Jul 2, 2026 · 4 min read</span>
+          <span className="hidden shrink-0 rounded-md border border-default px-3 py-1.5 text-xs text-foreground-lighter sm:block">
+            Search blog
+          </span>
         </div>
-      ))}
+
+        {/* Featured post — the currently-edited headline/image, exactly like
+            the real page's FeaturedThumb sitting above (not inside) the grid. */}
+        <div className="mb-12 grid grid-cols-1 gap-6 lg:grid-cols-7 lg:gap-8">
+          <div className="lg:col-span-3">
+            <div
+              className="w-full overflow-hidden rounded-lg border border-default"
+              style={{ aspectRatio: FEATURED_ASPECT }}
+            >
+              {imgUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imgUrl} alt="" className="h-full w-full object-cover" />
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col justify-center gap-3 lg:col-span-4">
+            {eyebrow && (
+              <span className="text-xs font-medium uppercase tracking-wide text-foreground-lighter">
+                {eyebrow}
+              </span>
+            )}
+            <h2 className="text-3xl text-foreground">{headline}</h2>
+            <div className="flex items-center gap-3 pt-2">
+              <div className="h-8 w-8 shrink-0 rounded-full border border-default bg-surface-300" />
+              <span className="text-sm text-foreground">Supabase Team</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Uniform 3-col grid (BlogClient.tsx) — featured post is excluded
+            from this loop on the real page too. */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+          <BlogGridCard eyebrow="Engineering" title="Scaling Postgres connections with Supavisor" />
+          <BlogGridCard eyebrow="Launch Week" title="Introducing Edge Functions v2" />
+          <BlogGridCard eyebrow="Postgres" title="What's new in pg_graphql" />
+        </div>
+      </div>
     </div>
   )
 }

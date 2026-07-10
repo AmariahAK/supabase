@@ -649,6 +649,10 @@ export default function Page() {
 
   const showOg = view !== 'thumb'
   const showThumb = view !== 'og' && hasSecondSlot
+  // The Blog-post in-context mockup mirrors the real page's hero, which
+  // prefers the Thumb image — fetch it even if the OG/Thumb toggle itself
+  // isn't showing Thumb right now.
+  const wantsThumbForBlogPost = inContext === 'blog-post' && hasSecondSlot
   // Content controls (Layout/Eyebrow/Headline) stay visible whenever a full
   // composition is on screen — that includes viewing just the second slot
   // when it's a full composition too (e.g. Social's Instagram), unlike the
@@ -696,7 +700,7 @@ export default function Page() {
   }, [brandId, formatId, hasSecondary, headline, eyebrow, template, icon, scale])
 
   const og = useRenderedImage(ogEndpoint, showOg)
-  const thumb = useRenderedImage(thumbEndpoint, showThumb)
+  const thumb = useRenderedImage(thumbEndpoint, showThumb || wantsThumbForBlogPost)
 
   const count = [...headline].length
   const counterColor =
@@ -796,6 +800,7 @@ export default function Page() {
               <InContextPreview
                 mode={inContext}
                 imgUrl={og.url}
+                thumbImgUrl={thumb.url}
                 headline={headline}
                 eyebrow={eyebrow.trim() || null}
                 aspect={`${format.width} / ${format.height}`}

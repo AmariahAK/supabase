@@ -12,18 +12,26 @@
  * as authentic, not just "dark card on our UI".
  */
 
-export type InContextMode = 'none' | 'twitter' | 'linkedin' | 'blog'
+export type InContextMode = 'none' | 'twitter' | 'linkedin' | 'blog-post' | 'blog'
 type PreviewTheme = 'light' | 'dark'
 
 export const IN_CONTEXT_OPTS: { value: InContextMode; label: string }[] = [
   { value: 'none', label: 'None' },
   { value: 'twitter', label: 'Twitter / X' },
   { value: 'linkedin', label: 'LinkedIn' },
+  { value: 'blog-post', label: 'Blog post' },
   { value: 'blog', label: 'Blog listing' },
 ]
 
 interface Props {
   imgUrl: string | null
+  /**
+   * The Thumb render, when the active format has one — the real blog post
+   * page's hero crops whichever image it's given to a fixed 1.91:1 box, so
+   * passing this through the Blog-post mockup shows the actual crop instead
+   * of assuming the OG image's own aspect ratio survives untouched.
+   */
+  thumbImgUrl?: string | null
   headline: string
   eyebrow: string | null
   aspect: string
@@ -152,6 +160,60 @@ function LinkedInCardMockup({ imgUrl, headline, aspect }: Props) {
   )
 }
 
+// Real supabase.com/blog/[slug] hero crops whatever image it's given into a
+// fixed 1.91:1 box via object-cover — independent of the source image's own
+// aspect ratio (brief: apps/www/app/blog/[slug]/BlogPostRenderer.tsx).
+const BLOG_POST_HERO_ASPECT = '1.91 / 1'
+
+function BlogPostMockup({ imgUrl, thumbImgUrl, headline }: Props) {
+  const heroSrc = thumbImgUrl ?? imgUrl
+  return (
+    <div className="w-full max-w-[720px] overflow-hidden rounded-lg border border-default bg-background">
+      {/* Sticky site nav — just enough to anchor "above the fold", not a
+          pixel-match of the real header. */}
+      <div className="flex h-16 items-center gap-2 border-b border-default px-6">
+        <div className="h-5 w-5 rounded-[6px]" style={{ backgroundColor: '#3ECF8E' }} />
+        <span className="text-sm font-semibold text-foreground">Supabase</span>
+      </div>
+
+      <div className="flex flex-col gap-4 px-6 pb-8 pt-6">
+        <div className="flex items-center gap-1 text-sm text-foreground-lighter">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Blog
+        </div>
+
+        <h1 className="text-2xl font-medium leading-tight text-foreground sm:text-4xl">{headline}</h1>
+
+        <div className="flex items-center gap-1 text-sm text-foreground-lighter">
+          <span>Jul 10, 2026</span>
+          <span>·</span>
+          <span>4 minute read</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="h-10 w-10 shrink-0 rounded-full bg-surface-300" />
+          <div className="flex flex-col leading-tight">
+            <span className="text-sm text-foreground">Supabase Team</span>
+            <span className="text-xs text-foreground-lighter">Marketing</span>
+          </div>
+        </div>
+
+        {heroSrc && (
+          <div
+            className="w-full overflow-hidden rounded-lg border border-default"
+            style={{ aspectRatio: BLOG_POST_HERO_ASPECT }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={heroSrc} alt="" className="h-full w-full object-cover" />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function BlogListingMockup({ imgUrl, headline, eyebrow, aspect }: Props) {
   const fillerCards = [
     { eyebrow: 'Engineering', title: 'Scaling Postgres connections with Supavisor' },
@@ -205,6 +267,7 @@ export function InContextPreview({ mode, ...rest }: Props & { mode: InContextMod
   return (
     <div className="flex w-full justify-center rounded-lg bg-surface-100 p-6">
       {mode === 'linkedin' && <LinkedInCardMockup {...rest} />}
+      {mode === 'blog-post' && <BlogPostMockup {...rest} />}
       {mode === 'blog' && <BlogListingMockup {...rest} />}
     </div>
   )

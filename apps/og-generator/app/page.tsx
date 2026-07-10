@@ -1024,15 +1024,13 @@ export default function Page() {
                     <kbd className="mt-0.5 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 px-1 font-mono text-[10px] leading-none text-foreground-light">
                       ↵
                     </kbd>
-                    <span>(ENTER) - Manual line break.</span>
+                    <span>Manual line break</span>
                   </p>
                   <p className="flex items-start gap-1.5 text-xs text-foreground-lighter">
                     <kbd className="mt-0.5 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 px-1 font-mono text-[10px] leading-none text-foreground-light">
                       []
                     </kbd>
-                    <span>
-                      (BRACKETS) - Keep exact casing (e.g. type &quot;[P]ostgreSQL&quot;).
-                    </span>
+                    <span>Capitalize letter</span>
                   </p>
                 </div>
               </div>

@@ -12,7 +12,7 @@ import { mdxjs } from 'micromark-extension-mdxjs'
 import { parse as parseToml } from 'smol-toml'
 import { mcpConfigPanelMarkdown as McpConfigPanel } from 'ui-patterns/McpUrlBuilder/McpConfigPanel.md'
 
-import { addBaseUrlPrefix } from './internal-links'
+import { addBaseUrlPrefix, getInternalLinkBaseUrl, withDocsBasePath } from './internal-links'
 import { AccordionItem } from './markdown-schema/Accordion'
 import { Admonition } from './markdown-schema/Admonition'
 import { AuthProviders } from './markdown-schema/AuthProviders'
@@ -207,25 +207,55 @@ async function transformBody(content: string, data: Record<string, unknown>): Pr
   return output
 }
 
-async function generateOne(sourceFile: string, frontmatter: FrontmatterFormat): Promise<string> {
+async function generateOne(
+  sourceFile: string,
+  frontmatter: FrontmatterFormat
+): Promise<{ output: string; data: Record<string, unknown> }> {
   const raw = await fs.readFile(sourceFile, 'utf8')
   const { content, data } = parseFrontmatter(raw, frontmatter)
-  return transformBody(content, data)
+  return { output: await transformBody(content, data), data }
 }
 
-function renderManifest(sources: MarkdownSource[]): string {
-  const slugs = [...new Set(sources.map((source) => source.slug))].sort()
+const TROUBLESHOOTING_INDEX_SLUG = 'troubleshooting'
+const TROUBLESHOOTING_INDEX_PATH = path.join(
+  process.cwd(),
+  'public',
+  'markdown',
+  'guides',
+  `${TROUBLESHOOTING_INDEX_SLUG}.md`
+)
+
+function buildTroubleshootingIndex(entries: { slug: string; title: string }[]): string {
+  const baseUrl = getInternalLinkBaseUrl()
+  const links = [...entries]
+    .sort((a, b) => a.title.localeCompare(b.title))
+    .map(({ slug, title }) => `- [${title}](${baseUrl}${withDocsBasePath(`/guides/${slug}.md`)})`)
+    .join('\n')
+
+  return `# Troubleshooting
+
+Search or browse our troubleshooting guides for solutions to common Supabase issues.
+
+${links}
+`
+}
+
+function renderManifest(sources: MarkdownSource[], extraSlugs: string[]): string {
+  const slugs = [...new Set([...sources.map((source) => source.slug), ...extraSlugs])].sort()
   return `${JSON.stringify(slugs, null, 2)}\n`
 }
 
 async function generate() {
   const sources = await collectMarkdownSources()
 
+  const troubleshootingEntries: { slug: string; title: string }[] = []
+
   await Promise.all(
-    sources.map(async ({ sourceFile, outPath, frontmatter }) => {
+    sources.map(async ({ sourceFile, slug, outPath, frontmatter }) => {
       let output: string
+      let data: Record<string, unknown>
       try {
-        output = await generateOne(sourceFile, frontmatter)
+        ;({ output, data } = await generateOne(sourceFile, frontmatter))
       } catch (err) {
         throw new Error(
           `Failed to process ${sourceFile}: ${err instanceof Error ? err.message : err}`,
@@ -233,16 +263,23 @@ async function generate() {
         )
       }
 
+      if (frontmatter === 'toml' && data.title) {
+        troubleshootingEntries.push({ slug, title: String(data.title) })
+      }
+
       await fs.mkdir(path.dirname(outPath), { recursive: true })
       await fs.writeFile(outPath, output)
     })
   )
 
+  await fs.mkdir(path.dirname(TROUBLESHOOTING_INDEX_PATH), { recursive: true })
+  await fs.writeFile(TROUBLESHOOTING_INDEX_PATH, buildTroubleshootingIndex(troubleshootingEntries))
+
   await fs.mkdir(path.dirname(MANIFEST_PATH), { recursive: true })
-  await fs.writeFile(MANIFEST_PATH, renderManifest(sources))
+  await fs.writeFile(MANIFEST_PATH, renderManifest(sources, [TROUBLESHOOTING_INDEX_SLUG]))
 
   console.log(
-    `Generated ${sources.length} markdown files under public/markdown/guides/ and updated public/markdown/manifest.json`
+    `Generated ${sources.length + 1} markdown files under public/markdown/guides/ and updated public/markdown/manifest.json`
   )
 }
 

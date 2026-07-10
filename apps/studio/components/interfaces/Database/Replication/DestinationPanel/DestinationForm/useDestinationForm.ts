@@ -9,6 +9,7 @@ import { DestinationPanelFormSchema as FormSchema } from './DestinationForm.sche
 import {
   buildDestinationConfig,
   buildDestinationConfigForValidation,
+  buildTableSyncCopyConfig,
 } from './DestinationForm.utils'
 import {
   useCreateDestinationPipelineMutation,
@@ -24,6 +25,7 @@ import {
 import { useValidatePipelineMutation } from '@/data/replication/validate-pipeline-mutation'
 import { useIcebergNamespaceCreateMutation } from '@/data/storage/iceberg-namespace-create-mutation'
 import { useS3AccessKeyCreateMutation } from '@/data/storage/s3-access-key-create-mutation'
+import { useTablesQuery } from '@/data/tables/tables-query'
 import {
   PipelineStatusRequestStatus,
   usePipelineRequestStatus,
@@ -44,6 +46,7 @@ export const useDestinationForm = ({ selectedType }: { selectedType: Destination
 
   const { data: sourcesData } = useReplicationSourcesQuery({ projectRef })
   const sourceId = sourcesData?.sources.find((s) => s.name === projectRef)?.id
+  const { data: tables = [] } = useTablesQuery({ projectRef, includeColumns: false })
 
   const { mutateAsync: validateDestination, isPending: isValidatingDestination } =
     useValidateDestinationMutation()
@@ -111,6 +114,18 @@ export const useDestinationForm = ({ selectedType }: { selectedType: Destination
   }) => {
     if (!projectRef || !sourceId) return { canContinue: false, warnings: [] }
 
+    let tableSyncCopy
+    try {
+      tableSyncCopy = buildTableSyncCopyConfig({
+        mode: data.tableSyncCopyMode,
+        selectedTables: data.tableSyncCopyTables,
+        tables,
+      })
+    } catch (error) {
+      toast.error((error as Error).message)
+      return { canContinue: false, warnings: [] }
+    }
+
     setHasRunValidation(true)
 
     // Call both validation endpoints in parallel and wait for both to complete
@@ -125,6 +140,7 @@ export const useDestinationForm = ({ selectedType }: { selectedType: Destination
         maxTableSyncWorkers: data.maxTableSyncWorkers,
         maxCopyConnectionsPerTable: data.maxCopyConnectionsPerTable,
         invalidatedSlotBehavior: data.invalidatedSlotBehavior,
+        tableSyncCopy,
       }),
       validatePipeline({
         projectRef,
@@ -134,6 +150,7 @@ export const useDestinationForm = ({ selectedType }: { selectedType: Destination
         maxTableSyncWorkers: data.maxTableSyncWorkers,
         maxCopyConnectionsPerTable: data.maxCopyConnectionsPerTable,
         invalidatedSlotBehavior: data.invalidatedSlotBehavior,
+        tableSyncCopy,
       }),
     ])
 
@@ -207,12 +224,18 @@ export const useDestinationForm = ({ selectedType }: { selectedType: Destination
       const batchConfig: BatchConfig | undefined =
         data.maxFillMs !== undefined ? { maxFillMs: data.maxFillMs } : undefined
       const hasBatchFields = batchConfig !== undefined
+      const tableSyncCopy = buildTableSyncCopyConfig({
+        mode: data.tableSyncCopyMode,
+        selectedTables: data.tableSyncCopyTables,
+        tables,
+      })
 
       const pipelineConfig = {
         publicationName: data.publicationName,
         maxTableSyncWorkers: data.maxTableSyncWorkers,
         maxCopyConnectionsPerTable: data.maxCopyConnectionsPerTable,
         invalidatedSlotBehavior: data.invalidatedSlotBehavior,
+        tableSyncCopy,
         ...(hasBatchFields ? { batch: batchConfig } : {}),
       }
 

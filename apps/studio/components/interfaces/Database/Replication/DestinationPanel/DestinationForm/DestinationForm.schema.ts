@@ -6,6 +6,13 @@ export const DestinationPanelFormSchema = z.object({
   // Common fields
   name: z.string().min(1, 'Name is required'),
   publicationName: z.string().min(1, 'Publication is required'),
+  tableSyncCopyMode: z.enum([
+    'include_all_tables',
+    'skip_all_tables',
+    'include_tables',
+    'skip_tables',
+  ]),
+  tableSyncCopyTables: z.array(z.string()),
   maxFillMs: z.number().min(1, 'Max Fill milliseconds should be greater than 0').int().optional(),
   maxTableSyncWorkers: z
     .number()

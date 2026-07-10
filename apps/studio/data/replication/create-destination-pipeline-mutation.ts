@@ -132,18 +132,43 @@ export type BatchConfig = {
   maxFillMs?: number
 }
 
+export type TableSyncCopyConfig =
+  | { type: 'include_all_tables' }
+  | { type: 'skip_all_tables' }
+  | { type: 'include_tables'; table_ids: number[] }
+  | { type: 'skip_tables'; table_ids: number[] }
+
+export type PipelineConfig = {
+  publicationName: string
+  batch?: BatchConfig
+  maxTableSyncWorkers?: number
+  maxCopyConnectionsPerTable?: number
+  invalidatedSlotBehavior?: 'error' | 'recreate'
+  tableSyncCopy: TableSyncCopyConfig
+}
+
+export const buildPipelineApiConfig = ({
+  publicationName,
+  batch,
+  maxTableSyncWorkers,
+  maxCopyConnectionsPerTable,
+  invalidatedSlotBehavior,
+  tableSyncCopy,
+}: PipelineConfig) => ({
+  publication_name: publicationName,
+  max_table_sync_workers: maxTableSyncWorkers,
+  max_copy_connections_per_table: maxCopyConnectionsPerTable,
+  invalidated_slot_behavior: invalidatedSlotBehavior,
+  table_sync_copy: tableSyncCopy,
+  batch: batch ? { max_fill_ms: batch.maxFillMs } : undefined,
+})
+
 export type CreateDestinationPipelineParams = {
   projectRef: string
   destinationName: string
   destinationConfig: DestinationConfig
   sourceId: number
-  pipelineConfig: {
-    publicationName: string
-    batch?: BatchConfig
-    maxTableSyncWorkers?: number
-    maxCopyConnectionsPerTable?: number
-    invalidatedSlotBehavior?: 'error' | 'recreate'
-  }
+  pipelineConfig: PipelineConfig
 }
 
 async function createDestinationPipeline(
@@ -151,13 +176,7 @@ async function createDestinationPipeline(
     projectRef,
     destinationName: destinationName,
     destinationConfig,
-    pipelineConfig: {
-      publicationName,
-      batch,
-      maxTableSyncWorkers,
-      maxCopyConnectionsPerTable,
-      invalidatedSlotBehavior,
-    },
+    pipelineConfig,
     sourceId,
   }: CreateDestinationPipelineParams,
   signal?: AbortSignal
@@ -229,13 +248,7 @@ async function createDestinationPipeline(
     )
   }
 
-  const pipeline_config = {
-    publication_name: publicationName,
-    max_table_sync_workers: maxTableSyncWorkers,
-    max_copy_connections_per_table: maxCopyConnectionsPerTable,
-    invalidated_slot_behavior: invalidatedSlotBehavior,
-    batch: batch ? { max_fill_ms: batch.maxFillMs } : undefined,
-  }
+  const pipeline_config = buildPipelineApiConfig(pipelineConfig)
 
   const { data, error } = await post('/platform/replication/{ref}/destinations-pipelines', {
     params: { path: { ref: projectRef } },

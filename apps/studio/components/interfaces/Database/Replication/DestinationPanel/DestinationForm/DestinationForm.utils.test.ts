@@ -6,13 +6,19 @@ import { CREATE_NEW_KEY, CREATE_NEW_NAMESPACE } from './DestinationForm.constant
 import {
   buildDestinationConfig,
   buildDestinationConfigForValidation,
+  buildTableSyncCopyConfig,
+  generateDefaultValues,
 } from './DestinationForm.utils'
 import { getDucklakeValidationIssues } from './DuckLake/DuckLake.utils'
 import { getSnowflakeValidationIssues } from './Snowflake/Snowflake.utils'
+import type { ReplicationPipelineByIdData } from '@/data/replication/pipeline-by-id-query'
+import type { TablesData } from '@/data/tables/tables-query'
 
 const baseDucklakeFormData = {
   name: 'DuckLake Destination',
   publicationName: 'pub',
+  tableSyncCopyMode: 'include_all_tables' as const,
+  tableSyncCopyTables: [],
   maxFillMs: undefined,
   maxTableSyncWorkers: undefined,
   maxCopyConnectionsPerTable: undefined,
@@ -44,6 +50,8 @@ const baseDucklakeFormData = {
 const baseSnowflakeFormData = {
   name: 'Snowflake Destination',
   publicationName: 'pub',
+  tableSyncCopyMode: 'include_all_tables' as const,
+  tableSyncCopyTables: [],
   maxFillMs: undefined,
   maxTableSyncWorkers: undefined,
   maxCopyConnectionsPerTable: undefined,
@@ -78,6 +86,62 @@ const baseSnowflakeFormData = {
   snowflakeSchema: ' PUBLIC ',
   snowflakeRole: ' PIPELINES_ROLE ',
 }
+
+describe('DestinationForm.utils table copy selection', () => {
+  const tables = [
+    { id: 101, schema: 'public', name: 'orders' },
+    { id: 202, schema: 'private', name: 'customers' },
+  ] as unknown as TablesData
+
+  it.each(['include_all_tables', 'skip_all_tables'] as const)(
+    'builds the %s config without table ids',
+    (mode) => {
+      expect(buildTableSyncCopyConfig({ mode, selectedTables: [], tables })).toEqual({ type: mode })
+    }
+  )
+
+  it.each(['include_tables', 'skip_tables'] as const)(
+    'maps selected qualified names to table ids for %s',
+    (mode) => {
+      expect(
+        buildTableSyncCopyConfig({
+          mode,
+          selectedTables: ['private.customers', 'public.orders'],
+          tables,
+        })
+      ).toEqual({ type: mode, table_ids: [202, 101] })
+    }
+  )
+
+  it('rejects a selected table whose id cannot be resolved', () => {
+    expect(() =>
+      buildTableSyncCopyConfig({
+        mode: 'skip_tables',
+        selectedTables: ['public.missing'],
+        tables,
+      })
+    ).toThrow('Could not resolve table IDs for public.missing')
+  })
+
+  it('hydrates stored table ids as qualified table names in edit mode', () => {
+    const pipelineData = {
+      config: {
+        publication_name: 'analytics',
+        table_sync_copy: { type: 'include_tables', table_ids: [202, 101] },
+      },
+    } as unknown as ReplicationPipelineByIdData
+
+    const defaults = generateDefaultValues({
+      pipelineData,
+      catalogToken: '',
+      editMode: true,
+      tables,
+    })
+
+    expect(defaults.tableSyncCopyMode).toBe('include_tables')
+    expect(defaults.tableSyncCopyTables).toEqual(['private.customers', 'public.orders'])
+  })
+})
 
 describe('DestinationForm.utils DuckLake', () => {
   it('builds DuckLake validation config with required fields trimmed and blank optionals removed', () => {

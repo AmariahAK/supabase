@@ -43,6 +43,7 @@ import { NoDestinationsAvailable } from './NoDestinationsAvailable'
 import { PublicationSelection } from './PublicationSelection'
 import { SnowflakeFields } from './Snowflake/Fields'
 import { getSnowflakeValidationIssues } from './Snowflake/Snowflake.utils'
+import { TableCopySelection } from './TableCopySelection'
 import { useDestinationForm } from './useDestinationForm'
 import { ValidationFailuresSection } from './ValidationFailuresSection'
 import { ValidationWarningsDialog } from './ValidationWarningsDialog'
@@ -53,6 +54,7 @@ import { useReplicationDestinationByIdQuery } from '@/data/replication/destinati
 import { useReplicationPipelineByIdQuery } from '@/data/replication/pipeline-by-id-query'
 import { useReplicationPublicationsQuery } from '@/data/replication/publications-query'
 import { useReplicationSourcesQuery } from '@/data/replication/sources-query'
+import { useTablesQuery } from '@/data/tables/tables-query'
 import { useAsyncCheckPermissions } from '@/hooks/misc/useCheckPermissions'
 import { BASE_PATH, IS_STAGING_OR_LOCAL } from '@/lib/constants'
 
@@ -115,6 +117,11 @@ export const DestinationForm = ({
     refetch: refetchPublications,
   } = useReplicationPublicationsQuery({ projectRef, sourceId })
 
+  const { data: tables, isPending: isLoadingTables } = useTablesQuery({
+    projectRef,
+    includeColumns: false,
+  })
+
   const { data: destinationData } = useReplicationDestinationByIdQuery({
     projectRef,
     destinationId: existingDestination?.destinationId,
@@ -156,8 +163,9 @@ export const DestinationForm = ({
         region: projectSettings?.region,
         projectRef,
         editMode,
+        tables,
       }),
-    [destinationData, pipelineData, catalogToken, projectSettings, projectRef, editMode]
+    [destinationData, pipelineData, catalogToken, projectSettings, projectRef, editMode, tables]
   )
 
   const form = useForm<z.infer<typeof FormSchema>>({
@@ -171,6 +179,14 @@ export const DestinationForm = ({
             message,
             path: [path],
           })
+        }
+
+        if (
+          (data.tableSyncCopyMode === 'include_tables' ||
+            data.tableSyncCopyMode === 'skip_tables') &&
+          data.tableSyncCopyTables.length === 0
+        ) {
+          addRequiredFieldError('tableSyncCopyTables', 'Select at least one table')
         }
 
         if (selectedType === 'BigQuery') {
@@ -330,6 +346,12 @@ export const DestinationForm = ({
                     sourceId={sourceId}
                     visible={visible}
                     onSelectNewPublication={() => setPublicationPanelVisible(true)}
+                  />
+                  <TableCopySelection
+                    form={form}
+                    publications={publications}
+                    tables={tables}
+                    isLoadingTables={isLoadingTables}
                   />
                   <FormItemLayout
                     isReactForm={false}

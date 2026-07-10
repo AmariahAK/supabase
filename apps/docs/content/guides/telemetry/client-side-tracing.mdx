@@ -109,7 +109,7 @@ Propagation is controlled by a SwiftPM package **trait** called `OpenTelemetry`.
 )
 ```
 
-No changes to `SupabaseClient` are required. Once the trait is enabled, the active OpenTelemetry span's trace context is automatically injected as a `traceparent` header on every outgoing request across PostgREST, Storage, Auth, Functions, and Realtime.
+No changes to `SupabaseClient` are required. After enabling the trait, the active OpenTelemetry span's trace context is automatically injected as a `traceparent` header on every outgoing request across PostgREST, Storage, Auth, Functions, and Realtime.
 
 When there is no active span, the header is not added — it is always safe to call the SDK unconditionally.
 
@@ -198,7 +198,7 @@ Headers are only injected on requests targeting Supabase hosts (`*.supabase.co`,
 
 ## Correlating with Supabase logs
 
-Once trace context is flowing through, the `trace_id` appears in:
+After trace context is flowing through, the `trace_id` appears in:
 
 - **API Gateway logs** — every request to PostgREST, Auth, Storage, and Realtime
 - **Edge Function logs** — invocations and any structured logs emitted from within the function

@@ -447,17 +447,6 @@ export default function Page() {
   // of the standard 4 templates.
   const activeTemplates =
     formatId === 'newsletter' ? NEWSLETTER_TEMPLATES : formatId === 'twitter' ? SOCIAL_TEMPLATES : TEMPLATES
-  // Grouped by category (in first-seen order) so the Layout picker scales as
-  // more templates get added, instead of one ever-growing flat grid.
-  const templateGroups = useMemo(() => {
-    const groups: { category: string; templates: typeof activeTemplates }[] = []
-    for (const t of activeTemplates) {
-      const group = groups.find((g) => g.category === t.category)
-      if (group) group.templates.push(t)
-      else groups.push({ category: t.category, templates: [t] })
-    }
-    return groups
-  }, [activeTemplates])
 
   const [view, setView] = useState<View>('og')
   const [headline, setHeadline] = useState('Postgres full text search just got faster')
@@ -824,10 +813,39 @@ export default function Page() {
 
       {/* Floating guides / view-in-context / zoom toolbar — bottom-aligned,
           centered on the same content box as the View toggle above, and
-          likewise anchored outside main's scroll container. One bar instead
-          of two so the canvas doesn't have controls floating on both
-          corners. */}
-      <div className="pointer-events-none absolute bottom-6 left-8 right-[380px] z-10 flex justify-center">
+          likewise anchored outside main's scroll container. Stacked in a
+          column with the Layout carousel (when applicable) so the canvas
+          only ever has controls floating on the bottom edge, not scattered
+          across corners. */}
+      <div className="pointer-events-none absolute bottom-6 left-8 right-[380px] z-10 flex flex-col items-center gap-3">
+        {showContentControls && inContext === 'none' && (
+          <div className="pointer-events-auto flex max-w-full items-center gap-2 overflow-x-auto rounded-md border border-default bg-background p-2 shadow-lg">
+            {activeTemplates.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTemplate(t.id)}
+                title={t.label}
+                className={`flex h-16 w-24 shrink-0 flex-col rounded-md border p-1.5 ${
+                  template === t.id
+                    ? 'border-brand bg-brand/10'
+                    : 'border-default bg-surface-100 hover:border-strong'
+                }`}
+              >
+                <div className="relative flex-1">
+                  <LayoutThumb id={t.id} />
+                </div>
+                <span
+                  className={`truncate text-[10px] ${
+                    template === t.id ? 'text-brand' : 'text-foreground-lighter'
+                  }`}
+                >
+                  {t.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
         <div className="pointer-events-auto flex items-center gap-3 rounded-md border border-default bg-background px-3 py-2 shadow-lg">
           <button
             type="button"
@@ -929,53 +947,31 @@ export default function Page() {
             </div>
             <div className="flex flex-col gap-2">
               <span className="text-sm font-medium text-foreground-light">Format</span>
-              <Segmented
-                value={formatId}
-                onChange={setFormatId}
-                options={FORMAT_OPTIONS.map((f) => ({ value: f.id, label: f.label }))}
-              />
+              <div className="flex flex-col gap-1.5">
+                {FORMAT_OPTIONS.map((f) => {
+                  const fmt = getFormat(f.id)
+                  const active = formatId === f.id
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setFormatId(f.id)}
+                      className={`flex w-full items-center justify-between rounded-md border px-3 py-2.5 text-left transition ${
+                        active ? 'border-brand bg-brand/10' : 'border-default bg-surface-100 hover:border-strong'
+                      }`}
+                    >
+                      <span className={`text-sm font-medium ${active ? 'text-brand' : 'text-foreground'}`}>
+                        {f.label}
+                      </span>
+                      <span className="text-xs tabular-nums text-foreground-lighter">
+                        {fmt.width} × {fmt.height}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </Group>
-
-          {showContentControls && (
-            <Group title="Layout" noDivider>
-              <div className="flex flex-col gap-4">
-                {templateGroups.map((g) => (
-                  <div key={g.category} className="flex flex-col gap-2">
-                    {templateGroups.length > 1 && (
-                      <span className="text-xs font-medium text-foreground-lighter">{g.category}</span>
-                    )}
-                    <div className="grid grid-cols-2 gap-2">
-                      {g.templates.map((t) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => setTemplate(t.id)}
-                          title={t.label}
-                          className={`flex h-16 flex-col rounded-md border p-1.5 ${
-                            template === t.id
-                              ? 'border-brand bg-brand/10'
-                              : 'border-default bg-surface-100 hover:border-strong'
-                          }`}
-                        >
-                          <div className="relative flex-1">
-                            <LayoutThumb id={t.id} />
-                          </div>
-                          <span
-                            className={`truncate text-[10px] ${
-                              template === t.id ? 'text-brand' : 'text-foreground-lighter'
-                            }`}
-                          >
-                            {t.label}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Group>
-          )}
 
           <Group title="Content" noDivider>
             {showContentControls && showEyebrowControl && (

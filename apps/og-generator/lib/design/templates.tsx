@@ -58,6 +58,9 @@ export interface Template {
 // Gap (1x px) between the headline and the icon column in split-right.
 const SPLIT_RIGHT_GAP = 56
 
+// How far (1x px) logo-center-left's logo sits above dead-center vertically.
+const LOGO_CENTER_LIFT_1X = 40
+
 function rootBase(p: TemplateParts): CSSProperties {
   return {
     position: 'relative',
@@ -250,7 +253,10 @@ export const TEMPLATES: Template[] = [
             position: 'absolute',
             left: p.padX,
             top: '50%',
-            marginTop: -(p.logoHeight / 2),
+            // Sit a bit above dead-center — nudges the logo up off the true
+            // vertical midpoint (1x design px, scaled) so it doesn't read as
+            // mechanically centered against the bottom-anchored text.
+            marginTop: -(p.logoHeight / 2) - LOGO_CENTER_LIFT_1X * p.scaleFactor,
           }}
         >
           {p.logoEl}

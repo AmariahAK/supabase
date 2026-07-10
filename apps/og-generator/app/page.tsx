@@ -793,7 +793,11 @@ export default function Page() {
           /* In-context preview takes over the full canvas — the OG/Thumb
               rectangles aren't the point here, seeing it "in the wild" is. */
           <div className="flex w-full flex-1 flex-col items-center justify-center">
-            <div className="flex w-full max-w-2xl flex-col gap-2">
+            <div
+              className={`flex w-full flex-col gap-2 ${
+                inContext === 'blog-post' ? 'max-w-5xl' : 'max-w-2xl'
+              }`}
+            >
               <span className="text-xs font-medium text-foreground-light">
                 {IN_CONTEXT_OPTS.find((o) => o.value === inContext)?.label}
               </span>

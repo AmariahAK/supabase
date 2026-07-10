@@ -162,53 +162,92 @@ function LinkedInCardMockup({ imgUrl, headline, aspect }: Props) {
 
 // Real supabase.com/blog/[slug] hero crops whatever image it's given into a
 // fixed 1.91:1 box via object-cover — independent of the source image's own
-// aspect ratio (brief: apps/www/app/blog/[slug]/BlogPostRenderer.tsx).
+// aspect ratio (apps/www/components/Blog/BlogPostRenderer.tsx line ~193).
 const BLOG_POST_HERO_ASPECT = '1.91 / 1'
 
-function BlogPostMockup({ imgUrl, thumbImgUrl, headline }: Props) {
+// Primary nav labels, verbatim (apps/www/data/nav.tsx).
+const NAV_ITEMS = ['Product', 'Developers', 'Solutions', 'Pricing', 'Docs']
+
+function BlogPostMockup({ imgUrl, thumbImgUrl, headline, eyebrow }: Props) {
   const heroSrc = thumbImgUrl ?? imgUrl
   return (
-    <div className="w-full max-w-[720px] overflow-hidden rounded-lg border border-default bg-background">
-      {/* Sticky site nav — just enough to anchor "above the fold", not a
-          pixel-match of the real header. */}
-      <div className="flex h-16 items-center gap-2 border-b border-default px-6">
-        <div className="h-5 w-5 rounded-[6px]" style={{ backgroundColor: '#3ECF8E' }} />
-        <span className="text-sm font-semibold text-foreground">Supabase</span>
+    // `data-theme="dark"` scopes the real dark-theme CSS variables to this
+    // subtree (blog pages force dark mode via useForceDeepDark) — so
+    // bg-background/border-default/text-foreground etc. below resolve to
+    // supabase.com's actual palette, not an approximation of it.
+    <div
+      data-theme="dark"
+      className="w-full overflow-hidden rounded-lg border border-default bg-background text-foreground"
+    >
+      {/* Site nav — labels/CTAs verbatim, dropdowns omitted (static mockup). */}
+      <div className="flex h-16 items-center justify-between gap-4 border-b border-default px-6">
+        <div className="flex items-center gap-8">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand-logos/supabase-wordmark.svg" alt="Supabase" className="h-5 w-auto" />
+          <div className="hidden items-center gap-6 text-sm text-foreground sm:flex">
+            {NAV_ITEMS.map((item) => (
+              <span key={item}>{item}</span>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-4 text-sm">
+          <span className="hidden text-foreground sm:inline">Sign in</span>
+          <span className="rounded-full bg-foreground px-4 py-1.5 font-medium text-background">
+            Start your project
+          </span>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-4 px-6 pb-8 pt-6">
-        <div className="flex items-center gap-1 text-sm text-foreground-lighter">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Blog
-        </div>
-
-        <h1 className="text-2xl font-medium leading-tight text-foreground sm:text-4xl">{headline}</h1>
-
-        <div className="flex items-center gap-1 text-sm text-foreground-lighter">
-          <span>Jul 10, 2026</span>
-          <span>·</span>
-          <span>4 minute read</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="h-10 w-10 shrink-0 rounded-full bg-surface-300" />
-          <div className="flex flex-col leading-tight">
-            <span className="text-sm text-foreground">Supabase Team</span>
-            <span className="text-xs text-foreground-lighter">Marketing</span>
+      <div className="grid grid-cols-12 gap-4 px-6 py-10 sm:px-10">
+        <div className="col-span-2 hidden xl:block">
+          <div className="flex items-center gap-1 text-sm text-foreground-lighter">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Back
           </div>
         </div>
 
-        {heroSrc && (
-          <div
-            className="w-full overflow-hidden rounded-lg border border-default"
-            style={{ aspectRatio: BLOG_POST_HERO_ASPECT }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={heroSrc} alt="" className="h-full w-full object-cover" />
+        <div className="col-span-12 xl:col-span-10">
+          <div className="mb-8 flex max-w-3xl flex-col gap-4">
+            <span className="hidden text-sm text-brand lg:inline-flex">Blog</span>
+            <h1 className="text-4xl">{headline}</h1>
+            <div className="flex items-center gap-3 text-sm text-foreground-lighter">
+              <span>Jul 10, 2026</span>
+              <span>·</span>
+              <span>4 minute read</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 shrink-0 rounded-full border border-default bg-surface-300" />
+              <div className="flex flex-col leading-tight">
+                <span className="text-sm text-foreground">Supabase Team</span>
+                <span className="text-xs text-foreground-lighter">Marketing</span>
+              </div>
+            </div>
           </div>
-        )}
+
+          <div className="grid grid-cols-12 gap-8">
+            <div className="col-span-12 lg:col-span-7">
+              {heroSrc && (
+                <div
+                  className="w-full overflow-hidden rounded-lg border border-default"
+                  style={{ aspectRatio: BLOG_POST_HERO_ASPECT }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={heroSrc} alt="" className="h-full w-full object-cover" />
+                </div>
+              )}
+            </div>
+            <div className="col-span-12 hidden flex-col gap-4 lg:col-span-5 lg:flex xl:col-span-3 xl:col-start-9">
+              {eyebrow && (
+                <span className="w-fit rounded-full border border-default px-2.5 py-0.5 text-xs text-foreground-lighter">
+                  {eyebrow}
+                </span>
+              )}
+              <div className="text-sm text-foreground">Share this article</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

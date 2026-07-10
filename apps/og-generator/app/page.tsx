@@ -48,12 +48,17 @@ interface FitInfo {
 }
 
 function Hint({ text }: { text: string }) {
+  // Custom hover tooltip instead of the native `title` attribute — browser
+  // tooltips have an inconsistent show delay (and don't reliably appear at
+  // all in some setups), so this guarantees the hint is actually visible.
   return (
-    <span
-      title={text}
-      className="ml-1 inline-flex h-3.5 w-3.5 cursor-help items-center justify-center rounded-full border border-default align-middle text-[9px] leading-none text-foreground-lighter"
-    >
-      ?
+    <span className="group relative ml-1 inline-flex align-middle">
+      <span className="flex h-3.5 w-3.5 cursor-help items-center justify-center rounded-full border border-default text-[9px] leading-none text-foreground-lighter">
+        ?
+      </span>
+      <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 w-max max-w-[220px] -translate-x-1/2 rounded-md border border-default bg-background px-2 py-1.5 text-[11px] font-normal normal-case leading-snug text-foreground opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+        {text}
+      </span>
     </span>
   )
 }
@@ -75,7 +80,7 @@ function Group({
         noDivider ? '' : 'border-t border-default first:border-t-0'
       }`}
     >
-      <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-foreground">{title}</h2>
+      <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-foreground-light">{title}</h2>
       {children}
     </section>
   )
@@ -1036,6 +1041,12 @@ export default function Page() {
                       []
                     </kbd>
                     <span>BRACKETS - Capitalize letter e.g. [P]ostgreSQL</span>
+                  </p>
+                  <p className="flex items-center gap-1.5 text-xs text-foreground-lighter">
+                    <kbd className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 font-mono text-[10px] leading-none text-foreground-light">
+                      &quot;
+                    </kbd>
+                    <span>QUOTATION - Green highlight</span>
                   </p>
                 </div>
               </div>

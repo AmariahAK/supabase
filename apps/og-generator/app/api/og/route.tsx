@@ -9,7 +9,8 @@ import { iconDataUri } from '@/lib/design/icons'
 import { SUPABASE_WORDMARK_ASPECT, SUPABASE_WORDMARK_DATA_URI } from '@/lib/design/logo'
 import { DEFAULT_TEMPLATE_ID, TEMPLATE_MAP } from '@/lib/design/templates'
 import { typography } from '@/lib/design/tokens'
-import { fitHeadline } from '@/lib/text/fit-headline'
+import { fitHeadline, measureLineWidth } from '@/lib/text/fit-headline'
+import { headlineWordHighlights, stripQuoteMarks } from '@/lib/text/quote-highlight'
 import { toSentenceCase } from '@/lib/text/sentence-case'
 
 // Node runtime so we can read the self-hosted Manrope files from disk and parse
@@ -146,6 +147,12 @@ export async function GET(req: Request) {
     const textCrossAlign =
       template.textAlign === 'center' ? 'center' : template.textAlign === 'right' ? 'flex-end' : 'flex-start'
     const headline = sentenceCase ? toSentenceCase(rawHeadline) : rawHeadline
+    // "Quotation" override: wrap a run in "double quotes" to highlight it in
+    // the brand accent color. Quotes are stripped before layout/measurement
+    // (like [bracket] casing markers) — highlightedWords tracks which words
+    // in the cleaned, wrapped text should render in the accent color.
+    const highlightedWords = headlineWordHighlights(headline)
+    const cleanedHeadline = stripQuoteMarks(headline)
 
     const headlineFont = await measurementFont(HEADLINE.weight)
     // Compact tier (40-56) whenever an icon is showing; default tier (48-64)
@@ -154,7 +161,7 @@ export async function GET(req: Request) {
     // count isn't known up front.
     const initialTier = hasIcon ? HEADLINE.sizeTiers.compact : HEADLINE.sizeTiers.default
     const fitAt = (tier: { minSize: number; maxSize: number }) =>
-      fitHeadline(headline, headlineFont, {
+      fitHeadline(cleanedHeadline, headlineFont, {
         boxWidth: template.headlineBox(format),
         minSize: manualSize ?? tier.minSize,
         maxSize: manualSize ?? tier.maxSize,
@@ -170,12 +177,20 @@ export async function GET(req: Request) {
 
     const headlineSize = fit.fontSize * s
     const headlineLineHeight = Math.round(headlineSize * HEADLINE.lineHeight)
+    // Gap between highlight runs on a line — a real space glyph's advance
+    // width at the rendered size, applied as marginLeft (see textBlock below).
+    const spaceWidthPx = measureLineWidth(headlineFont, ' ', headlineSize, HEADLINE.letterSpacing)
     const headlineLetterSpacing = HEADLINE.letterSpacing * headlineSize
     const eyebrowSize = EYEBROW.size * s
     const eyebrowLetterSpacing = EYEBROW.letterSpacing * eyebrowSize
     const eyebrowGap = 16 * s
 
     const fonts = await satoriFonts([...new Set([HEADLINE.weight, EYEBROW_PILL_WEIGHT])])
+
+    // Consumed word-by-word (not per-render-safe, but this is a one-shot
+    // server render) as lines are built below, walking highlightedWords in
+    // lockstep with fit.lines' word order.
+    let wordCursor = 0
 
     const textBlock = (
       <div
@@ -211,22 +226,54 @@ export async function GET(req: Request) {
             alignItems: textCrossAlign,
           }}
         >
-          {fit.lines.map((line, i) => (
-            <div
-              key={i}
-              style={{
-                display: 'flex',
-                whiteSpace: 'nowrap', // render exactly the line we computed
-                color: color('text.primary', brand),
-                fontSize: headlineSize,
-                fontWeight: HEADLINE.weight,
-                lineHeight: `${headlineLineHeight}px`,
-                letterSpacing: headlineLetterSpacing,
-              }}
-            >
-              {line || ' '}
-            </div>
-          ))}
+          {fit.lines.map((line, i) => {
+            const lineStyle = {
+              display: 'flex' as const,
+              whiteSpace: 'nowrap' as const, // render exactly the line we computed
+              color: color('text.primary', brand),
+              fontSize: headlineSize,
+              fontWeight: HEADLINE.weight,
+              lineHeight: `${headlineLineHeight}px`,
+              letterSpacing: headlineLetterSpacing,
+            }
+            if (!line) return (
+              <div key={i} style={lineStyle}>
+                {' '}
+              </div>
+            )
+            const words = line.split(' ')
+            // Consecutive words sharing the same highlight state are merged
+            // into one run (a single plain-text node, or a single colored
+            // <span>). The gap between runs is a CSS marginLeft, not an
+            // embedded space character — satori collapses a space living in
+            // its own text content right at a text/element boundary
+            // (tried both leading-on-span and trailing-on-text; both got
+            // eaten), but a margin is layout, not text, so it isn't subject
+            // to that trimming.
+            const runs: { text: string; highlighted: boolean }[] = []
+            words.forEach((word, wi) => {
+              const highlighted = highlightedWords[wordCursor] ?? false
+              wordCursor++
+              const last = runs[runs.length - 1]
+              if (wi > 0 && last && last.highlighted === highlighted) last.text += ` ${word}`
+              else runs.push({ text: word, highlighted })
+            })
+            return (
+              <div key={i} style={lineStyle}>
+                {runs.map((run, ri) => (
+                  <span
+                    key={ri}
+                    style={{
+                      marginLeft: ri > 0 ? spaceWidthPx : 0,
+                      color: run.highlighted ? color('brand.default', brand) : undefined,
+                    }}
+                  >
+                    {run.text}
+                  </span>
+                ))}
+              </div>
+            )
+          })}
         </div>
       </div>
     )

@@ -8,9 +8,15 @@
  * "some of these characters happen to sit inside quote marks".
  */
 
+// Matches straight quotes and the curly variants some browsers/OSes swap in
+// via autocorrect/smart-quotes (typed or pasted) — otherwise those look
+// identical to a straight quote on screen but silently fail to trigger the
+// override.
+const QUOTE_CHARS = /["“”]/
+
 /** Remove every quote character — a simple toggle marker, not a paired regex. */
 export function stripQuoteMarks(text: string): string {
-  return text.replace(/"/g, '')
+  return text.replace(new RegExp(QUOTE_CHARS, 'g'), '')
 }
 
 /**
@@ -35,7 +41,7 @@ export function headlineWordHighlights(text: string): boolean[] {
   const charFlags: boolean[] = []
   let inQuotes = false
   for (const ch of text) {
-    if (ch === '"') {
+    if (QUOTE_CHARS.test(ch)) {
       inQuotes = !inQuotes
       continue
     }

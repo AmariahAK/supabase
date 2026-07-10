@@ -1030,7 +1030,9 @@ export default function Page() {
                     <kbd className="mt-0.5 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 px-1 font-mono text-[10px] leading-none text-foreground-light">
                       []
                     </kbd>
-                    <span>Capitalize letter</span>
+                    <span>
+                      Capitalize letter <span className="text-foreground-light">e.g. [P]ostgreSQL</span>
+                    </span>
                   </p>
                 </div>
               </div>

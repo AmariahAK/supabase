@@ -24,7 +24,7 @@ const EYEBROW = typography.roles.eyebrow
 // Matches EYEBROW's own weight — reads best at the current 20px pill size.
 const EYEBROW_PILL_WEIGHT = 500 as const
 // Wordmark display height (1x design px) for the fixed-logo templates.
-const WORDMARK_HEIGHT_1X = 36
+const WORDMARK_HEIGHT_1X = 43
 
 /** Scale (naturalW, naturalH) to fit within a boxSize square, preserving aspect ratio. */
 function fitBox(naturalW: number, naturalH: number, boxSize: number): { width: number; height: number } {

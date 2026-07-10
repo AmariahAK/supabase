@@ -2328,6 +2328,55 @@ functions:
           final Session? session = res.session;
           final User? user = res.user;
           ```
+  - id: oauth-server-api
+    title: 'OAuth Server'
+    notes: |
+      The OAuth Server API allows you to build custom OAuth consent screens for your application.
+      Only relevant when the OAuth 2.1 server is enabled in Supabase Auth.
+  - id: auth-js-authoauthserverapi-listgrants
+    title: 'auth.oauth.listGrants()'
+    notes: |
+      Returns a list of OAuth grants (authorized clients) for the signed-in user.
+      - Requires the user to be signed in.
+    examples:
+      - id: list-grants
+        name: List OAuth grants
+        isSpotlight: true
+        code: |
+          ```dart
+          final List<OAuthGrant> grants = await supabase.auth.oauth.listGrants();
+          ```
+        response: |
+          ```json
+          [
+            OAuthGrant(
+              client: OAuthAuthorizedClient(
+                clientId: 'my-client-id',
+                name: 'My App',
+              ),
+              scopes: ['openid', 'email'],
+              grantedAt: '2025-01-01T00:00:00Z',
+            ),
+          ]
+          ```
+  - id: auth-js-authoauthserverapi-revokegrant
+    title: 'auth.oauth.revokeGrant()'
+    notes: |
+      Revokes an OAuth grant (authorized client) for the signed-in user.
+      - Requires the user to be signed in.
+    params:
+      - name: clientId
+        isOptional: false
+        type: String
+        description: The client ID of the OAuth grant to revoke.
+    examples:
+      - id: revoke-grant
+        name: Revoke an OAuth grant
+        isSpotlight: true
+        code: |
+          ```dart
+          await supabase.auth.oauth.revokeGrant('my-client-id');
+          ```
   - id: admin-api
     title: 'Overview'
     notes: |
@@ -4257,6 +4306,22 @@ functions:
               updated_at: '2024-05-22T22:26:05.100Z'
             ),
           ]
+          ```
+      - id: list-buckets-with-options
+        name: List buckets with filter and pagination
+        code: |
+          ```dart
+          final List<Bucket> buckets = await supabase
+            .storage
+            .listBuckets(
+              ListBucketsOptions(
+                search: 'avatar',
+                limit: 10,
+                offset: 0,
+                sortColumn: BucketSortColumn.name,
+                sortOrder: BucketSortOrder.asc,
+              ),
+            );
           ```
 
   - id: get-bucket

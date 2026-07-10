@@ -17,7 +17,7 @@ type PreviewTheme = 'light' | 'dark'
 
 export const IN_CONTEXT_OPTS: { value: InContextMode; label: string }[] = [
   { value: 'none', label: 'None' },
-  { value: 'twitter', label: 'Twitter / X' },
+  { value: 'twitter', label: 'X' },
   { value: 'linkedin', label: 'LinkedIn' },
   { value: 'blog-post', label: 'Blog post' },
   { value: 'blog', label: 'Blog listing' },

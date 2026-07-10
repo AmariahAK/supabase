@@ -459,7 +459,7 @@ export default function Page() {
     return groups
   }, [activeTemplates])
 
-  const [view, setView] = useState<View>('both')
+  const [view, setView] = useState<View>('og')
   const [headline, setHeadline] = useState('Postgres full text search just got faster')
   const [eyebrow, setEyebrow] = useState('Engineering')
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE_ID)

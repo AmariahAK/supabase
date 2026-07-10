@@ -40,7 +40,7 @@ export interface Format {
 export const FORMATS: Record<FormatId, Format> = {
   og: {
     id: 'og',
-    label: 'Blog',
+    label: 'OG',
     width: 1200,
     height: 630, // -> effective safe area 1072 x 502, centered (outerMargin 64)
     outerMargin: 64,

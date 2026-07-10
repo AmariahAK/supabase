@@ -1,16 +1,13 @@
 'use client'
 
-import {
-  MarketingForm,
-  type MarketingFormCrmConfig,
-  type MarketingFormField,
-} from 'marketing/forms'
+import { MarketingForm, type MarketingFormField } from 'marketing/forms'
 import { parseAsString, useQueryState } from 'nuqs'
 
 /**
  * `partner_type` controls which conditional sections render. Values are kept
  * stable (lowercase, snake-case) because they're referenced in `showWhen`
- * rules below and in the Notion `sendWhen` gating in `partnerIntakeCrm`.
+ * rules below and in the Notion `sendWhen` gating in
+ * `apps/www/lib/staticFormCrm.ts`.
  */
 export const PARTNER_TYPES = {
   technology: 'technology',
@@ -35,10 +32,38 @@ const partnerTypeOptions = [
 
 const fields: MarketingFormField[] = [
   // ----- General -----
-  { name: 'first_name', label: 'First name', type: 'text', required: true, half: true, placeholder: "John" },
-  { name: 'last_name', label: 'Last name', type: 'text', required: true, half: true, placeholder: "Doe" },
-  { name: 'email', label: 'Work email', type: 'email', required: true, half: true, placeholder: "john.doe@company.com" },
-  { name: 'company_name', label: 'Company name', type: 'text', required: true, half: true, placeholder: "Company Inc." },
+  {
+    name: 'first_name',
+    label: 'First name',
+    type: 'text',
+    required: true,
+    half: true,
+    placeholder: 'John',
+  },
+  {
+    name: 'last_name',
+    label: 'Last name',
+    type: 'text',
+    required: true,
+    half: true,
+    placeholder: 'Doe',
+  },
+  {
+    name: 'email',
+    label: 'Work email',
+    type: 'email',
+    required: true,
+    half: true,
+    placeholder: 'john.doe@company.com',
+  },
+  {
+    name: 'company_name',
+    label: 'Company name',
+    type: 'text',
+    required: true,
+    half: true,
+    placeholder: 'Company Inc.',
+  },
   {
     name: 'company_website',
     label: 'Company website',
@@ -205,27 +230,6 @@ const fields: MarketingFormField[] = [
   },
 ]
 
-/**
- * CRM fan-out for the partner intake form.
- *
- * - HubSpot receives every submission (the canonical destination).
- * - Notion receives only Technology Partner submissions, syncing them to the
- *   Tech Partner Intake database used by the partnerships team for triage.
- *
- * `formGuid` and `database_id` are placeholders — replace before shipping.
- */
-export const partnerIntakeCrm: MarketingFormCrmConfig = {
-  hubspot: {
-    // TODO(DEBR-271): replace with the real partner-intake HubSpot form GUID.
-    formGuid: '00000000-0000-0000-0000-000000000000',
-  },
-  notion: {
-    // TODO(DEBR-271): replace with the Tech Partner Intake Notion database ID.
-    database_id: '00000000000000000000000000000000',
-    sendWhen: { field: 'partner_type', equals: PARTNER_TYPES.technology },
-  },
-}
-
 const successMessage =
   'We’ve received your submission. Our team reviews every application — if there’s a good fit with the program you selected, we’ll be in touch to discuss next steps.'
 
@@ -244,7 +248,7 @@ export default function PartnerIntakeForm({ className }: PartnerIntakeFormProps)
       className={className}
       fields={fields}
       submitLabel="Submit application"
-      crm={partnerIntakeCrm}
+      formRef={{ slug: 'partners', formId: 'become-a-partner' }}
       successMessage={successMessage}
       initialValues={partnerType ? { partner_type: partnerType } : undefined}
     />

@@ -278,11 +278,19 @@ export default function MarketingForm({
       if (process.env.NODE_ENV === 'development') {
         console.log('[marketing/form] No formRef configured — form values:', submittedValues)
       }
+      // Generic message: don't hint at *why* submission didn't happen (e.g. a
+      // missing formRef), since that's an internal config detail.
+      setSubmitState('error')
+      setErrorMessages(['Something went wrong. Please try again.'])
       return
     }
 
     // Block repeat submissions of the same email to the same form within this
-    // browser session. Render the success state instead of re-hitting the CRM.
+    // browser session, without re-hitting the CRM. `successRedirect` forms
+    // still redirect (the destination page already reads as a confirmation);
+    // others surface a distinguishable message rather than silently replaying
+    // the success screen, so a second attempt (e.g. after fixing a mistake)
+    // doesn't look like it worked when nothing was actually resubmitted.
     const emailValue =
       submittedValues['email'] ??
       submittedValues['workEmail'] ??
@@ -297,7 +305,8 @@ export default function MarketingForm({
           if (successRedirect) {
             window.location.href = successRedirect
           } else {
-            setSubmitState('success')
+            setSubmitState('error')
+            setErrorMessages(['You’ve already submitted this form.'])
           }
           return
         }
@@ -377,11 +386,11 @@ export default function MarketingForm({
         <div
           className={
             card
-              ? 'border border-muted rounded-2xl p-6 sm:p-8 flex flex-col items-center gap-4 text-center'
+              ? 'border bg-surface-75 rounded-2xl shadow-xl p-6 sm:p-8 flex flex-col items-center gap-4 text-center'
               : 'flex flex-col items-center gap-4 text-center'
           }
         >
-          <p className="text-lg font-medium">Thank you!</p>
+          <p className="h3">Thank you!</p>
           <p className="text-foreground-light">
             {successMessage ?? "We've received your submission and will be in touch soon."}
           </p>

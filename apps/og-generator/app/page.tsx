@@ -1006,7 +1006,7 @@ export default function Page() {
                     </span>
                   </p>
                   <p className="flex items-center justify-between gap-1.5 text-xs text-foreground-lighter">
-                    <span>Capitalize letter e.g. [P]ostgre[SQL]</span>
+                    <span>Capitalize letter e.g. [p]ostgre[sql] → PostgreSQL</span>
                     <span className="flex shrink-0 items-center gap-1">
                       <kbd className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-default bg-surface-100 font-mono text-[10px] leading-none text-foreground-light">
                         []

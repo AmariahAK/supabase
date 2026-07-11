@@ -172,6 +172,16 @@ function LayoutThumb({ id }: { id: string }) {
           <div className="absolute bottom-1.5 left-1.5">{bars('items-start')}</div>
         </div>
       )
+    case 'logo-grid':
+      return (
+        <div className="relative h-full w-full">
+          <div className="absolute left-1.5 top-1.5 flex gap-0.5">
+            <div className="h-2 w-2 rounded-[2px] bg-surface-300" />
+            <div className="h-2 w-2 rounded-[2px] bg-surface-300" />
+          </div>
+          <div className="absolute bottom-1.5 left-1.5">{bars('items-start')}</div>
+        </div>
+      )
     case 'newsletter-cover':
     case 'social-twitter':
     case 'bottom-left':
@@ -183,6 +193,22 @@ function LayoutThumb({ id }: { id: string }) {
         </div>
       )
   }
+}
+
+/** Real rendered 1-logo preview for the logo-grid carousel tile, instead of an abstract diagram. */
+function LogoGridCarouselThumb({ formatId }: { formatId: FormatId }) {
+  const endpoint = useMemo(() => {
+    const p = new URLSearchParams()
+    if (formatId !== DEFAULT_FORMAT_ID) p.set('format', formatId)
+    p.set('template', 'logo-grid')
+    p.set('headline', 'Now an official "partner"')
+    p.set('icons', 'database')
+    return `/api/og?${p.toString()}`
+  }, [formatId])
+  const { url } = useRenderedImage(endpoint, true)
+  if (!url) return <LayoutThumb id="logo-grid" />
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" />
 }
 
 /** Debounced fetch of a render endpoint → object URL + fit metadata from headers. */
@@ -446,6 +472,11 @@ export default function Page() {
   const [icon, setIcon] = useState<string | null>(null)
   const [iconPickerOpen, setIconPickerOpen] = useState(false)
   const iconPickerRef = useRef<HTMLDivElement>(null)
+  // logo-grid: 1-4 partner logo tiles, cycled via a count stepper — each
+  // slot holds its own icon/logo name (or null while unpicked).
+  const [logoTileIcons, setLogoTileIcons] = useState<(string | null)[]>(['database'])
+  const [logoTilePickerOpen, setLogoTilePickerOpen] = useState<number | null>(null)
+  const logoTilePickerRef = useRef<HTMLDivElement>(null)
   const [uploadedIcons, setUploadedIcons] = useState<SeedIcon[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -500,6 +531,19 @@ export default function Page() {
     document.addEventListener('pointerdown', onPointerDown)
     return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [iconPickerOpen])
+
+  // Same for the logo-grid per-tile pickers — one shared ref covers the
+  // whole tile grid since only one tile's popover is open at a time.
+  useEffect(() => {
+    if (logoTilePickerOpen === null) return
+    const onPointerDown = (e: PointerEvent) => {
+      if (logoTilePickerRef.current && !logoTilePickerRef.current.contains(e.target as Node)) {
+        setLogoTilePickerOpen(null)
+      }
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [logoTilePickerOpen])
 
   // "Z" toggles the zoom tool; Escape cancels it; Alt (while active) flips
   // the cursor/click direction from zoom-in to zoom-out, matching
@@ -648,11 +692,16 @@ export default function Page() {
       p.set('eyebrowStyle', 'pill')
     }
     p.set('template', template)
-    if (icon) p.set('icon', icon)
+    if (template === 'logo-grid') {
+      const names = logoTileIcons.filter((n): n is string => !!n)
+      if (names.length) p.set('icons', names.join(','))
+    } else if (icon) {
+      p.set('icon', icon)
+    }
     if (scale === 2) p.set('scale', '2')
     return `/api/og?${p.toString()}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandId, formatId, headline, eyebrow, template, icon, scale])
+  }, [brandId, formatId, headline, eyebrow, template, icon, logoTileIcons, scale])
 
   const thumbEndpoint = useMemo(() => {
     const p = new URLSearchParams()
@@ -667,7 +716,12 @@ export default function Page() {
         p.set('eyebrowStyle', 'pill')
       }
       p.set('template', template)
-      if (icon) p.set('icon', icon)
+      if (template === 'logo-grid') {
+        const names = logoTileIcons.filter((n): n is string => !!n)
+        if (names.length) p.set('icons', names.join(','))
+      } else if (icon) {
+        p.set('icon', icon)
+      }
       p.set('variant', 'secondary')
     } else {
       p.set('type', 'thumb')
@@ -676,7 +730,7 @@ export default function Page() {
     if (scale === 2) p.set('scale', '2')
     return `/api/og?${p.toString()}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandId, formatId, hasSecondary, headline, eyebrow, template, icon, scale])
+  }, [brandId, formatId, hasSecondary, headline, eyebrow, template, icon, logoTileIcons, scale])
 
   const og = useRenderedImage(ogEndpoint, showOg)
   const thumb = useRenderedImage(thumbEndpoint, showThumb || wantsThumbForBlogPost)
@@ -834,7 +888,11 @@ export default function Page() {
                   }`}
                   style={{ aspectRatio: `${format.width} / ${format.height}` }}
                 >
-                  <LayoutThumb id={t.id} />
+                  {t.id === 'logo-grid' ? (
+                    <LogoGridCarouselThumb formatId={formatId} />
+                  ) : (
+                    <LayoutThumb id={t.id} />
+                  )}
                 </div>
               </button>
             ))}
@@ -1169,6 +1227,132 @@ export default function Page() {
                 )}
               </div>
             </div>
+            )}
+
+            {template === 'logo-grid' && (
+              <div className="flex flex-col gap-2">
+                <span className="flex items-center justify-between text-sm font-medium text-foreground-light">
+                  <span>
+                    Logo tiles
+                    <Hint text="Cycle through 1-4 partner-logo tiles. Each tile picks from the same icon/logo library as the single-icon control." />
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setLogoTileIcons((tiles) => (tiles.length > 1 ? tiles.slice(0, -1) : tiles))
+                      }
+                      disabled={logoTileIcons.length <= 1}
+                      title="Fewer tiles"
+                      className="flex h-6 w-6 items-center justify-center rounded border border-default bg-surface-100 text-foreground-light hover:border-strong disabled:opacity-40"
+                    >
+                      −
+                    </button>
+                    <span className="w-10 text-center text-xs text-foreground-lighter">
+                      {logoTileIcons.length} / 4
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setLogoTileIcons((tiles) => (tiles.length < 4 ? [...tiles, null] : tiles))
+                      }
+                      disabled={logoTileIcons.length >= 4}
+                      title="More tiles"
+                      className="flex h-6 w-6 items-center justify-center rounded border border-default bg-surface-100 text-foreground-light hover:border-strong disabled:opacity-40"
+                    >
+                      +
+                    </button>
+                  </span>
+                </span>
+                <div className="grid grid-cols-4 gap-2" ref={logoTilePickerRef}>
+                  {logoTileIcons.map((tileIcon, tileIdx) => {
+                    const tileSelected = allIcons.find((i) => i.name === tileIcon) ?? null
+                    return (
+                      <div key={tileIdx} className="relative">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setLogoTilePickerOpen((open) => (open === tileIdx ? null : tileIdx))
+                          }
+                          title={tileSelected ? tileSelected.label : `Tile ${tileIdx + 1}`}
+                          className="flex h-14 w-full items-center justify-center rounded-md border border-default bg-surface-100 p-1.5 text-foreground-light hover:border-strong"
+                        >
+                          {tileSelected ? (
+                            tileSelected.kind === 'logo' && tileSelected.url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={tileSelected.url}
+                                alt={tileSelected.label}
+                                className="max-h-full max-w-full object-contain"
+                              />
+                            ) : (
+                              <svg
+                                width={22}
+                                height={22}
+                                viewBox={tileSelected.viewBox}
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                dangerouslySetInnerHTML={{ __html: tileSelected.body }}
+                              />
+                            )
+                          ) : (
+                            <span className="text-[10px] text-foreground-lighter">Pick</span>
+                          )}
+                        </button>
+
+                        {logoTilePickerOpen === tileIdx && (
+                          <div className="absolute bottom-full z-20 mb-1 w-56 rounded-md border border-default bg-background p-2 shadow-lg">
+                            <div className="grid max-h-56 grid-cols-4 gap-2 overflow-y-auto">
+                              {allIcons.map((ic) => (
+                                <button
+                                  key={ic.name}
+                                  type="button"
+                                  onClick={() => {
+                                    setLogoTileIcons((tiles) =>
+                                      tiles.map((t, i) => (i === tileIdx ? ic.name : t))
+                                    )
+                                    setLogoTilePickerOpen(null)
+                                  }}
+                                  title={ic.kind === 'logo' ? `${ic.label} (color logo)` : ic.label}
+                                  className={`flex h-12 items-center justify-center rounded-md border p-1 ${
+                                    tileIcon === ic.name
+                                      ? 'border-brand bg-brand/10 text-brand'
+                                      : 'border-default bg-surface-100 text-foreground-light hover:border-strong'
+                                  }`}
+                                >
+                                  {ic.kind === 'logo' && ic.url ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                      src={ic.url}
+                                      alt={ic.label}
+                                      className="max-h-full max-w-full object-contain"
+                                    />
+                                  ) : (
+                                    <svg
+                                      width={18}
+                                      height={18}
+                                      viewBox={ic.viewBox}
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth={2}
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      dangerouslySetInnerHTML={{ __html: ic.body }}
+                                    />
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
             )}
           </Group>
         </div>

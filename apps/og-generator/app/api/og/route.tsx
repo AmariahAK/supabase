@@ -6,7 +6,12 @@ import { getBrand, color } from '@/lib/design/brands'
 import { satoriFonts, measurementFont } from '@/lib/design/fonts'
 import { getFormat } from '@/lib/design/formats'
 import { iconDataUri } from '@/lib/design/icons'
-import { SUPABASE_WORDMARK_ASPECT, SUPABASE_WORDMARK_DATA_URI } from '@/lib/design/logo'
+import {
+  SUPABASE_MARK_ASPECT,
+  SUPABASE_MARK_DATA_URI,
+  SUPABASE_WORDMARK_ASPECT,
+  SUPABASE_WORDMARK_DATA_URI,
+} from '@/lib/design/logo'
 import { DEFAULT_TEMPLATE_ID, TEMPLATE_MAP } from '@/lib/design/templates'
 import { typography } from '@/lib/design/tokens'
 import { fitHeadline, measureLineWidth } from '@/lib/text/fit-headline'
@@ -26,6 +31,10 @@ const EYEBROW = typography.roles.eyebrow
 const EYEBROW_PILL_WEIGHT = 500 as const
 // Wordmark display height (1x design px) for the fixed-logo templates.
 const WORDMARK_HEIGHT_1X = 43
+// Small corner signature mark (icon-only) height, and per-tile icon size
+// for logo-grid's row of partner-logo tiles (1x design px).
+const SMALL_MARK_HEIGHT_1X = 26
+const LOGO_TILE_ICON_SIZE_1X = 56
 
 /** Scale (naturalW, naturalH) to fit within a boxSize square, preserving aspect ratio. */
 function fitBox(naturalW: number, naturalH: number, boxSize: number): { width: number; height: number } {
@@ -36,6 +45,30 @@ function fitBox(naturalW: number, naturalH: number, boxSize: number): { width: n
 const CORS_AND_CACHE = {
   'access-control-allow-origin': '*',
   'cache-control': 'no-store, max-age=0',
+}
+
+/**
+ * Resolve + render one icon/logo by name at a given display size — the same
+ * logic the single-icon slot uses, factored out so logo-grid's multiple
+ * tiles can reuse it per-tile instead of duplicating the kind==='logo' branch.
+ */
+async function renderIconByName(
+  name: string,
+  brandId: string,
+  sizePx: number,
+  strokePx: number,
+  strokeColor: string
+) {
+  const obj = await resolveIcon(name, brandId)
+  if (!obj) return null
+  if (obj.kind === 'logo' && obj.url) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img {...fitBox(obj.width ?? 1, obj.height ?? 1, sizePx)} src={obj.url} />
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img width={sizePx} height={sizePx} src={iconDataUri(obj, { sizePx, strokePx, color: strokeColor })} />
+  )
 }
 
 export async function GET(req: Request) {
@@ -302,6 +335,33 @@ export async function GET(req: Request) {
       <img width={logoHeight * SUPABASE_WORDMARK_ASPECT} height={logoHeight} src={SUPABASE_WORDMARK_DATA_URI} />
     )
 
+    // Small corner signature mark (icon-only, paired with plain "supabase"
+    // text by the template itself) — distinct from the big wordmark above,
+    // used by logo-grid's bottom-right byline.
+    const smallLogoHeight = SMALL_MARK_HEIGHT_1X * s
+    const smallLogoEl = (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img width={smallLogoHeight * SUPABASE_MARK_ASPECT} height={smallLogoHeight} src={SUPABASE_MARK_DATA_URI} />
+    )
+
+    // logo-grid: up to 4 icons/logos in `icons` (comma-separated names),
+    // each rendered through the same resolution path as the single-icon slot.
+    const iconsParam = searchParams.get('icons')
+    const tileNames = iconsParam
+      ? iconsParam
+          .split(',')
+          .map((n) => n.trim())
+          .filter(Boolean)
+          .slice(0, 4)
+      : []
+    const logoTiles = (
+      await Promise.all(
+        tileNames.map((name) =>
+          renderIconByName(name, brand.id, LOGO_TILE_ICON_SIZE_1X * s, ICON_STROKE * s, color('illustration.stroke', brand))
+        )
+      )
+    ).filter((el): el is NonNullable<typeof el> => el !== null)
+
     const root = template.build({
       W,
       H,
@@ -312,6 +372,9 @@ export async function GET(req: Request) {
       textBlock,
       logoEl,
       logoHeight,
+      smallLogoEl,
+      smallLogoHeight,
+      logoTiles,
       iconEl,
       hasIcon,
     })

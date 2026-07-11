@@ -27,6 +27,11 @@ export interface TemplateParts {
   /** Fixed Supabase wordmark, pre-sized to `logoHeight` — for `noIcon` templates. */
   logoEl: ReactNode
   logoHeight: number
+  /** Small icon-only Supabase mark, pre-sized to `smallLogoHeight` — for corner signatures. */
+  smallLogoEl: ReactNode
+  smallLogoHeight: number
+  /** Resolved partner logo/icon tiles (1-4), for logo-grid. */
+  logoTiles?: ReactNode[]
 }
 
 export interface Template {
@@ -266,6 +271,93 @@ export const TEMPLATES: Template[] = [
         </div>
       </div>
     ),
+  },
+  {
+    id: 'logo-grid',
+    label: 'Partner logos',
+    category: 'Announcement layouts',
+    headlineBox: fullHeadlineBoxWidth,
+    textAlign: 'left',
+    anchorX: 'left',
+    anchorY: 'bottom',
+    // Uses its own multi-tile icon picker (1-4 logos) instead of the
+    // single-icon control — hides that control the same way the fixed-logo
+    // wordmark templates do.
+    noIcon: true,
+    build: (p) => {
+      const tiles = p.logoTiles ?? []
+      const tileSize = 108 * p.scaleFactor
+      const tileGap = 20 * p.scaleFactor
+      const sepFontSize = 32 * p.scaleFactor
+      const rowChildren: ReactNode[] = []
+      tiles.forEach((tile, i) => {
+        rowChildren.push(
+          <div
+            key={`tile-${i}`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: tileSize,
+              height: tileSize,
+              borderRadius: 24 * p.scaleFactor,
+              backgroundColor: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+            }}
+          >
+            {tile}
+          </div>
+        )
+        // "x" separator is only used for the 2-logo case (matches reference).
+        if (tiles.length === 2 && i === 0) {
+          rowChildren.push(
+            <span
+              key="sep"
+              style={{
+                display: 'flex',
+                color: 'rgba(255,255,255,0.35)',
+                fontSize: sepFontSize,
+                fontWeight: 500,
+              }}
+            >
+              x
+            </span>
+          )
+        }
+      })
+      return (
+        <div
+          style={{
+            ...rootBase(p),
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+          }}
+        >
+          {tiles.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: tileGap }}>
+              {rowChildren}
+            </div>
+          )}
+          {p.textBlock}
+          <div
+            style={{
+              display: 'flex',
+              position: 'absolute',
+              right: p.padX,
+              bottom: p.padY,
+              alignItems: 'center',
+              gap: 10 * p.scaleFactor,
+            }}
+          >
+            {p.smallLogoEl}
+            <span style={{ display: 'flex', color: '#FFFFFF', fontSize: 22 * p.scaleFactor, fontWeight: 700 }}>
+              supabase
+            </span>
+          </div>
+        </div>
+      )
+    },
   },
 ]
 

@@ -4,13 +4,7 @@ description: 'Update an existing self-hosted Supabase deployment to a newer rele
 subtitle: 'Update an existing self-hosted Supabase deployment to a newer release with update.sh, preserving your configuration and data.'
 ---
 
-`update.sh` pulls a newer version of the Supabase Docker configuration on top of your existing deployment. It uses a three-way merge, so your secrets, overrides, and local edits survive, and genuine conflicts are surfaced rather than silently overwritten.
-
-<Admonition type="note" title="This updates configuration, not your database">
-
-`update.sh` updates the Compose configuration and vendor files. It does not migrate Postgres. For a Postgres major-version upgrade, see [Upgrade to Postgres 17](/docs/guides/self-hosting/postgres-upgrade-17).
-
-</Admonition>
+A supplemental script (`update.sh`) pulls a newer version of the self-hosted Supabase **configuration** on top of your existing deployment. It uses a three-way merge, so your secrets, overrides, and local edits survive, and genuine conflicts are surfaced rather than silently overwritten.
 
 ## How it works
 
@@ -18,11 +12,11 @@ subtitle: 'Update an existing self-hosted Supabase deployment to a newer release
 
 - **base** - the release your deployment is currently on, recorded in `.supabase-version` (written by `setup.sh`, then advanced to the new release after each successful update)
 - **new** - the release you are updating to (the latest `self-hosted/v*` tag by default)
-- **yours** - the files in your deployment directory
+- **user's** - the files in your deployment directory
 
 It applies the changes between base and new to your files. Where you never edited a file, it updates cleanly. Where you edited a file but the release did not touch the same lines, your edit is kept. Only when both changed the same lines do you get a conflict to resolve.
 
-Your secrets and data are never merged. `.env` values you set are kept (new keys from `.env.example` are appended), and paths listed in `.gitignore` - `docker-compose.override.yml`, `volumes/db/data`, `volumes/storage`, snippets, and your own edge functions - are left untouched.
+Your secrets and data are never merged. The values in the `.env` file you set are kept (new keys from `.env.example` are appended), and paths listed in `.gitignore` are left untouched.
 
 ## Before you start
 
@@ -33,9 +27,9 @@ Your secrets and data are never merged. `.env` values you set are kept (new keys
 </Admonition>
 
 - Run from your deployment directory (where `docker-compose.yml` and `.env` live).
-- Deployments created with `setup.sh` record their version in `.supabase-version`, and `update.sh` advances it after each update. If that file is missing (older or manual installs), see [No recorded version](#no-recorded-version).
+- Deployments created with `setup.sh` record their version in `.supabase-version`, and `update.sh` advances it after each update. If that file is missing (older or manual installs), refer to [Setting a recorded version](#setting-a-recorded-version).
 
-## Update
+## How to update
 
 Preview what would change, without affecting anything:
 
@@ -97,15 +91,15 @@ sh run.sh recreate
 
 A conflict means you edited a vendor file and the release changed the same lines. If you enabled auth providers by uncommenting lines in `docker-compose.yml`, this is where you re-apply them when a release reworks those lines.
 
-## Pin a specific release
+## Update to a specific release
 
 ```sh
 sh update.sh --to self-hosted/v0.7.0
 ```
 
-Useful to stay on a known version, or to update one release at a time. See the [changelog](https://github.com/supabase/supabase/blob/master/docker/CHANGELOG.md) for available releases.
+See the [changelog](https://github.com/supabase/supabase/blob/master/docker/CHANGELOG.md) for available releases.
 
-## No recorded version
+## Setting a recorded version
 
 Without `.supabase-version`, `update.sh` cannot merge safely and runs in **report-only** mode: it lists what is new but writes nothing. To fix it once, identify the release your deployment came from (compare the image tags in `docker-compose.yml` and `.env` against [versions.md](https://github.com/supabase/supabase/blob/master/docker/versions.md)) and record it:
 
@@ -123,7 +117,7 @@ sh update.sh --from self-hosted/v0.7.0
 
 **Configuration backups** are written to `backups/pre-update-*.tgz` before each update. If something goes wrong, extract or compare against that archive.
 
-## Options
+## Command-line options
 
 | Flag           | Purpose                                                     |
 | -------------- | ----------------------------------------------------------- |

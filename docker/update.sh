@@ -40,7 +40,7 @@ cd "$(dirname "$0")"
 
 # Pipeline (see main at the bottom):
 #   resolve refs -> fetch base+target snapshots -> [report-only exit]
-#   -> build changelog slice + manifest gate -> confirm_gate (before any writes)
+#   -> build manifest gate -> confirm_gate (before any writes)
 #   -> backup → merge vendor files + .env keys -> summary → stamp
 #
 # Three trees for every vendor file path:
@@ -58,8 +58,8 @@ cd "$(dirname "$0")"
 #     the window is left open and all applicable entries are shown with a warning.
 #   - Prompt when an entry has breaking:true or a gate script; runs before
 #     backup/merge so abort leaves the deployment untouched.
-#   - CHANGELOG.md is display-only; routine "requires compose update" items are
-#     applied by the merge, not listed in upgrades.json.
+#   - CHANGELOG.md is never parsed (update.sh only points users at it); routine
+#     "requires compose update" items are applied by the merge, not listed here.
 #
 # User-owned paths skipped during merge are defined in .gitignore (loaded from the
 # target snapshot). git check-ignore --no-index applies negation rules (e.g.
@@ -89,7 +89,6 @@ BASE_DIR=""
 REPORT=""
 ENV_ADDED=""
 ENV_REMOVED=""
-CHANGELOG_SLICE=""
 GATE_REPORT=""
 GATE_REQUIRED=0
 IGNORE_FILE=""
@@ -148,6 +147,12 @@ read_stamp_ref() {
     [ -n "$val" ] && printf '%s' "$val"
 }
 
+# env_has_key <key> <file> - true if the key appears as KEY=, even commented
+# (e.g. "#GOOGLE_ENABLED="), so we never re-add a key the user disabled on purpose.
+env_has_key() {
+    grep -qE "^[[:space:]]*#?[[:space:]]*$1=" "$2" 2>/dev/null
+}
+
 record() { printf '%s:%s\n' "$1" "$2" >> "$REPORT"; }
 
 count_status() { grep -cE "^$1:" "$REPORT" 2>/dev/null || true; }
@@ -172,7 +177,7 @@ _sparse_init() {
 fetch_snapshot() {
     _ref="$1"
     _dest="$2"
-    _work=$(mktemp -d)
+    _work=$(mktemp -d "$TMP_ROOT/fetch.XXXXXX")
     if _sparse_init "$_work" \
         && git -C "$_work" fetch --depth=1 -q origin "$_ref" 2>/dev/null \
         && git -C "$_work" checkout -q FETCH_HEAD 2>/dev/null \
@@ -300,7 +305,7 @@ EOF
     log ".env keys present in target .env.example but missing from your .env:"
     if [ -f "$TARGET_DIR/.env.example" ]; then
         while IFS= read -r k; do
-            grep -qE "^${k}=" .env || echo "  + $k"
+            env_has_key "$k" .env || echo "  + $k"
         done <<EOF
 $(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$TARGET_DIR/.env.example" | cut -d= -f1)
 EOF
@@ -309,32 +314,9 @@ EOF
     log "Report-only complete. Record a base version (see above) to perform a real update."
 }
 
-# --- changelog (display only) ------------------------------------------------
-
-build_changelog_slice() {
-    _changelog="$TARGET_DIR/CHANGELOG.md"
-    : > "$CHANGELOG_SLICE"
-    [ -f "$_changelog" ] || return 0
-
-    if [ -n "$BASE_VER" ]; then
-        # Everything above the "## [<base_ver>]" heading (headings are version-
-        # keyed, e.g. "## [0.7.0](...) - 2026-07-07").
-        awk -v stop="## [$BASE_VER]" '
-            index($0, stop) == 1 { exit }
-            { print }
-        ' "$_changelog" > "$CHANGELOG_SLICE"
-    else
-        # Unknown base version: show down to the second versioned heading.
-        awk '
-            /^## \[/ { seen++; if (seen == 2) exit }
-            { print }
-        ' "$_changelog" > "$CHANGELOG_SLICE"
-    fi
-}
-
 # --- breaking-change gate (manifest-driven, before any writes) ---------------
-# Reads docker/upgrades.json from the target snapshot. The changelog slice is
-# display-only; gating keys off manifest entries in (BASE_VER, TARGET_VER].
+# Reads docker/upgrades.json from the target snapshot; gating keys off manifest
+# entries in (BASE_VER, TARGET_VER].
 
 build_gate_report() {
     _manifest="$TARGET_DIR/upgrades.json"
@@ -344,9 +326,8 @@ build_gate_report() {
     if [ ! -f "$_manifest" ]; then
         return 0
     fi
-    if ! command -v jq >/dev/null 2>&1; then
-        warn "jq not found; cannot read upgrades.json for the gate. Review the changelog carefully."
-        return 0
+    if ! jq empty "$_manifest" 2>/dev/null; then
+        die "$_manifest is present but is not valid JSON; refusing to update without a working breaking-change gate. Please report this to the maintainers."
     fi
 
     if [ -z "$BASE_VER" ] || [ -z "$TARGET_VER" ]; then
@@ -375,6 +356,10 @@ build_gate_report() {
             [ -n "$reqs" ] && printf '%s\n' "$reqs" | sed 's/^/    - /'
         } >> "$GATE_REPORT"
     done
+    # Explicit success: the loop's last iteration can end on a false test (e.g.
+    # an entry with no 'requires'), which would otherwise make this function
+    # return non-zero and abort the whole script under 'set -e'.
+    return 0
 }
 
 confirm_gate() {
@@ -471,9 +456,14 @@ merge_one_file() {
         "$u" "$base_for_merge" "$t" > "$merged" 2>/dev/null; then
         [ "$DRY_RUN" != "1" ] && cp -f "$merged" "$u"
         record "merged-clean" "$f"
-    else
+    elif [ -s "$merged" ]; then
+        # Non-zero exit with output = a normal conflict (markers written).
         [ "$DRY_RUN" != "1" ] && cp -f "$merged" "$u"
         record "CONFLICT" "$f"
+    else
+        # git merge-file errored and produced no output; keep the user's file
+        # intact rather than truncating it to empty.
+        record "merge-failed" "$f"
     fi
 }
 
@@ -500,13 +490,13 @@ merge_env_file() {
     [ -f "$_example" ] || return 0
 
     while IFS= read -r k; do
-        grep -qE "^${k}=" .env || echo "$k" >> "$ENV_ADDED"
+        env_has_key "$k" .env || echo "$k" >> "$ENV_ADDED"
     done <<EOF
 $(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$_example" | cut -d= -f1)
 EOF
 
     while IFS= read -r k; do
-        grep -qE "^${k}=" "$_example" || echo "$k" >> "$ENV_REMOVED"
+        env_has_key "$k" "$_example" || echo "$k" >> "$ENV_REMOVED"
     done <<EOF
 $(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env | cut -d= -f1)
 EOF
@@ -540,6 +530,7 @@ print_summary() {
     printf "  new:              %s\n" "$(count_status new)"
     printf "  merged (clean):   %s\n" "$(count_status merged-clean)"
     printf "  CONFLICTS:        %s\n" "$(count_status CONFLICT)"
+    printf "  merge failures:   %s\n" "$(count_status merge-failed)"
     printf "  removed upstream: %s\n" "$(count_status removed-upstream)"
     printf "  env keys added:   %s\n" "$( [ -s "$ENV_ADDED" ] && wc -l < "$ENV_ADDED" | tr -d ' ' || echo 0 )"
 
@@ -547,6 +538,11 @@ print_summary() {
         echo ""
         warn "Files with merge conflicts (edit these and remove the <<<<<<< ======= >>>>>>> markers):"
         list_status CONFLICT
+    fi
+    if [ "$(count_status merge-failed)" != "0" ]; then
+        echo ""
+        warn "Files git could not merge (left unchanged - update these manually):"
+        list_status merge-failed
     fi
     if [ "$(count_status merged-clean)" != "0" ]; then
         echo ""
@@ -573,11 +569,8 @@ print_summary() {
         log "Required manual steps for this update (from upgrades.json):"
         sed 's/^/  /' "$GATE_REPORT"
     fi
-    if [ -s "$CHANGELOG_SLICE" ]; then
-        echo ""
-        log "Changelog since your version:"
-        sed 's/^/  /' "$CHANGELOG_SLICE"
-    fi
+    echo ""
+    log "For what changed in this update, see CHANGELOG.md (from $BASE_REF to $TARGET_REF)."
 }
 
 write_stamp() {
@@ -602,8 +595,8 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --dry-run)  DRY_RUN=1; shift ;;
         --yes|-y)   ASSUME_YES=1; shift ;;
-        --to)       TO_REF="$2"; shift 2 ;;
-        --from)     FROM_REF="$2"; shift 2 ;;
+        --to)       [ $# -ge 2 ] || die "--to requires a <tag> argument."; TO_REF="$2"; shift 2 ;;
+        --from)     [ $# -ge 2 ] || die "--from requires a <ref> argument."; FROM_REF="$2"; shift 2 ;;
         -h|--help)  print_help; exit 0 ;;
         *) echo "Unknown option: $1" >&2; print_help; exit 1 ;;
     esac
@@ -612,6 +605,7 @@ done
 [ -f docker-compose.yml ] || die "docker-compose.yml not found in $(pwd). Run this from your deployment directory."
 [ -f .env ] || die ".env not found in $(pwd). This does not look like a configured deployment."
 command -v git >/dev/null 2>&1 || die "git is required but was not found on PATH."
+command -v jq >/dev/null 2>&1 || die "jq is required but was not found on PATH."
 
 resolve_target_ref
 resolve_base_ref
@@ -623,7 +617,6 @@ TMP_ROOT=$(mktemp -d)
 REPORT="$TMP_ROOT/report"
 ENV_ADDED="$TMP_ROOT/env_added"
 ENV_REMOVED="$TMP_ROOT/env_removed"
-CHANGELOG_SLICE="$TMP_ROOT/changelog_slice"
 GATE_REPORT="$TMP_ROOT/gate_report"
 trap 'rm -rf "$TMP_ROOT"' EXIT INT TERM
 
@@ -632,10 +625,16 @@ load_ignore_file
 
 if [ "$REPORT_ONLY" = "1" ]; then
     run_report_only
+    build_gate_report
+    if [ -s "$GATE_REPORT" ]; then
+        echo ""
+        log "Breaking changes / required manual steps in this range (from upgrades.json):"
+        sed 's/^/  /' "$GATE_REPORT"
+        warn "Record a base version (see above) and re-run to apply with the gate enforced."
+    fi
     exit 0
 fi
 
-build_changelog_slice
 build_gate_report
 confirm_gate
 
@@ -650,13 +649,16 @@ if [ "$DRY_RUN" = "1" ]; then
     exit 0
 fi
 
-write_stamp
-print_next_steps
-
-if [ "$(count_status CONFLICT)" != "0" ]; then
+if [ "$(count_status CONFLICT)" != "0" ] || [ "$(count_status merge-failed)" != "0" ]; then
     echo ""
     warn "Update applied WITH CONFLICTS. Resolve the files listed above (remove the"
-    warn "<<<<<<< ======= >>>>>>> markers) before starting the stack. Exiting with status 2."
+    warn "<<<<<<< ======= >>>>>>> markers, or fix the files git could not merge)"
+    warn "before starting the stack."
+    warn "The version stamp was NOT advanced; it will update on your next clean run."
+    warn "Exiting with status 2."
     exit 2
 fi
+
+write_stamp
+print_next_steps
 log "Update applied cleanly."

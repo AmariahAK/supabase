@@ -1,17 +1,17 @@
 #!/bin/sh
 #
-# Hermetic test for update.sh (the self-hosted in-place upgrade script).
+# Hermetic test for update.sh (the self-hosted in-place update script).
 #
-# Builds a tiny synthetic "upstream" git repo with two tagged releases
-# (self-hosted/v0.9.0 -> self-hosted/v1.0.0), simulates a configured deployment
-# based on v0.9.0 (with secrets, an override, modified vendor files, and data
-# dirs), then runs update.sh and asserts the 3-way merge behaves: secrets/data
-# preserved, new
-# .env keys added, clean merges applied, real conflicts reported, the version
-# stamp advanced, a backup taken. Also covers --dry-run and the missing-stamp
-# report-only path.
-#
-# No network and no dependence on real repo history (works in shallow clones).
+# Builds a tiny synthetic "upstream" git repo with three tagged releases
+# (self-hosted/v0.9.0 -> v1.0.0 content -> v1.1.0), where the target ships a
+# two-entry breaking-change manifest. It then simulates a configured deployment
+# based on v0.9.0 and runs update.sh via a SUPABASE_REPO_URL override (no
+# network), asserting: the 3-way merge preserves secrets/data/overrides, adds
+# new .env keys (but not ones the user commented out), applies clean merges,
+# reports real conflicts, honors .gitignore for user-owned paths, surfaces the
+# multi-entry gate, and advances the stamp ONLY on a clean apply. Also covers
+# the clean-apply path, default-target resolution, --from, --dry-run, and the
+# missing-stamp report-only path.
 #
 # Usage:
 #   sh tests/test-upgrade.sh        # run from the docker/ directory
@@ -39,6 +39,12 @@ assert_file_contains() { # <file> <pattern> <desc>
 }
 assert_file_missing_pattern() { # <file> <pattern> <desc>
     if grep -qF "$2" "$1" 2>/dev/null; then bad "$3 (unexpected '$2' in $1)"; else ok "$3"; fi
+}
+assert_line() { # <file> <ERE> <desc>
+    if grep -qE "$2" "$1" 2>/dev/null; then ok "$3"; else bad "$3 (no line matching /$2/ in $1)"; fi
+}
+assert_no_line() { # <file> <ERE> <desc>
+    if grep -qE "$2" "$1" 2>/dev/null; then bad "$3 (unexpected line matching /$2/ in $1)"; else ok "$3"; fi
 }
 assert_path_exists() { # <path> <desc>
     if [ -e "$1" ]; then ok "$2"; else bad "$2 ($1 missing)"; fi
@@ -71,12 +77,6 @@ POSTGRES_PASSWORD=changeme
 JWT_SECRET=changeme
 KEEP_ME=base-default
 EOF
-cat > docker/CHANGELOG.md <<'EOF'
-# Changelog
-
-## [0.9.0](https://example.test/releases/self-hosted/v0.9.0) - 2026-01-02
-- old stuff
-EOF
 printf 'base kong\n' > docker/volumes/api/kong.yml
 printf 'remove me\n'  > docker/old-only.txt
 cp "$DOCKER_DIR/.gitignore" docker/.gitignore
@@ -98,19 +98,17 @@ JWT_SECRET=changeme
 KEEP_ME=base-default
 NEW_KEY=new-default
 EOF
-cat > docker/CHANGELOG.md <<'EOF'
-# Changelog
-
-## [1.0.0](https://example.test/releases/self-hosted/v1.0.0) - 2026-02-01
-- ⚠️ Breaking: did a thing (requires docker-compose.yml update)
-
-## [0.9.0](https://example.test/releases/self-hosted/v0.9.0) - 2026-01-02
-- old stuff
-EOF
 printf 'brand new\n' > docker/new-only.txt
 printf 'target main\n' > docker/volumes/functions/main/index.ts
 mkdir -p docker/volumes/functions/hello
 printf 'target hello\n' > docker/volumes/functions/hello/index.ts
+# A gitignored sample under volumes/snippets shipped by upstream: must NOT
+# overwrite the user's file of the same name (exercises is_excluded directly).
+mkdir -p docker/volumes/snippets
+printf 'VENDOR SEED\n' > docker/volumes/snippets/seed.sql
+# Two-entry manifest. 1.0.0 carries requires+gate; 1.1.0 is breaking with NO
+# 'requires' and, sorting last with no _schema after it, guards the set -e
+# regression where a requires-less final entry aborted the script.
 cat > docker/upgrades.json <<'EOF'
 {
   "1.0.0": {
@@ -118,25 +116,33 @@ cat > docker/upgrades.json <<'EOF'
     "gate": "utils/demo-migrate.sh",
     "migration_guide_url": "https://example.test/guide",
     "requires": ["Run the demo migration first."]
+  },
+  "1.1.0": {
+    "breaking": true
   }
 }
 EOF
 git rm -q docker/old-only.txt
 git add -A
-git add -f docker/volumes/functions/hello/index.ts
+git add -f docker/volumes/functions/hello/index.ts docker/volumes/snippets/seed.sql
 # Release tag for the target / default-target (latest self-hosted/v*) path.
-git commit -qm target && git tag self-hosted/v1.0.0
+git commit -qm target && git tag self-hosted/v1.1.0
 
-# --- helper: lay down a deployment based on b-base --------------------------
+# --- helper: lay down a deployment based on v0.9.0 --------------------------
+# make_deploy <dir> [conflict]  - pass "conflict" to pin the studio image so the
+# merge produces a real conflict; omit for a clean apply.
 
-make_deploy() { # <dir>
+make_deploy() { # <dir> [conflict]
     d="$1"
+    _mode="${2:-clean}"
     mkdir -p "$d"
     git -C "$SRC" archive self-hosted/v0.9.0 docker | tar -x -C "$d" --strip-components=1
     cp "$UPDATE_SH" "$d/update.sh"
-    # configured .env: real secret, an extra user key, keep KEEP_ME default
+    # configured .env: real secret, an extra user key, and KEEP_ME commented out
+    # on purpose (must NOT be re-added by the .env key-union).
     cp "$d/.env.example" "$d/.env"
     sedi "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=test-secret-123/" "$d/.env"
+    sedi "s/^KEEP_ME=/#KEEP_ME=/" "$d/.env"
     printf 'EXTRA_USER_KEY=mine\n' >> "$d/.env"
     # user-owned override (must never be touched)
     printf 'services: {}\n# my override\n' > "$d/docker-compose.override.yml"
@@ -144,57 +150,84 @@ make_deploy() { # <dir>
     mkdir -p "$d/volumes/db/data" "$d/volumes/storage"
     printf 'DBDATA\n' > "$d/volumes/db/data/keep.txt"
     printf 'OBJ\n'    > "$d/volumes/storage/keep.txt"
-    # user pins the studio image (same line upstream changes -> conflict)
-    sedi "s#supabase/studio:OLD#supabase/studio:USER-PINNED#" "$d/docker-compose.yml"
     # user adds a line to kong (upstream unchanged -> clean merge, must survive)
     printf 'user added line\n' >> "$d/volumes/api/kong.yml"
     # user-owned paths per .gitignore (must not be touched by the merge)
     mkdir -p "$d/volumes/snippets" "$d/volumes/functions/my-fn"
     printf 'USER_SNIPPET\n' > "$d/volumes/snippets/user.sql"
     printf 'user fn\n' > "$d/volumes/functions/my-fn/index.ts"
+    # user file at the SAME path as the vendor snippet shipped at target:
+    # is_excluded must skip it so the user's content survives.
+    printf 'USER SEED\n' > "$d/volumes/snippets/seed.sql"
     # legacy sample fn in snapshot at target but gitignored - must not overwrite
     mkdir -p "$d/volumes/functions/hello"
     printf 'user hello\n' > "$d/volumes/functions/hello/index.ts"
     # version stamp pointing at the base (ref only; update.sh derives the rest)
     printf 'ref=self-hosted/v0.9.0\n' > "$d/.supabase-version"
+    if [ "$_mode" = "conflict" ]; then
+        # user pins the studio image (same line upstream changes -> conflict)
+        sedi "s#supabase/studio:OLD#supabase/studio:USER-PINNED#" "$d/docker-compose.yml"
+    fi
 }
 
 echo ""
-echo "=== update.sh: apply path ==="
+echo "=== update.sh: apply path (with a conflict) ==="
 
 DEPLOY="$WORK/deploy"
-make_deploy "$DEPLOY"
+make_deploy "$DEPLOY" conflict
 cd "$DEPLOY"
 rc=0
-SUPABASE_REPO_URL="$SRC" sh ./update.sh --to self-hosted/v1.0.0 --yes > "$WORK/apply.log" 2>&1 || rc=$?
+SUPABASE_REPO_URL="$SRC" sh ./update.sh --to self-hosted/v1.1.0 --yes > "$WORK/apply.log" 2>&1 || rc=$?
 
-cat "$WORK/apply.log" | sed 's/^/      | /'
+sed 's/^/      | /' "$WORK/apply.log"
 
 if [ "$rc" = "2" ]; then ok "exit status 2 signals conflicts"; else bad "expected exit 2 (conflicts), got $rc"; fi
 assert_file_contains  ".env" "POSTGRES_PASSWORD=test-secret-123" "user secret preserved"
 assert_file_contains  ".env" "NEW_KEY=new-default"               "new .env key appended"
 assert_file_contains  ".env" "EXTRA_USER_KEY=mine"               "extra user key kept"
+assert_line           ".env" "^#KEEP_ME=base-default"            "user's commented key left commented"
+assert_no_line        ".env" "^KEEP_ME="                         "commented .env key not re-added uncommented"
 assert_file_contains  "docker-compose.override.yml" "my override" "override untouched"
 assert_file_contains  "volumes/db/data/keep.txt" "DBDATA"        "db data untouched"
 assert_file_contains  "volumes/storage/keep.txt" "OBJ"           "storage untouched"
-assert_file_contains  "docker-compose.yml" "<<<<<<<"             "conflict markers written"
+assert_file_contains  "docker-compose.yml" "<<<<<<<"             "conflict open marker written"
+assert_file_contains  "docker-compose.yml" "======="            "conflict separator written"
+assert_file_contains  "docker-compose.yml" ">>>>>>>"            "conflict close marker written"
 assert_file_contains  "docker-compose.yml" "USER-PINNED"        "user value present in conflict"
 assert_file_contains  "docker-compose.yml" "supabase/studio:NEW" "upstream value present in conflict"
 assert_file_contains  "docker-compose.yml" "supabase/postgres:17" "non-conflicting line merged (pg17)"
 assert_path_exists    "new-only.txt"                             "new upstream file added"
 assert_path_exists    "old-only.txt"                             "removed-upstream file left in place"
 assert_file_contains  "volumes/api/kong.yml" "user added line"   "clean merge preserved user line"
-assert_file_contains  ".supabase-version" "ref=self-hosted/v1.0.0" "version stamp advanced"
-assert_file_contains  "$WORK/apply.log" "CONFLICT"              "conflict reported in output"
-assert_file_contains  "$WORK/apply.log" "Breaking: did a thing" "breaking changelog line surfaced"
+assert_file_contains  ".supabase-version" "ref=self-hosted/v0.9.0" "stamp NOT advanced on conflict"
+assert_file_contains  "$WORK/apply.log" "Files with merge conflicts" "conflicts reported in summary"
+assert_file_contains  "$WORK/apply.log" "[1.0.0]"               "manifest entry 1.0.0 surfaced"
+assert_file_contains  "$WORK/apply.log" "[1.1.0] BREAKING"      "requires-less last entry surfaced (no set -e abort)"
 assert_file_contains  "$WORK/apply.log" "Run the demo migration first." "manifest gate step surfaced"
 assert_file_contains  "$WORK/apply.log" "utils/demo-migrate.sh" "manifest gate script surfaced"
 assert_file_contains  "$WORK/apply.log" "example.test/guide"    "manifest migration guide surfaced"
 if ls backups/*.tgz >/dev/null 2>&1; then ok "backup archive created"; else bad "no backup archive"; fi
 assert_file_contains  "volumes/snippets/user.sql" "USER_SNIPPET"     "snippets left untouched"
+assert_file_contains  "volumes/snippets/seed.sql" "USER SEED"        "gitignored snippet in snapshot not overwritten"
 assert_file_contains  "volumes/functions/my-fn/index.ts" "user fn"   "custom edge fn left untouched"
 assert_file_contains  "volumes/functions/main/index.ts" "target main" "vendor main/index.ts updated"
 assert_file_contains  "volumes/functions/hello/index.ts" "user hello" "gitignored fn in snapshot not overwritten"
+
+echo ""
+echo "=== update.sh: clean apply (no conflict) advances the stamp and exits 0 ==="
+
+CLEAN="$WORK/clean"
+make_deploy "$CLEAN"
+cd "$CLEAN"
+rc=0
+SUPABASE_REPO_URL="$SRC" sh ./update.sh --to self-hosted/v1.1.0 --yes > "$WORK/clean.log" 2>&1 || rc=$?
+if [ "$rc" = "0" ]; then ok "clean apply exits 0"; else bad "clean apply expected exit 0, got $rc"; fi
+assert_file_contains "$WORK/clean.log" "Update applied cleanly."       "clean apply announced"
+assert_file_missing_pattern "docker-compose.yml" "<<<<<<<"             "clean apply wrote no conflict markers"
+assert_file_contains ".supabase-version" "ref=self-hosted/v1.1.0"     "stamp advanced on clean apply"
+assert_file_contains ".env" "NEW_KEY=new-default"                     "new .env key appended (clean)"
+assert_file_contains "docker-compose.yml" "supabase/studio:NEW"       "vendor file updated (clean)"
+assert_file_contains "volumes/api/kong.yml" "user added line"         "clean merge preserved user line (clean)"
 
 echo ""
 echo "=== update.sh: default target resolves to latest self-hosted/v* tag ==="
@@ -202,19 +235,31 @@ echo "=== update.sh: default target resolves to latest self-hosted/v* tag ==="
 TAGD="$WORK/tagdefault"
 make_deploy "$TAGD"
 cd "$TAGD"
+SUPABASE_REPO_URL="$SRC" sh ./update.sh --yes > "$WORK/tag.log" 2>&1 || true
+assert_file_contains "$WORK/tag.log" "Latest release tag: self-hosted/v1.1.0" "resolved latest release tag (no --to)"
+assert_file_contains ".supabase-version" "ref=self-hosted/v1.1.0"            "stamp advanced to the tag"
+assert_file_contains ".env" "NEW_KEY=new-default"                            "update applied via default target"
+
+echo ""
+echo "=== update.sh: --from supplies the base when the stamp is missing ==="
+
+FROMD="$WORK/fromd"
+make_deploy "$FROMD"
+cd "$FROMD"
+rm -f .supabase-version
 rc=0
-SUPABASE_REPO_URL="$SRC" sh ./update.sh --yes > "$WORK/tag.log" 2>&1 || rc=$?
-assert_file_contains "$WORK/tag.log" "Latest release tag: self-hosted/v1.0.0" "resolved latest release tag (no --to)"
-assert_file_contains ".supabase-version" "ref=self-hosted/v1.0.0"            "stamp advanced to the tag"
-assert_file_contains ".env" "NEW_KEY=new-default"                            "upgrade applied via default target"
+SUPABASE_REPO_URL="$SRC" sh ./update.sh --from self-hosted/v0.9.0 --to self-hosted/v1.1.0 --yes > "$WORK/from.log" 2>&1 || rc=$?
+assert_file_missing_pattern "$WORK/from.log" "REPORT-ONLY"     "--from performs a real update (not report-only)"
+assert_file_contains ".env" "NEW_KEY=new-default"              "--from applied the update"
+assert_file_contains ".supabase-version" "ref=self-hosted/v1.1.0" "--from advanced the stamp"
 
 echo ""
 echo "=== update.sh: --dry-run writes nothing ==="
 
 DRYD="$WORK/dry"
-make_deploy "$DRYD"
+make_deploy "$DRYD" conflict
 cd "$DRYD"
-SUPABASE_REPO_URL="$SRC" sh ./update.sh --to self-hosted/v1.0.0 --dry-run > "$WORK/dry.log" 2>&1 || true
+SUPABASE_REPO_URL="$SRC" sh ./update.sh --to self-hosted/v1.1.0 --dry-run > "$WORK/dry.log" 2>&1 || true
 assert_file_missing_pattern ".env" "NEW_KEY"              "dry-run did not append env key"
 assert_file_missing_pattern "docker-compose.yml" "<<<<<<<" "dry-run did not write conflict"
 assert_file_contains ".supabase-version" "ref=self-hosted/v0.9.0" "dry-run left stamp unchanged"
@@ -222,18 +267,20 @@ assert_path_absent   "backups"                            "dry-run took no backu
 assert_file_contains "$WORK/dry.log" "DRY RUN"            "dry-run labeled output"
 
 echo ""
-echo "=== update.sh: missing stamp -> report-only ==="
+echo "=== update.sh: missing stamp -> report-only (still surfaces the gate) ==="
 
 MISS="$WORK/miss"
 make_deploy "$MISS"
 cd "$MISS"
 rm -f .supabase-version
 rc=0
-SUPABASE_REPO_URL="$SRC" sh ./update.sh --to self-hosted/v1.0.0 > "$WORK/miss.log" 2>&1 || rc=$?
+SUPABASE_REPO_URL="$SRC" sh ./update.sh --to self-hosted/v1.1.0 > "$WORK/miss.log" 2>&1 || rc=$?
 if [ "$rc" = "0" ]; then ok "report-only exits 0"; else bad "report-only expected exit 0, got $rc"; fi
 assert_file_contains "$WORK/miss.log" "REPORT-ONLY"       "report-only mode announced"
 assert_file_missing_pattern ".env" "NEW_KEY"             "report-only wrote nothing to .env"
 assert_path_absent   "backups"                           "report-only took no backup"
+assert_file_contains "$WORK/miss.log" "Breaking changes / required manual steps" "report-only surfaces the gate"
+assert_file_contains "$WORK/miss.log" "[1.0.0]"          "report-only lists in-range breaking release"
 
 # --- summary -----------------------------------------------------------------
 

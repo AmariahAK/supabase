@@ -6,6 +6,12 @@ subtitle: 'Update an existing self-hosted Supabase deployment to a newer release
 
 A supplemental script (`update.sh`) pulls a newer version of the self-hosted Supabase **configuration** on top of your existing deployment. It uses a three-way merge, so your secrets, overrides, and local edits survive, and genuine conflicts are surfaced rather than silently overwritten.
 
+<Admonition type="note" title="No recorded version yet?">
+
+`update.sh` needs to know the release your deployment started from, recorded in a `.supabase-version` file. A recent `setup.sh` writes it, but **older or manually-set-up deployments will not have it**. If yours doesn't, start with [Coming from an old install](#coming-from-an-old-untracked-install) - it is a one-time step.
+
+</Admonition>
+
 ## How it works
 
 `update.sh` compares three versions of every vendor file:
@@ -92,7 +98,7 @@ sh run.sh recreate
 
 A conflict means you edited a vendor file and the release changed the same lines. If you enabled auth providers by uncommenting lines in `docker-compose.yml`, this is where you re-apply them when a release reworks those lines.
 
-While conflicts remain, `update.sh` does **not** advance `.supabase-version` — it records the new release only on a clean run. After you resolve the markers, re-run `sh update.sh` to finalize the version stamp.
+While conflicts remain, `update.sh` does **not** advance `.supabase-version` - it records the new release only on a clean run. After you resolve the markers, re-run `sh update.sh` to finalize the version stamp.
 
 ## Update to a specific release
 
@@ -104,17 +110,47 @@ See the [changelog](https://github.com/supabase/supabase/blob/master/docker/CHAN
 
 ## Setting a recorded version
 
-Without `.supabase-version`, `update.sh` cannot merge safely and runs in **report-only** mode: it lists what is new but writes nothing. To fix it once, identify the release your deployment came from (compare the image tags in `docker-compose.yml` and `.env` against [versions.md](https://github.com/supabase/supabase/blob/master/docker/versions.md)) and record it:
+Without `.supabase-version`, `update.sh` cannot merge safely and runs in **report-only** mode: it lists what is new but writes nothing. Record the version your files came from once, then re-run.
+
+Prefer the **exact commit** your `./docker` files were copied from, if you can find it (for example, from the `git clone` you originally set up from). An exact base gives the cleanest merge - conflicts only where you hand-edited a file that the release also changed:
+
+```sh
+printf 'ref=<commit-sha>\n' > .supabase-version
+```
+
+To find that commit: if you still have the `git clone` of `supabase/supabase` you originally set up from, run `git -C /path/to/your/clone rev-parse HEAD` - it prints the SHA. That is accurate as long as you have not run `git pull` in that clone since you deployed; check the date it points at with `git -C /path/to/your/clone log -1 --format='%H %cd'`. If you no longer have the clone, or are unsure, do not guess - use the closest release tag below, which you can verify against your image tags.
+
+Otherwise use the **closest release tag** - compare the image tags in `docker-compose.yml` / `.env` against [versions.md](https://github.com/supabase/supabase/blob/master/docker/versions.md). This is an approximation, so expect conflicts roughly proportional to how far your files have drifted:
 
 ```sh
 printf 'ref=self-hosted/v0.7.0\n' > .supabase-version
 ```
 
-Or pass it for a single run:
+Either way, you can supply it for a single run instead of writing the file:
 
 ```sh
-sh update.sh --from self-hosted/v0.7.0
+sh update.sh --from <commit-sha-or-tag>
 ```
+
+{/* supa-mdx-lint-disable-next-line Rule003Spelling */}
+
+## Coming from an old, untracked install
+
+If you have run self-hosted for a long time without `.supabase-version` and your files have drifted from any release, the first catch-up is manual - but you only do it once. After it succeeds the version is recorded, and every future update is a clean, gated merge.
+
+1. **See what is coming.** Run `sh update.sh` once. With no recorded version it stays in report-only mode and lists the new files and `.env` keys without changing anything.
+2. **Record your base** (see [Setting a recorded version](#setting-a-recorded-version)) - an exact commit SHA if you can find it, otherwise the closest tag.
+3. **Preview.** Run `sh update.sh --dry-run` and check the conflict count. If it is overwhelming, try an older or closer base; the better the base matches your real files, the fewer conflicts.
+4. **Back up your database** separately - `update.sh` backs up configuration only.
+5. **Apply**, then resolve any conflict markers (see [Resolving conflicts](#resolving-conflicts)).
+6. **Handle Postgres.** Postgres 17 became the default in v0.6.0. If you are still on Postgres 15, do **not** recreate straight onto 17 - follow [Upgrade to Postgres 17](/docs/guides/self-hosting/postgres-upgrade-17), or pin Postgres 15 with the `docker-compose.pg15.yml` override. Read the [changelog](https://github.com/supabase/supabase/blob/master/docker/CHANGELOG.md) for the breaking changes across the range you are crossing.
+7. Run `sh run.sh pull`, then `sh run.sh recreate`.
+
+<Admonition type="note">
+
+If your deployment has drifted heavily, a clean reinstall at the latest release with `setup.sh` plus a data migration can be less work than resolving a large merge. Consider it if the dry run in step 3 shows an unmanageable number of conflicts.
+
+</Admonition>
 
 ## Restore from backup
 

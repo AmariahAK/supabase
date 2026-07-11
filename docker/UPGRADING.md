@@ -4,6 +4,8 @@
 
 Read the [Update your self-hosted deployment](https://supabase.com/docs/guides/self-hosting/updating) for more information.
 
+**No `.supabase-version` file?** Most existing deployments won't have one yet - see [No `.supabase-version`](#no-supabase-version-older-or-manual-installs) below before your first update.
+
 ## Quick reference
 
 Run from your deployment directory (where `docker-compose.yml` and `.env` live). It needs `git` and `jq` on the host (both installed by `setup.sh`). Back up your database first - `update.sh` backs up configuration, not data.
@@ -27,12 +29,15 @@ Some releases need a manual step first (for example, a Postgres major upgrade). 
 
 ## No `.supabase-version` (older or manual installs)
 
-Without a recorded base version `update.sh` runs in **report-only** mode. Record the release your deployment came from once, then re-run:
+Most existing deployments won't have this file yet. Without a recorded base version `update.sh` runs in **report-only** mode. Record the version your files came from once, then re-run - prefer the exact commit SHA if you can find it (if you still have the `git clone` you set up from: `git -C /path/to/your/clone rev-parse HEAD`), otherwise the closest release tag:
 
 ```sh
-printf 'ref=self-hosted/v0.7.0\n' > .supabase-version
-# or, for a single run:  sh update.sh --from self-hosted/v0.7.0
+printf 'ref=<commit-sha>\n' > .supabase-version          # best: the exact commit
+printf 'ref=self-hosted/v0.7.0\n' > .supabase-version    # or the closest release tag
+# or, for a single run:  sh update.sh --from <sha-or-tag>
 ```
+
+First time updating an old, untracked install? See [Coming from an old, untracked install](https://supabase.com/docs/guides/self-hosting/updating#coming-from-an-old-untracked-install) for the step-by-step.
 
 ## Options
 

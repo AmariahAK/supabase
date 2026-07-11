@@ -29,24 +29,25 @@
 # Env:
 #   SUPABASE_REPO_URL   Override the upstream repo (default: github supabase/supabase)
 #
-# Guide: UPGRADING.md (users).
+# Documentation:
+#   - UPGRADING.md
+#   - https://supabase.com/docs/guides/self-hosting/updating
 #
 
 set -e
 
 cd "$(dirname "$0")"
 
-# --- Maintainer notes --------------------------------------------------------
-#
 # Pipeline (see main at the bottom):
-#   resolve refs → fetch base+target snapshots → [report-only exit]
-#   → build changelog slice + manifest gate → confirm_gate (before any writes)
-#   → backup → merge vendor files + .env keys → summary → stamp
+#   resolve refs -> fetch base+target snapshots -> [report-only exit]
+#   -> build changelog slice + manifest gate -> confirm_gate (before any writes)
+#   -> backup → merge vendor files + .env keys -> summary → stamp
 #
 # Three trees for every vendor file path:
-#   base   - upstream at BASE_REF (.supabase-version ref=, or --from)
-#   target - upstream at TARGET_REF (--to, or latest self-hosted/v* tag)
-#   yours  - the deployment directory (cwd); not a git checkout
+#   - base - upstream at BASE_REF (.supabase-version ref=, or --from)
+#   - target - upstream at TARGET_REF (--to, or latest self-hosted/v* tag)
+#   - user's - the deployment directory (cwd); _not_ a git checkout
+#
 # Git is only used to fetch snapshots (fetch_snapshot) and to run git merge-file.
 #
 # Breaking-change gate (upgrades.json on the target snapshot):
@@ -59,7 +60,6 @@ cd "$(dirname "$0")"
 #     backup/merge so abort leaves the deployment untouched.
 #   - CHANGELOG.md is display-only; routine "requires compose update" items are
 #     applied by the merge, not listed in upgrades.json.
-# User-facing update guide: UPGRADING.md.
 #
 # User-owned paths skipped during merge are defined in .gitignore (loaded from the
 # target snapshot). git check-ignore --no-index applies negation rules (e.g.

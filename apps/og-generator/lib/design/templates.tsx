@@ -27,9 +27,6 @@ export interface TemplateParts {
   /** Fixed Supabase wordmark, pre-sized to `logoHeight` — for `noIcon` templates. */
   logoEl: ReactNode
   logoHeight: number
-  /** Small icon-only Supabase mark, pre-sized to `smallLogoHeight` — for corner signatures. */
-  smallLogoEl: ReactNode
-  smallLogoHeight: number
   /** Resolved partner logo/icon tiles (1-4), for logo-grid. */
   logoTiles?: ReactNode[]
 }
@@ -286,7 +283,7 @@ export const TEMPLATES: Template[] = [
     noIcon: true,
     build: (p) => {
       const tiles = p.logoTiles ?? []
-      const tileSize = 108 * p.scaleFactor
+      const tileSize = 160 * p.scaleFactor
       const tileGap = 20 * p.scaleFactor
       const sepFontSize = 32 * p.scaleFactor
       const rowChildren: ReactNode[] = []
@@ -300,7 +297,7 @@ export const TEMPLATES: Template[] = [
               justifyContent: 'center',
               width: tileSize,
               height: tileSize,
-              borderRadius: 24 * p.scaleFactor,
+              borderRadius: 16 * p.scaleFactor,
               backgroundColor: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.08)',
             }}
@@ -347,13 +344,9 @@ export const TEMPLATES: Template[] = [
               right: p.padX,
               bottom: p.padY,
               alignItems: 'center',
-              gap: 10 * p.scaleFactor,
             }}
           >
-            {p.smallLogoEl}
-            <span style={{ display: 'flex', color: '#FFFFFF', fontSize: 22 * p.scaleFactor, fontWeight: 700 }}>
-              supabase
-            </span>
+            {p.logoEl}
           </div>
         </div>
       )

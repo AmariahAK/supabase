@@ -3071,6 +3071,7 @@ export const self_hosting: NavMenuConstant = {
           url: '/guides/self-hosting/self-hosted-proxy-https',
         },
         { name: 'Envoy API Gateway', url: '/guides/self-hosting/self-hosted-envoy' },
+        { name: 'Update your deployment', url: '/guides/self-hosting/updating' },
         { name: 'Upgrade to Postgres 17', url: '/guides/self-hosting/postgres-upgrade-17' },
         {
           name: 'Restore Project from Platform',

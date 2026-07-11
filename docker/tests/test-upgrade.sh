@@ -152,7 +152,7 @@ make_deploy() { # <dir>
     mkdir -p "$d/volumes/snippets" "$d/volumes/functions/my-fn"
     printf 'USER_SNIPPET\n' > "$d/volumes/snippets/user.sql"
     printf 'user fn\n' > "$d/volumes/functions/my-fn/index.ts"
-    # legacy sample fn in snapshot at target but gitignored — must not overwrite
+    # legacy sample fn in snapshot at target but gitignored - must not overwrite
     mkdir -p "$d/volumes/functions/hello"
     printf 'user hello\n' > "$d/volumes/functions/hello/index.ts"
     # version stamp pointing at the base (ref only; update.sh derives the rest)

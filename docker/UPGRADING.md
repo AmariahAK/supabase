@@ -1,115 +1,46 @@
-# Upgrading self-hosted Supabase
+# Updating self-hosted Supabase
 
-Use `update.sh` to pull in newer Supabase configuration files without overwriting
-your secrets, overrides, or database data.
+`update.sh` updates an existing `./docker` deployment in place, merging a newer release over your files with a 3-way merge so your secrets, overrides, and data are preserved and real conflicts are surfaced instead of overwritten.
 
-## Before you start
+Read the [Update your self-hosted deployment](https://supabase.com/docs/guides/self-hosting/updating) for more information.
 
-1. **Back up your database.** `update.sh` backs up configuration files to
-   `backups/`, but it does not back up Postgres or Storage data.
-2. Run from your **deployment directory** (where `docker-compose.yml` and
-   `.env` live).
+## Quick reference
 
-## Standard upgrade
+Run from your deployment directory (where `docker-compose.yml` and `.env` live). Back up your database first - `update.sh` backs up configuration, not data.
 
 ```sh
-# Optional: see what would change without writing anything
-sh update.sh --dry-run
-
-# Apply the upgrade (targets the latest self-hosted/v* release tag)
-sh update.sh
-
-# Pull new images and recreate containers
-sh run.sh pull
-sh run.sh recreate
+sh update.sh --dry-run   # preview; writes nothing
+sh update.sh             # apply (targets the latest self-hosted/v* release)
+sh run.sh pull           # pull new images
+sh run.sh recreate       # restart to pick up the changes
 ```
 
-Review the summary `update.sh` prints — especially any **CONFLICTS**, new
-`.env` keys, or **breaking-change** notices.
+`update.sh` updates vendor files (`docker-compose.yml`, override templates, `volumes/*`, scripts, `.env.example`) and appends new `.env` keys. It never touches `.env` values you set, `docker-compose.override.yml`, or paths in `.gitignore` (data directories, snippets, your edge functions).
 
-## What `update.sh` changes
+## Conflicts
 
-| Touched | Not touched |
-| --- | --- |
-| `docker-compose.yml`, override templates, vendor `volumes/*` config, scripts, `.env.example` | `.env` values you already set (new keys are appended) |
-| `volumes/functions/main/index.ts` (vendor bundle) | `docker-compose.override.yml` |
-| | Paths listed in `.gitignore` (data dirs, snippets, your edge functions, etc.) |
+If the summary lists **CONFLICTS**, `update.sh` wrote merge markers into those files and exits with status `2`. Edit each file, pick the correct content, remove the `<<<<<<<` / `=======` / `>>>>>>>` markers, then run `sh run.sh pull && sh run.sh recreate`.
 
-Installations created with `setup.sh` record their starting version in
-`.supabase-version`. The script uses that to merge upstream changes safely.
+## Breaking changes
+
+Some releases need a manual step first (for example, a Postgres major upgrade). `update.sh` lists them **before** modifying anything and waits for confirmation. Complete the steps (including any `utils/*.sh` script mentioned), then re-run.
+
+## No `.supabase-version` (older or manual installs)
+
+Without a recorded base version `update.sh` runs in **report-only** mode. Record the release your deployment came from once, then re-run:
+
+```sh
+printf 'ref=self-hosted/v0.7.0\n' > .supabase-version
+# or, for a single run:  sh update.sh --from self-hosted/v0.7.0
+```
 
 ## Options
 
 | Flag | Purpose |
 | --- | --- |
 | `--dry-run` | Show the plan; write nothing |
-| `--to <tag>` | Upgrade to a specific release (e.g. `self-hosted/v1.2.0`) |
+| `--to <tag>` | Update to a specific release (e.g. `self-hosted/v0.7.0`) |
 | `--from <ref>` | Supply the base version when `.supabase-version` is missing |
 | `--yes` | Skip the breaking-change confirmation prompt |
 
-## Troubleshooting
-
-### Merge conflicts
-
-If the summary lists **CONFLICTS**, open those files and resolve the
-`<<<<<<<`, `=======`, `>>>>>>>` markers before starting the stack. `update.sh`
-exits with status `2` when conflicts remain.
-
-You edited a vendor file and upstream changed the same file. Pick the correct
-content (yours, upstream, or a combination), remove the markers, then run
-`sh run.sh pull && sh run.sh recreate`.
-
-### Custom auth providers (OAuth, SMS, SAML)
-
-Enabling an external provider currently means uncommenting its lines in
-`docker-compose.yml` (a vendor file) and filling in the matching keys in `.env`
-— see the comments in `.env.example`. Those uncommented lines are your edits,
-and `update.sh` keeps them: the 3-way merge only reports a **conflict** if a
-release changes the very same lines (for example renaming a provider variable),
-which it flags for you to resolve. A cleaner split that moves provider config
-into a file the upgrader never touches is planned for a future release.
-
-### Breaking-change prompt
-
-Some releases need manual steps first (for example a Postgres major upgrade).
-`update.sh` stops and lists them **before** modifying your files. Complete the
-steps (including any `utils/*.sh` migration script mentioned), then re-run
-`sh update.sh`.
-
-Use `--yes` only if you have already done the required work.
-
-### No `.supabase-version` (older or manual installs)
-
-Without a recorded base version the script cannot merge safely. It runs in
-**report-only** mode and prints guidance. To fix it once:
-
-1. Identify the version you deployed (image tags in `docker-compose.yml` /
-   `.env` vs [versions.md](./versions.md), or a [CHANGELOG.md](./CHANGELOG.md)
-   date you remember pulling).
-2. Write the stamp:
-
-   ```sh
-   printf 'ref=<tag-or-commit>\n' > .supabase-version
-   ```
-
-   Or pass the base inline: `sh update.sh --from <tag-or-commit>`.
-
-### Pin a specific release
-
-```sh
-sh update.sh --to self-hosted/v1.2.0
-```
-
-Useful when you want to stay on a known version or upgrade in steps.
-
-### Restore from backup
-
-If something goes wrong, configuration backups are in `backups/pre-update-*.tgz`
-(created on each non-dry-run upgrade). Extract or compare against that archive.
-Your database backup is separate.
-
-## More detail
-
-- [CHANGELOG.md](./CHANGELOG.md) — what changed in each release
-- [versions.md](./versions.md) — image version history
-- [CONFIG.md](./CONFIG.md) — environment variable reference
+For the full walkthrough see the [guide](https://supabase.com/docs/guides/self-hosting/updating); [CHANGELOG.md](./CHANGELOG.md) and [versions.md](./versions.md) list releases.

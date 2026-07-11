@@ -13,9 +13,9 @@
     "gate": "utils/upgrade-pg17.sh",
     "migration_guide_url": "https://supabase.com/docs/guides/self-hosting/postgres-upgrade-17",
     "requires": [
-      "Postgres 17 is now the default. Do NOT start Postgres 17 against an existing Postgres 15 data directory — back up your database first.",
+      "Postgres 17 is now the default. Do NOT start Postgres 17 against an existing Postgres 15 data directory - back up your database first.",
       "Run utils/upgrade-pg17.sh to migrate Postgres 15 -> 17, then recreate containers. To defer, pin Postgres 15 with the docker-compose.pg15.yml override.",
-      "Includes a security fix for the API gateway (Realtime /api/tenants and /api/openapi routes) — strongly recommended for any instance running Realtime."
+      "Includes a security fix for the API gateway (Realtime /api/tenants and /api/openapi routes) - strongly recommended for any instance running Realtime."
     ]
   },
   "0.7.0": {

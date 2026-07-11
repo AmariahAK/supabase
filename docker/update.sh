@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Upgrade an existing self-hosted Supabase deployment in place.
+# Update an existing self-hosted Supabase deployment in place.
 #
 # The deployment directory mixes vendor-owned files (docker-compose.yml, the
 # override files, volumes/*, scripts, .env.example) with user-owned state
@@ -16,20 +16,20 @@
 # the data directories (volumes/db/data, volumes/storage, etc.). New keys from
 # .env.example are appended to your .env; existing values are kept as-is.
 #
-# By default it upgrades to the latest self-hosted/v* release tag (or 'master'
+# By default it updates to the latest self-hosted/v* release tag (or 'master'
 # until the first tag exists). Pass --to to pin a specific tag/branch.
 #
 # Usage:
-#   sh update.sh                       # upgrade to the latest release tag
+#   sh update.sh                       # update to the latest release tag
 #   sh update.sh --dry-run             # show what would change, write nothing
-#   sh update.sh --to <tag>            # upgrade to a specific tag/branch
+#   sh update.sh --to <tag>            # update to a specific tag/branch
 #   sh update.sh --from <ref>          # base to merge from (if no .supabase-version)
 #   sh update.sh --yes                 # don't prompt, even on breaking changes
 #
 # Env:
 #   SUPABASE_REPO_URL   Override the upstream repo (default: github supabase/supabase)
 #
-# Guide: UPGRADING.md (users). Internals below; releases: RELEASING.md (maintainers).
+# Guide: UPGRADING.md (users).
 #
 
 set -e
@@ -44,9 +44,9 @@ cd "$(dirname "$0")"
 #   → backup → merge vendor files + .env keys → summary → stamp
 #
 # Three trees for every vendor file path:
-#   base   — upstream at BASE_REF (.supabase-version ref=, or --from)
-#   target — upstream at TARGET_REF (--to, or latest self-hosted/v* tag)
-#   yours  — the deployment directory (cwd); not a git checkout
+#   base   - upstream at BASE_REF (.supabase-version ref=, or --from)
+#   target - upstream at TARGET_REF (--to, or latest self-hosted/v* tag)
+#   yours  - the deployment directory (cwd); not a git checkout
 # Git is only used to fetch snapshots (fetch_snapshot) and to run git merge-file.
 #
 # Breaking-change gate (upgrades.json on the target snapshot):
@@ -59,12 +59,12 @@ cd "$(dirname "$0")"
 #     backup/merge so abort leaves the deployment untouched.
 #   - CHANGELOG.md is display-only; routine "requires compose update" items are
 #     applied by the merge, not listed in upgrades.json.
-# User-facing upgrade guide: UPGRADING.md. Release process: RELEASING.md.
+# User-facing update guide: UPGRADING.md.
 #
 # User-owned paths skipped during merge are defined in .gitignore (loaded from the
 # target snapshot). git check-ignore --no-index applies negation rules (e.g.
 # volumes/functions/** ignored except volumes/functions/main/index.ts).
-# .git/ is excluded here only — never listed in .gitignore.
+# .git/ is excluded here only - never listed in .gitignore.
 #
 # .env is never 3-way merged: append missing keys from .env.example only.
 
@@ -107,7 +107,7 @@ print_help() {
 
 # --- small helpers -----------------------------------------------------------
 
-# load_ignore_file — vendor/user split from the target snapshot's .gitignore.
+# load_ignore_file - vendor/user split from the target snapshot's .gitignore.
 # Uses a throwaway git dir so check-ignore works on deployment trees that are
 # not git repos (and on Apple Git, which rejects --git-dir=/dev/null).
 load_ignore_file() {
@@ -128,7 +128,7 @@ load_ignore_file() {
     git init -q "$IGNORE_GIT_DIR"
 }
 
-# is_excluded <relpath> — true when the path is user-owned and must not merge.
+# is_excluded <relpath> - true when the path is user-owned and must not merge.
 is_excluded() {
     case "$1" in
         .git|.git/*) return 0 ;;
@@ -197,7 +197,7 @@ list_files() {
     ( cd "$1" && find . -type f | sed 's|^\./||' | grep -vE '^\.git(/|$)' | sort )
 }
 
-# normalize_version <ref> — reduce a ref to bare semver (0.7.0) for comparison,
+# normalize_version <ref> - reduce a ref to bare semver (0.7.0) for comparison,
 # or empty when it is not a self-hosted release tag (commit SHA, "master", …).
 normalize_version() {
     _v="${1#refs/tags/}"
@@ -209,13 +209,13 @@ normalize_version() {
     esac
 }
 
-# ver_gt A B — true when version A is strictly greater than B (sort -V order).
+# ver_gt A B - true when version A is strictly greater than B (sort -V order).
 ver_gt() {
     if [ "$1" = "$2" ]; then return 1; fi
     [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n1)" = "$1" ]
 }
 
-# ver_in_window VER — true when BASE_VER < VER <= TARGET_VER. An empty bound
+# ver_in_window VER - true when BASE_VER < VER <= TARGET_VER. An empty bound
 # leaves that side open (over-reports a gate rather than hiding one).
 ver_in_window() {
     if [ -n "$TARGET_VER" ] && ver_gt "$1" "$TARGET_VER"; then return 1; fi
@@ -258,7 +258,7 @@ print_report_only_guidance() {
 Without a base version a safe 3-way merge is not possible. To fix this, find the
 version your deployment was based on and record it, then re-run:
 
-  1. Identify your base — the self-hosted/vX.Y.Z release (or commit) your files
+  1. Identify your base - the self-hosted/vX.Y.Z release (or commit) your files
      came from. Cross-reference the image tags in docker-compose.yml / .env
      against versions.md, or the newest CHANGELOG.md section you remember pulling.
   2. Write it to $STAMP_FILE, e.g.:
@@ -306,7 +306,7 @@ $(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$TARGET_DIR/.env.example" | cut -d= -f1)
 EOF
     fi
     echo ""
-    log "Report-only complete. Record a base version (see above) to perform a real upgrade."
+    log "Report-only complete. Record a base version (see above) to perform a real update."
 }
 
 # --- changelog (display only) ------------------------------------------------
@@ -351,7 +351,7 @@ build_gate_report() {
 
     if [ -z "$BASE_VER" ] || [ -z "$TARGET_VER" ]; then
         warn "Base or target is not a self-hosted/vX.Y.Z tag; cannot compute an exact"
-        warn "upgrade window. Showing all applicable manual-action releases — review"
+        warn "update window. Showing all applicable manual-action releases - review"
         warn "which ones apply to your deployment."
     fi
 
@@ -383,7 +383,7 @@ confirm_gate() {
     [ "$ASSUME_YES" != "1" ] || return 0
 
     echo "" >&2
-    warn "This upgrade requires manual action — review before continuing:"
+    warn "This update requires manual action - review before continuing:"
     sed 's/^/    /' "$GATE_REPORT" >&2
     echo "" >&2
 
@@ -413,7 +413,7 @@ take_backup() {
         --exclude='./volumes/db/data' \
         --exclude='./volumes/storage' \
         . 2>/dev/null || warn "Backup archive reported errors; review $_backup before relying on it."
-    warn "This does NOT back up your database. Back it up separately before upgrading."
+    warn "This does NOT back up your database. Back it up separately before updating."
 }
 
 # --- vendor file merge -------------------------------------------------------
@@ -532,9 +532,9 @@ EOF
 print_summary() {
     echo ""
     if [ "$DRY_RUN" = "1" ]; then
-        log "DRY RUN — the following WOULD change (nothing was written):"
+        log "DRY RUN - the following WOULD change (nothing was written):"
     else
-        log "Upgrade applied. Summary:"
+        log "Update applied. Summary:"
     fi
     printf "  updated:          %s\n" "$(count_status updated)"
     printf "  new:              %s\n" "$(count_status new)"
@@ -570,7 +570,7 @@ print_summary() {
     fi
     if [ -s "$GATE_REPORT" ]; then
         echo ""
-        log "Required manual steps for this upgrade (from upgrades.json):"
+        log "Required manual steps for this update (from upgrades.json):"
         sed 's/^/  /' "$GATE_REPORT"
     fi
     if [ -s "$CHANGELOG_SLICE" ]; then
@@ -655,8 +655,8 @@ print_next_steps
 
 if [ "$(count_status CONFLICT)" != "0" ]; then
     echo ""
-    warn "Upgrade applied WITH CONFLICTS. Resolve the files listed above (remove the"
+    warn "Update applied WITH CONFLICTS. Resolve the files listed above (remove the"
     warn "<<<<<<< ======= >>>>>>> markers) before starting the stack. Exiting with status 2."
     exit 2
 fi
-log "Upgrade applied cleanly."
+log "Update applied cleanly."

@@ -2,9 +2,10 @@
 #
 # Hermetic test for update.sh (the self-hosted in-place update script).
 #
-# Builds a tiny synthetic "upstream" git repo with three tagged releases
-# (self-hosted/v0.9.0 -> v1.0.0 content -> v1.1.0), where the target ships a
-# two-entry breaking-change manifest. It then simulates a configured deployment
+# Builds a tiny synthetic "upstream" git repo with two tagged releases
+# (self-hosted/v0.9.0 and self-hosted/v1.1.0; 1.0.0 exists only as a manifest
+# key), where the target ships a two-entry breaking-change manifest. It then
+# simulates a configured deployment
 # based on v0.9.0 and runs update.sh via a SUPABASE_REPO_URL override (no
 # network), asserting: the 3-way merge preserves secrets/data/overrides, adds
 # new .env keys (but not ones the user commented out), applies clean merges,
@@ -18,6 +19,13 @@
 #
 
 set -eu
+
+# Isolate from the developer's global/system git config (gpgsign, hooksPath,
+# templateDir, core.excludesfile) so neither the synthetic commits nor update.sh's
+# internal git calls (fetch, merge-file, check-ignore) are affected. Exported so
+# the update.sh subprocess inherits them too.
+export GIT_CONFIG_GLOBAL=/dev/null
+export GIT_CONFIG_NOSYSTEM=1
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 DOCKER_DIR=$(dirname "$SCRIPT_DIR")
@@ -206,12 +214,32 @@ assert_file_contains  "$WORK/apply.log" "[1.1.0] BREAKING"      "requires-less l
 assert_file_contains  "$WORK/apply.log" "Run the demo migration first." "manifest gate step surfaced"
 assert_file_contains  "$WORK/apply.log" "utils/demo-migrate.sh" "manifest gate script surfaced"
 assert_file_contains  "$WORK/apply.log" "example.test/guide"    "manifest migration guide surfaced"
-if ls backups/*.tgz >/dev/null 2>&1; then ok "backup archive created"; else bad "no backup archive"; fi
+assert_file_contains  "$WORK/apply.log" "gone from the new .env.example" ".env key-removal section shown"
+assert_file_contains  "$WORK/apply.log" "EXTRA_USER_KEY"        "removed .env key listed in report"
+if ls backups/*.tgz >/dev/null 2>&1; then
+    ok "backup archive created"
+    for _bk in backups/*.tgz; do break; done
+    tar tzf "$_bk" > "$WORK/bk.list" 2>/dev/null || true
+    assert_file_contains        "$WORK/bk.list" ".env"            "backup includes .env"
+    assert_file_missing_pattern "$WORK/bk.list" "volumes/db/data" "backup excludes db data dir"
+    assert_file_missing_pattern "$WORK/bk.list" "volumes/storage" "backup excludes storage dir"
+    assert_file_missing_pattern "$WORK/bk.list" "backups/"        "backup excludes backups dir"
+else
+    bad "no backup archive"
+fi
 assert_file_contains  "volumes/snippets/user.sql" "USER_SNIPPET"     "snippets left untouched"
-assert_file_contains  "volumes/snippets/seed.sql" "USER SEED"        "gitignored snippet in snapshot not overwritten"
+# seed.sql and hello/index.ts are the only files that are BOTH shipped in the
+# target snapshot AND gitignored, so they are the real is_excluded coverage.
+# Assert the user's content survives AND no vendor content / conflict markers
+# leaked in - i.e. the file was skipped, not merged/conflicted.
+assert_file_contains         "volumes/snippets/seed.sql" "USER SEED"   "gitignored snippet: user content kept"
+assert_file_missing_pattern  "volumes/snippets/seed.sql" "VENDOR SEED" "gitignored snippet: no vendor content"
+assert_file_missing_pattern  "volumes/snippets/seed.sql" "<<<<<<<"     "gitignored snippet: not conflicted (skipped)"
 assert_file_contains  "volumes/functions/my-fn/index.ts" "user fn"   "custom edge fn left untouched"
 assert_file_contains  "volumes/functions/main/index.ts" "target main" "vendor main/index.ts updated"
-assert_file_contains  "volumes/functions/hello/index.ts" "user hello" "gitignored fn in snapshot not overwritten"
+assert_file_contains         "volumes/functions/hello/index.ts" "user hello"   "gitignored fn: user content kept"
+assert_file_missing_pattern  "volumes/functions/hello/index.ts" "target hello" "gitignored fn: no vendor content"
+assert_file_missing_pattern  "volumes/functions/hello/index.ts" "<<<<<<<"      "gitignored fn: not conflicted (skipped)"
 
 echo ""
 echo "=== update.sh: clean apply (no conflict) advances the stamp and exits 0 ==="

@@ -326,8 +326,8 @@ build_gate_report() {
     if [ ! -f "$_manifest" ]; then
         return 0
     fi
-    if ! jq empty "$_manifest" 2>/dev/null; then
-        die "$_manifest is present but is not valid JSON; refusing to update without a working breaking-change gate. Please report this to the maintainers."
+    if ! jq -e 'type == "object"' "$_manifest" >/dev/null 2>&1; then
+        die "$_manifest is present but is not a valid JSON object; refusing to update without a working breaking-change gate. Please report this to the maintainers."
     fi
 
     if [ -z "$BASE_VER" ] || [ -z "$TARGET_VER" ]; then
@@ -351,7 +351,7 @@ build_gate_report() {
 
         {
             [ "$breaking" = "true" ] && echo "[$k] BREAKING" || echo "[$k]"
-            [ -n "$gate" ] && echo "    gate: run '$gate' before continuing"
+            [ -n "$gate" ] && echo "    gate: '$gate' must be run first (see the steps below for the exact command)"
             [ -n "$url" ]  && echo "    guide: $url"
             [ -n "$reqs" ] && printf '%s\n' "$reqs" | sed 's/^/    - /'
         } >> "$GATE_REPORT"

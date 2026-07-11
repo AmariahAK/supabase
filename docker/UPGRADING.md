@@ -6,7 +6,7 @@ Read the [Update your self-hosted deployment](https://supabase.com/docs/guides/s
 
 ## Quick reference
 
-Run from your deployment directory (where `docker-compose.yml` and `.env` live). Back up your database first - `update.sh` backs up configuration, not data.
+Run from your deployment directory (where `docker-compose.yml` and `.env` live). It needs `git` and `jq` on the host (both installed by `setup.sh`). Back up your database first - `update.sh` backs up configuration, not data.
 
 ```sh
 sh update.sh --dry-run   # preview; writes nothing
@@ -19,7 +19,7 @@ sh run.sh recreate       # restart to pick up the changes
 
 ## Conflicts
 
-If the summary lists **CONFLICTS**, `update.sh` wrote merge markers into those files and exits with status `2`. Edit each file, pick the correct content, remove the `<<<<<<<` / `=======` / `>>>>>>>` markers, then run `sh run.sh pull && sh run.sh recreate`.
+If the summary lists **CONFLICTS**, `update.sh` wrote merge markers into those files and exits with status `2`. Edit each file, pick the correct content, remove the `<<<<<<<` / `=======` / `>>>>>>>` markers, then run `sh run.sh pull && sh run.sh recreate`. While conflicts remain the version stamp is not advanced; it updates on your next clean run.
 
 ## Breaking changes
 

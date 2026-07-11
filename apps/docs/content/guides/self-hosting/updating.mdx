@@ -27,7 +27,8 @@ Your secrets and data are never merged. The values in the `.env` file you set ar
 </Admonition>
 
 - Run from your deployment directory (where `docker-compose.yml` and `.env` live).
-- Deployments created with `setup.sh` record their version in `.supabase-version`, and `update.sh` advances it after each update. If that file is missing (older or manual installs), refer to [Setting a recorded version](#setting-a-recorded-version).
+- `update.sh` needs `git` and `jq` on the host (both are installed by `setup.sh`).
+- Deployments created with `setup.sh` record their version in `.supabase-version`, and `update.sh` advances it after each successful update. If that file is missing (older or manual installs), refer to [Setting a recorded version](#setting-a-recorded-version).
 
 ## How to update
 
@@ -90,6 +91,8 @@ sh run.sh recreate
 ```
 
 A conflict means you edited a vendor file and the release changed the same lines. If you enabled auth providers by uncommenting lines in `docker-compose.yml`, this is where you re-apply them when a release reworks those lines.
+
+While conflicts remain, `update.sh` does **not** advance `.supabase-version` — it records the new release only on a clean run. After you resolve the markers, re-run `sh update.sh` to finalize the version stamp.
 
 ## Update to a specific release
 

@@ -26,20 +26,21 @@ JSON=upgrades.json
 command -v jq >/dev/null 2>&1 || { echo "ERROR: jq is required"; exit 1; }
 [ -f "$JSON" ] || { echo "ERROR: $JSON missing"; exit 1; }
 
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT INT TERM
+
 PASS=0; FAIL=0
 ok()  { PASS=$((PASS+1)); printf "  ok   - %s\n" "$1"; }
 bad() { FAIL=$((FAIL+1)); printf "  FAIL - %s\n" "$1"; }
 
 echo ""
 echo "=== upgrades.json is valid JSON ==="
-if jq -e . "$JSON" >/dev/null 2>"$SCRIPT_DIR/.err"; then
+if jq -e . "$JSON" >/dev/null 2>"$TMP/err"; then
     ok "upgrades.json parses"
 else
-    bad "upgrades.json is not valid JSON: $(cat "$SCRIPT_DIR/.err" 2>/dev/null)"
-    rm -f "$SCRIPT_DIR/.err"
+    bad "upgrades.json is not valid JSON: $(cat "$TMP/err" 2>/dev/null)"
     echo "=== Result: $PASS passed, $FAIL failed ==="; exit 1
 fi
-rm -f "$SCRIPT_DIR/.err"
 
 echo ""
 echo "=== top-level keys are versions (or _schema) ==="

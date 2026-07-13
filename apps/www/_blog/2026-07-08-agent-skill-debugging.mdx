@@ -1,9 +1,9 @@
 ---
-title: 'Teach Your Agent to Debug Supabase, Not Guess'
+title: 'Introducing the Supabase Debugging Skills'
 description: 'The Supabase agent skill now includes a debugging workflow: isolate the failing layer, query logs narrow, and fix the root cause instead of scanning everything.'
 author: jordi
-imgSocial: 2026-07-08-agent-skill-debugging/og.png
-imgThumb: 2026-07-08-agent-skill-debugging/thumb.png
+imgSocial: 2026-07-08-agent-skill-debugging/og.jpg
+imgThumb: 2026-07-08-agent-skill-debugging/thumb.jpg
 categories:
   - product
 tags:
@@ -15,7 +15,7 @@ date: '2026-07-08'
 toc_depth: 2
 ---
 
-The [Supabase agent skill](https://github.com/supabase/agent-skills) now includes a debugging workflow. When your agent hits a Supabase error, it reproduces it, isolates the layer that caused it, and queries the logs for evidence, instead of scanning every log source and hoping something turns up.
+The [Supabase agent skill](https://github.com/supabase/agent-skills) now includes a debugging workflow. [Install the skills in your agent](https://supabase.com/docs/guides/ai-tools/ai-skills), and when your agent hits a Supabase error it reproduces it, isolates the layer that caused it, and queries the logs for evidence, instead of scanning every log source and hoping something turns up.
 
 ## Agents are a debugging surface now
 
@@ -65,6 +65,8 @@ That query answers "who hit a permission error, and on what statement" in one pa
 
 Underneath the loop, the skill carries a routing table built from Supabase's own troubleshooting guides: RLS and access (empty arrays, `42501` permission denied), the Data API (`PGRST002`, schema cache misses), Auth (sessions, JWT claims, OAuth, OTP), the database (statement timeouts, sequences, locks), connections and the Supavisor pooler, Edge Functions (`401`/`404`/`500`/`503`/`504`/`546`), Realtime, and Storage.
 
+The same loop, request stack, and routing table are now documented in the [Debugging guide](https://supabase.com/docs/guides/telemetry/debugging), so you can follow the workflow yourself, not only through an agent.
+
 Take the classic case: a query returns an empty array even though the rows exist. The skill walks the agent through checking whether RLS is enabled on the table, testing the policy by impersonating the `authenticated` role in the SQL editor, and, if no policy matches, adding one scoped to the owner:
 
 ```sql
@@ -84,6 +86,7 @@ npx skills add supabase/agent-skills
 
 The agent uses `get_logs` and `get_advisors` through the Supabase MCP server when it's connected, or the Logs Explorer directly, to gather evidence before proposing a fix.
 
+- [Debugging Supabase issues](https://supabase.com/docs/guides/telemetry/debugging)
 - [Supabase Agent Skills on GitHub](https://github.com/supabase/agent-skills)
 - [Supabase MCP setup guide](https://supabase.com/docs/guides/getting-started/mcp)
 

@@ -22,8 +22,6 @@ import { UUID_REGEX } from '@/lib/constants'
 import { SHORTCUT_IDS } from '@/state/shortcuts/registry'
 import { useShortcut } from '@/state/shortcuts/useShortcut'
 
-// The cross-cutting user filter is a dedicated `?user=` key with no backing table
-// column, so it's bridged into the bar by hand rather than via columnFilters.
 const USER_PROPERTY = 'user'
 
 const buildFilterGroup = (
@@ -92,8 +90,6 @@ export const LogsFilterBar = () => {
     },
   ]
 
-  // Column-backed conditions come from columnFilters; the dedicated `?user=` key is
-  // layered on as its own condition so it appears as a first-class pill.
   const withUserCondition = (group: FilterGroup): FilterGroup => {
     if (!user) return group
     return {
@@ -149,14 +145,11 @@ export const LogsFilterBar = () => {
     )
     if (!isValid) return
 
-    // The user condition writes the dedicated `?user=` key, not a table column.
     const userCondition = (next.conditions as FilterCondition[]).find(
       (c) => c.propertyName === USER_PROPERTY
     )
     applyUser(userCondition ? String(userCondition.value) : undefined)
 
-    // Coalesce column-backed conditions into one wrapped value per column. Mixed
-    // operators on the same column aren't expressible in the column-filter shape — last wins.
     const wrappedByColumn = new Map<string, LogsColumnFilterValue>()
     for (const cond of next.conditions as FilterCondition[]) {
       if (cond.propertyName === USER_PROPERTY) continue

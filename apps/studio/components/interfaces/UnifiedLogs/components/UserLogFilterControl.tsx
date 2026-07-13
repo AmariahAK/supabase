@@ -9,15 +9,6 @@ import { InputWithAddons } from '@/components/ui/DataTable/primitives/InputWithA
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
 import { UUID_REGEX } from '@/lib/constants'
 
-/**
- * "User" filter as a native sidebar accordion item (matching the Level/Status/etc.
- * sections). Writes the dedicated `?user=` key — not the generic `filter=` array —
- * because the filter is cross-cutting (it gates which sources are eligible rather than
- * filtering one column); see SEARCH_PARAMS_PARSER / applySearchParamsFilter. An email is
- * resolved to a user id on submit (so it also matches postgres error text, which carries
- * the id, not the email); an identifier with no auth.users row is kept as-is so failed
- * signups still match on their auth email.
- */
 export const UserLogFilterControl = () => {
   const { ref: projectRef } = useParams()
   const { data: project } = useSelectedProjectQuery()

@@ -374,8 +374,6 @@ export const UsersV2 = () => {
   }
 
   const onSelectViewLogs = (user: User) => {
-    // Prefer the id — a uuid matches auth_event.actor_id and postgres error text
-    // exactly; email is the fallback for the rare listed user without one.
     const identifier = user.id || user.email
     if (!projectRef || !identifier) return
     router.push(buildUnifiedLogsUrl({ projectRef, user: identifier }))

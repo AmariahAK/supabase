@@ -64,31 +64,34 @@ export const EdgeFunctionPerformanceSection = ({
         </PageSectionSummary>
       </PageSectionMeta>
       <PageSectionContent>
-        <EdgeFunctionTimeSeriesChartCard
-          data={data}
-          dateTimeFormat={dateTimeFormat}
-          isLoading={isLoading}
-          isError={isError}
-          emptyTitle={emptyStateCopy.title}
-          emptyDescription={emptyStateCopy.description}
-          metrics={metrics}
-          dataKey="max_execution_time"
-          dataKeys={['avg_execution_time', 'max_execution_time']}
-          config={EXECUTION_TIME_CHART_CONFIG}
-          tooltipDetails={tooltipDetails}
-          referenceLines={[
-            {
-              y: averageExecutionTime,
-              label: 'average',
-              stroke: 'hsl(var(--foreground-default))',
-              strokeWidth: 1.5,
-            },
-          ]}
-          yAxisProps={{
-            width: 64,
-            tickFormatter: (value: number) => `${Math.round(value)}ms`,
-          }}
-        />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <EdgeFunctionTimeSeriesChartCard
+            className="lg:col-span-2"
+            data={data}
+            dateTimeFormat={dateTimeFormat}
+            isLoading={isLoading}
+            isError={isError}
+            emptyTitle={emptyStateCopy.title}
+            emptyDescription={emptyStateCopy.description}
+            metrics={metrics}
+            dataKey="max_execution_time"
+            dataKeys={['avg_execution_time', 'max_execution_time']}
+            config={EXECUTION_TIME_CHART_CONFIG}
+            tooltipDetails={tooltipDetails}
+            referenceLines={[
+              {
+                y: averageExecutionTime,
+                label: 'average',
+                stroke: 'var(--foreground-default)',
+                strokeWidth: 1.5,
+              },
+            ]}
+            yAxisProps={{
+              width: 64,
+              tickFormatter: (value: number) => `${Math.round(value)}ms`,
+            }}
+          />
+        </div>
       </PageSectionContent>
     </PageSection>
   )

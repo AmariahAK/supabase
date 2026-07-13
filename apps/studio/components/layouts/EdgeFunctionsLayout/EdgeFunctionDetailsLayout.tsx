@@ -30,7 +30,7 @@ import EdgeFunctionsLayout from './EdgeFunctionsLayout'
 import { EdgeFunctionTesterSheet } from '@/components/interfaces/Functions/EdgeFunctionDetails/EdgeFunctionTesterSheet'
 import { useFunctionsDetailShortcuts } from '@/components/interfaces/Functions/useFunctionsDetailShortcuts'
 import { DocsButton } from '@/components/ui/DocsButton'
-import NoPermission from '@/components/ui/NoPermission'
+import { NoPermission } from '@/components/ui/NoPermission'
 import { ShortcutTooltip } from '@/components/ui/ShortcutTooltip'
 import { useProjectApiUrl } from '@/data/config/project-endpoint-query'
 import { useEdgeFunctionBodyQuery } from '@/data/edge-functions/edge-function-body-query'
@@ -260,7 +260,7 @@ const EdgeFunctionDetailsLayout = ({
                   open={isDownloadOpen ? false : undefined}
                 >
                   <PopoverTrigger asChild>
-                    <Button type="default" size="tiny" icon={<Download />}>
+                    <Button variant="default" size="tiny" icon={<Download />}>
                       Download
                     </Button>
                   </PopoverTrigger>
@@ -284,7 +284,7 @@ const EdgeFunctionDetailsLayout = ({
                   )}
                   <div className="py-2 px-1">
                     <Button
-                      type="text"
+                      variant="text"
                       className="w-min hover:bg-transparent"
                       icon={<FileArchive />}
                       onClick={downloadFunction}
@@ -296,7 +296,7 @@ const EdgeFunctionDetailsLayout = ({
               </Popover>
               {!!functionSlug && (
                 <ShortcutTooltip shortcutId={SHORTCUT_IDS.FUNCTION_DETAIL_OPEN_TEST} side="bottom">
-                  <Button type="default" size="tiny" icon={<Send />} onClick={openTestSheet}>
+                  <Button variant="default" size="tiny" icon={<Send />} onClick={openTestSheet}>
                     Test
                   </Button>
                 </ShortcutTooltip>

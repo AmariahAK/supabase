@@ -95,7 +95,7 @@ export const EdgeFunctionUsageSection = ({
         </PageSectionSummary>
       </PageSectionMeta>
       <PageSectionContent>
-        <div className="flex flex-col gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <EdgeFunctionTimeSeriesChartCard
             data={data}
             dateTimeFormat={dateTimeFormat}
@@ -111,7 +111,7 @@ export const EdgeFunctionUsageSection = ({
               {
                 y: averageCpuTime,
                 label: 'average',
-                stroke: 'hsl(var(--foreground-default))',
+                stroke: 'var(--foreground-default)',
                 strokeWidth: 1.5,
               },
             ]}
@@ -136,7 +136,7 @@ export const EdgeFunctionUsageSection = ({
               {
                 y: averageMemoryUsage,
                 label: 'average',
-                stroke: 'hsl(var(--foreground-default))',
+                stroke: 'var(--foreground-default)',
                 strokeWidth: 1.5,
               },
             ]}

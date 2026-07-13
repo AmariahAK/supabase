@@ -44,8 +44,8 @@ import {
 } from './EdgeFunctionRecentErrors.utils'
 import { SIDEBAR_KEYS } from '@/components/layouts/ProjectLayout/LayoutSidebar/LayoutSidebarProvider'
 import { AiAssistantDropdown } from '@/components/ui/AiAssistantDropdown'
-import AlertError from '@/components/ui/AlertError'
-import useLogsQuery from '@/hooks/analytics/useLogsQuery'
+import { AlertError } from '@/components/ui/AlertError'
+import { useLogsQuery } from '@/hooks/analytics/useLogsQuery'
 import { useAiAssistantStateSnapshot } from '@/state/ai-assistant-state'
 import { useSidebarManagerSnapshot } from '@/state/sidebar-manager-state'
 
@@ -86,15 +86,16 @@ export const EdgeFunctionRecentErrors = ({
     logData: recentErrorInvocations,
     isLoading: isLoadingRecentErrorInvocations,
     error: recentErrorInvocationsError,
-  } = useLogsQuery(
-    projectRef as string,
-    {
+  } = useLogsQuery({
+    projectRef: projectRef!,
+    initialParams: {
       sql: recentErrorInvocationsSql,
       iso_timestamp_start: isoTimestampStart,
       iso_timestamp_end: isoTimestampEnd,
     },
-    isQueryEnabled
-  )
+    enabled: isQueryEnabled,
+    options: { useOtel: true },
+  })
 
   const recentErrorGroupsBase = useMemo(
     () => getRecentErrorGroupsBase(recentErrorInvocations),
@@ -104,15 +105,16 @@ export const EdgeFunctionRecentErrors = ({
     logData: sinceLastDeployInvocationCountRows,
     isLoading: isLoadingSinceLastDeployInvocationCount,
     error: sinceLastDeployInvocationCountError,
-  } = useLogsQuery(
-    projectRef as string,
-    {
+  } = useLogsQuery({
+    projectRef: projectRef!,
+    initialParams: {
       sql: sinceLastDeployInvocationCountSql,
       iso_timestamp_start: isoTimestampStart,
       iso_timestamp_end: isoTimestampEnd,
     },
-    Boolean(projectRef && sinceLastDeployInvocationCountSql && isoTimestampStart)
-  )
+    enabled: Boolean(projectRef && sinceLastDeployInvocationCountSql && isoTimestampStart),
+    options: { useOtel: true },
+  })
 
   const relatedExecutionIds = useMemo(
     () => getRelatedExecutionIds(recentErrorGroupsBase),
@@ -128,15 +130,16 @@ export const EdgeFunctionRecentErrors = ({
     logData: functionRuntimeLogs,
     isLoading: isLoadingFunctionRuntimeLogs,
     error: functionRuntimeLogsError,
-  } = useLogsQuery(
-    projectRef as string,
-    {
+  } = useLogsQuery({
+    projectRef: projectRef!,
+    initialParams: {
       sql: functionRuntimeLogsSql,
       iso_timestamp_start: isoTimestampStart,
       iso_timestamp_end: isoTimestampEnd,
     },
-    Boolean(projectRef && functionRuntimeLogsSql && isoTimestampStart)
-  )
+    enabled: Boolean(projectRef && functionRuntimeLogsSql && isoTimestampStart),
+    options: { useOtel: true },
+  })
   const queryError =
     toAlertError(recentErrorInvocationsError) ?? toAlertError(functionRuntimeLogsError)
 
@@ -201,7 +204,7 @@ export const EdgeFunctionRecentErrors = ({
         </PageSectionSummary>
         <PageSectionAside>
           <Button
-            type="default"
+            variant="default"
             size="tiny"
             icon={<ExternalLink size={14} />}
             onClick={() => router.push(`/project/${projectRef}/functions/${functionSlug}/logs`)}
@@ -317,23 +320,25 @@ export const EdgeFunctionRecentErrors = ({
                                   <div
                                     key={log.key}
                                     className={cn(
-                                      'grid grid-cols-[4rem_4.5rem_3rem_minmax(0,1fr)] items-start gap-3 px-4 py-2',
+                                      'flex items-start gap-3 px-4 py-2',
                                       index !== 0 && 'border-t border-default',
                                       isError && 'bg-destructive-200/40'
                                     )}
                                   >
-                                    <span className="tabular-nums text-foreground-muted">
+                                    <span className="shrink-0 tabular-nums text-foreground-muted">
                                       {formatLogTimestamp(log.lastSeen, 'time')}
                                     </span>
                                     <Badge
                                       variant={isError ? 'destructive' : 'default'}
-                                      className="w-full justify-center"
+                                      className="shrink-0"
                                     >
                                       {log.level}
                                     </Badge>
-                                    <span className="text-right text-foreground-muted tabular-nums">
-                                      {log.count > 1 ? `×${log.count}` : null}
-                                    </span>
+                                    {log.count > 1 && (
+                                      <span className="shrink-0 text-foreground-muted tabular-nums">
+                                        ×{log.count}
+                                      </span>
+                                    )}
                                     <span
                                       className={cn(
                                         'flex-1 wrap-break-word whitespace-pre-wrap',

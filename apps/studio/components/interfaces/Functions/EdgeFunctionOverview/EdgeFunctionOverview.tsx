@@ -24,7 +24,7 @@ import { EdgeFunctionRecentErrors } from './EdgeFunctionRecentErrors'
 import { EdgeFunctionUsageSection } from './EdgeFunctionUsageSection'
 import { useEdgeFunctionOverviewShortcuts } from './useEdgeFunctionOverviewShortcuts'
 import { useUnifiedLogsPreview } from '@/components/interfaces/App/FeaturePreview/FeaturePreviewContext'
-import NoPermission from '@/components/ui/NoPermission'
+import { NoPermission } from '@/components/ui/NoPermission'
 import {
   FunctionsCombinedStatsVariables,
   useFunctionsCombinedStatsQuery,
@@ -43,7 +43,12 @@ export const EdgeFunctionOverview = () => {
   const selectedInterval =
     EDGE_FUNCTION_CHART_INTERVALS.find((item) => item.key === interval) ||
     EDGE_FUNCTION_CHART_INTERVALS[1]
-  const { data: selectedFunction } = useEdgeFunctionQuery({
+  const {
+    data: selectedFunction,
+    error: functionError,
+    isPending: isLoadingFunction,
+    isError: isErrorFunction,
+  } = useEdgeFunctionQuery({
     projectRef,
     slug: functionSlug,
   })
@@ -196,13 +201,16 @@ export const EdgeFunctionOverview = () => {
         showIntervalDropdown={showIntervalDropdown}
         onIntervalDropdownOpenChange={setShowIntervalDropdown}
       />
-      <PageContainer size="default">
+      <PageContainer size="full">
         <EdgeFunctionInvocationsSection
           selectedInterval={selectedInterval}
           actions={invocationActions}
           totalInvocationCount={totalInvocationCount}
           totalErrorCount={totalErrorCount}
           totalWarningCount={totalWarningCount}
+          isLoadingFunction={isLoadingFunction}
+          isErrorFunction={isErrorFunction}
+          functionError={functionError}
           isLoadingChart={combinedStatsResults.isLoading}
           isErrorChart={isErrorCombinedStats}
           chartErrorMessage={combinedStatsError?.message ?? 'Unknown error'}
@@ -251,5 +259,3 @@ export const EdgeFunctionOverview = () => {
     </>
   )
 }
-
-export default EdgeFunctionOverview

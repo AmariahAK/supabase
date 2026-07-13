@@ -4,7 +4,6 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import { Clock } from 'lucide-react'
 import { useState } from 'react'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from 'ui'
-import { TimestampInfo } from 'ui-patterns'
 import {
   PageHeader,
   PageHeaderAside,
@@ -13,6 +12,7 @@ import {
   PageHeaderSummary,
   PageHeaderTitle,
 } from 'ui-patterns/PageHeader'
+import { TimestampInfo } from 'ui-patterns/TimestampInfo'
 
 import { EDGE_FUNCTION_CHART_INTERVALS, formatShortFromNow } from './EdgeFunctionOverview.utils'
 import CopyButton from '@/components/ui/CopyButton'
@@ -62,7 +62,7 @@ export const EdgeFunctionOverviewHeader = ({
     : undefined
 
   return (
-    <PageHeader size="default">
+    <PageHeader size="full">
       <PageHeaderMeta>
         <PageHeaderSummary>
           <PageHeaderTitle>{name || functionSlug}</PageHeaderTitle>
@@ -71,7 +71,7 @@ export const EdgeFunctionOverviewHeader = ({
               <div className="flex items-center gap-x-2">
                 <span className="flex items-center gap-2">{functionUrl}</span>
                 <ShortcutTooltip shortcutId={SHORTCUT_IDS.FUNCTION_DETAIL_COPY_URL} side="bottom">
-                  <CopyButton iconOnly type="text" text={functionUrl} />
+                  <CopyButton iconOnly variant="text" text={functionUrl} />
                 </ShortcutTooltip>
               </div>
             ) : null}

@@ -92,28 +92,30 @@ const resetSidebarManagerState = () => {
 
 describe('LayoutSidebar', () => {
   beforeEach(() => {
-    routerMock.setCurrentUrl('/projects/default')
+    routerMock.setCurrentUrl('/project/default')
   })
 
   afterEach(() => {
     resetSidebarManagerState()
     localStorage.clear()
     vi.clearAllMocks()
+    mockProjectData = mockProject
   })
 
-  const renderSidebar = () =>
-    render(
-      <ResizablePanelGroup orientation="horizontal">
-        <ResizablePanel>
-          <div />
-        </ResizablePanel>
-        <LayoutSidebarProvider>
-          <MobileSheetProvider>
-            <LayoutSidebar />
-          </MobileSheetProvider>
-        </LayoutSidebarProvider>
-      </ResizablePanelGroup>
-    )
+  const sidebarTree = () => (
+    <ResizablePanelGroup orientation="horizontal">
+      <ResizablePanel>
+        <div />
+      </ResizablePanel>
+      <LayoutSidebarProvider>
+        <MobileSheetProvider>
+          <LayoutSidebar />
+        </MobileSheetProvider>
+      </LayoutSidebarProvider>
+    </ResizablePanelGroup>
+  )
+
+  const renderSidebar = () => render(sidebarTree())
 
   it('does not render when there is no active sidebar', () => {
     renderSidebar()
@@ -136,16 +138,54 @@ describe('LayoutSidebar', () => {
     expect(sidebar).toBeTruthy()
   })
 
+  it('keeps the active sidebar open when project transiently becomes undefined', async () => {
+    const { rerender } = render(sidebarTree())
+
+    await waitFor(() => {
+      expect(sidebarManagerState.sidebars[SIDEBAR_KEYS.AI_ASSISTANT]).toBeDefined()
+    })
+
+    act(() => {
+      sidebarManagerState.toggleSidebar(SIDEBAR_KEYS.AI_ASSISTANT)
+    })
+    expect(await screen.findByTestId('ai-assistant-sidebar')).toBeTruthy()
+
+    mockProjectData = undefined
+    rerender(sidebarTree())
+    expect(screen.queryByTestId('ai-assistant-sidebar')).toBeTruthy()
+
+    mockProjectData = mockProject
+    rerender(sidebarTree())
+    expect(screen.queryByTestId('ai-assistant-sidebar')).toBeTruthy()
+  })
+
+  it('closes project-scoped sidebars when navigating to a non-project route', async () => {
+    const { rerender } = render(sidebarTree())
+
+    await waitFor(() => {
+      expect(sidebarManagerState.sidebars[SIDEBAR_KEYS.AI_ASSISTANT]).toBeDefined()
+    })
+
+    act(() => {
+      sidebarManagerState.toggleSidebar(SIDEBAR_KEYS.AI_ASSISTANT)
+    })
+    expect(await screen.findByTestId('ai-assistant-sidebar')).toBeTruthy()
+
+    act(() => {
+      routerMock.setCurrentUrl('/org/default')
+    })
+    rerender(sidebarTree())
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('ai-assistant-sidebar')).toBeNull()
+    })
+  })
+
   describe('at organization level', () => {
     beforeEach(() => {
       routerMock.setCurrentUrl('/org/default')
       // Set project to undefined to simulate org-level (no project)
       mockProjectData = undefined
-    })
-
-    afterEach(() => {
-      // Reset to project data for other tests
-      mockProjectData = mockProject
     })
 
     it('does not register project-related sidebars when no project is available', async () => {

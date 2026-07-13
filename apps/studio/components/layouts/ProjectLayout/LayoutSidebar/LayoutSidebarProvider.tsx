@@ -60,8 +60,10 @@ export const LayoutSidebarProvider = ({ children }: PropsWithChildren) => {
   const sidebarURLParamRef = useLatest(sidebarURLParam)
   const sidebarLocalStorageRef = useLatest(sidebarLocalStorage)
 
-  useRegisterSidebar(SIDEBAR_KEYS.AI_ASSISTANT, () => <AIAssistant />, {}, !!project)
-  useRegisterSidebar(SIDEBAR_KEYS.EDITOR_PANEL, () => <EditorPanel />, {}, !!project)
+  const isProjectRoute = router.pathname.startsWith('/project/')
+
+  useRegisterSidebar(SIDEBAR_KEYS.AI_ASSISTANT, () => <AIAssistant />, {}, isProjectRoute)
+  useRegisterSidebar(SIDEBAR_KEYS.EDITOR_PANEL, () => <EditorPanel />, {}, isProjectRoute)
   useRegisterSidebar(SIDEBAR_KEYS.ADVISOR_PANEL, () => <AdvisorPanel />, {}, true)
   useRegisterSidebar(
     SIDEBAR_KEYS.HELP_PANEL,

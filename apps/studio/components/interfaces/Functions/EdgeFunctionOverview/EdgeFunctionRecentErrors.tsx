@@ -73,9 +73,8 @@ export const EdgeFunctionRecentErrors = ({
     () => getSinceLastDeployLogRange(updatedAt),
     [updatedAt]
   )
-  const emptyStateFallback =
-    'Runtime errors since the last deploy will appear here when this function returns a 5xx response.'
   const sinceLastDeployPhrase = isTruncatedToLookback ? 'in the last 24 hours' : 'since last deploy'
+  const emptyStateFallback = `Runtime errors ${sinceLastDeployPhrase} will appear here when this function returns a 5xx response.`
 
   const isQueryEnabled = Boolean(projectRef && functionId && isoTimestampStart)
   const recentErrorInvocationsSql = useMemo(

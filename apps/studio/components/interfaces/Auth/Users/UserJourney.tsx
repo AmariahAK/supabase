@@ -1,89 +1,49 @@
 /**
  * UserJourney — PROTOTYPE
  *
- * This is a demo-quality prototype of the "User Journey" tab. It renders a
- * chronological timeline reconstructed from Auth and PostgREST logs using
- * HARDCODED MOCK DATA — there are no real log queries wired up yet.
+ * Renders a chronological timeline of everything one user did, reconstructed
+ * from Auth and PostgREST logs: signed up, authenticated, API reads/writes,
+ * and where a request was denied.
+ *
+ * This wires up REAL log queries (auth_logs + edge_logs filtered by the user)
+ * via useLogsQuery. Where the logs can't tell the full story — most notably the
+ * exact RLS policy that denied a write — it degrades gracefully (see the
+ * data-availability note in UserJourney.utils.ts). A "Sample data" toggle shows
+ * a hardcoded reference scenario so the tab stays demoable on projects with no
+ * matching logs.
  *
  * See PRFAQ: https://www.notion.so/supabase/User-Journey-PRFAQ (placeholder link)
  */
-import { useParams } from 'common'
-import { AlertTriangle, Database, ExternalLink, LogIn, RefreshCw, UserPlus } from 'lucide-react'
+import { useFlag, useParams } from 'common'
+import {
+  AlertTriangle,
+  Database,
+  ExternalLink,
+  FlaskConical,
+  LogIn,
+  RefreshCw,
+  UserPlus,
+} from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button, cn, Separator } from 'ui'
 import { Admonition } from 'ui-patterns/admonition'
+import { GenericSkeletonLoader } from 'ui-patterns/ShimmeringLoader'
 import { TimestampInfo } from 'ui-patterns/TimestampInfo'
 
 import { UserHeader } from './UserHeader'
+import {
+  buildAuthLogsSql,
+  buildEdgeLogsSql,
+  buildJourney,
+  isValidUserId,
+  SAMPLE_JOURNEY_EVENTS,
+  type JourneyEvent,
+} from './UserJourney.utils'
 import { PANEL_PADDING } from './Users.constants'
 import { ButtonTooltip } from '@/components/ui/ButtonTooltip'
 import { User } from '@/data/auth/users-infinite-query'
-
-type JourneyEventStatus = 'success' | 'neutral' | 'error'
-type JourneyEventSource = 'auth' | 'postgrest'
-
-interface JourneyEvent {
-  id: string
-  timestamp: string // ISO, ms precision
-  source: JourneyEventSource
-  status: JourneyEventStatus
-  title: string
-  description: string
-  request?: { method: string; path: string; statusCode: number }
-  error?: { message: string; policy?: string; table?: string }
-}
-
-const MOCK_JOURNEY_EVENTS: JourneyEvent[] = [
-  {
-    id: '1',
-    timestamp: '2026-07-13T09:41:02.118Z',
-    source: 'auth',
-    status: 'success',
-    title: 'Signed up',
-    description: 'Auth · new user created via email signup',
-  },
-  {
-    id: '2',
-    timestamp: '2026-07-13T09:41:02.421Z',
-    source: 'auth',
-    status: 'success',
-    title: 'Authenticated',
-    description: 'Auth · session issued, JWT minted',
-  },
-  {
-    id: '3',
-    timestamp: '2026-07-13T09:41:03.905Z',
-    source: 'postgrest',
-    status: 'neutral',
-    title: 'Read profile',
-    description: 'PostgREST · fetched the current user profile',
-    request: { method: 'GET', path: '/rest/v1/profiles', statusCode: 200 },
-  },
-  {
-    id: '4',
-    timestamp: '2026-07-13T09:41:05.332Z',
-    source: 'postgrest',
-    status: 'neutral',
-    title: 'Created order',
-    description: 'PostgREST · inserted a new order row',
-    request: { method: 'POST', path: '/rest/v1/orders', statusCode: 201 },
-  },
-  {
-    id: '5',
-    timestamp: '2026-07-13T09:41:06.744Z',
-    source: 'postgrest',
-    status: 'error',
-    title: 'Write blocked',
-    description: 'PostgREST · insert rejected before reaching the table',
-    request: { method: 'POST', path: '/rest/v1/payments', statusCode: 403 },
-    error: {
-      message: 'Denied by RLS policy',
-      policy: 'payments_insert_owner',
-      table: 'payments',
-    },
-  },
-]
+import { useLogsQuery } from '@/hooks/analytics/useLogsQuery'
 
 const getEventIcon = (event: JourneyEvent) => {
   if (event.status === 'error') return AlertTriangle
@@ -103,11 +63,58 @@ interface UserJourneyProps {
 
 export const UserJourney = ({ user }: UserJourneyProps) => {
   const { ref } = useParams()
-  const [errorsOnly, setErrorsOnly] = useState(false)
+  const useOtel = useFlag('otelLegacyLogs')
 
-  const events = errorsOnly
-    ? MOCK_JOURNEY_EVENTS.filter((event) => event.status === 'error')
-    : MOCK_JOURNEY_EVENTS
+  const [errorsOnly, setErrorsOnly] = useState(false)
+  const [showSample, setShowSample] = useState(false)
+
+  const userId = user.id
+  const canQuery = isValidUserId(userId) && !showSample
+
+  const authSql = useMemo(
+    () => (isValidUserId(userId) ? buildAuthLogsSql(userId, useOtel) : ''),
+    [userId, useOtel]
+  )
+  const edgeSql = useMemo(
+    () => (isValidUserId(userId) ? buildEdgeLogsSql(userId, useOtel) : ''),
+    [userId, useOtel]
+  )
+
+  const {
+    logData: authLogs,
+    isLoading: isLoadingAuth,
+    error: authError,
+    runQuery: runAuthQuery,
+  } = useLogsQuery({
+    projectRef: ref,
+    initialParams: { sql: authSql },
+    enabled: canQuery,
+    options: { useOtel },
+  })
+
+  const {
+    logData: edgeLogs,
+    isLoading: isLoadingEdge,
+    error: edgeError,
+    runQuery: runEdgeQuery,
+  } = useLogsQuery({
+    projectRef: ref,
+    initialParams: { sql: edgeSql },
+    enabled: canQuery,
+    options: { useOtel },
+  })
+
+  const liveEvents = useMemo(() => buildJourney(authLogs, edgeLogs), [authLogs, edgeLogs])
+
+  const isLoading = canQuery && (isLoadingAuth || isLoadingEdge)
+  const error = authError || edgeError
+  const allEvents = showSample ? SAMPLE_JOURNEY_EVENTS : liveEvents
+  const events = errorsOnly ? allEvents.filter((event) => event.status === 'error') : allEvents
+
+  const refresh = () => {
+    runAuthQuery()
+    runEdgeQuery()
+  }
 
   return (
     <div>
@@ -145,6 +152,15 @@ export const UserJourney = ({ user }: UserJourneyProps) => {
           </div>
           <div className="flex items-center gap-x-2">
             <ButtonTooltip
+              variant={showSample ? 'secondary' : 'default'}
+              className="px-2"
+              icon={<FlaskConical />}
+              onClick={() => setShowSample((value) => !value)}
+              tooltip={{
+                content: { text: showSample ? 'Showing sample data' : 'Show sample data' },
+              }}
+            />
+            <ButtonTooltip
               asChild
               variant="default"
               className="px-2"
@@ -158,13 +174,23 @@ export const UserJourney = ({ user }: UserJourneyProps) => {
               variant="default"
               className="px-2"
               icon={<RefreshCw />}
-              onClick={() => setErrorsOnly(false)}
+              loading={isLoading}
+              disabled={isLoading || showSample}
+              onClick={refresh}
               tooltip={{ content: { text: 'Refresh' } }}
             />
           </div>
         </div>
 
-        {events.length === 0 ? (
+        {isLoading && events.length === 0 ? (
+          <GenericSkeletonLoader />
+        ) : error && events.length === 0 && !showSample ? (
+          <Admonition
+            type="warning"
+            title="Unable to load this user's journey"
+            description={typeof error === 'string' ? error : 'Failed to query auth and API logs'}
+          />
+        ) : events.length === 0 ? (
           <Admonition
             type="note"
             title="No journey available for this user"
@@ -219,16 +245,30 @@ export const UserJourney = ({ user }: UserJourneyProps) => {
                             <Separator className="bg-destructive-400" />
                             <div className="px-3 py-2.5">
                               <p className="text-xs text-foreground-light">{event.error.message}</p>
-                              <p className="text-xs mt-1">
-                                <span className="text-foreground-light">policy </span>
-                                <span className="font-mono text-foreground">
-                                  {event.error.policy}
-                                </span>
-                                <span className="text-foreground-light"> on table </span>
-                                <span className="font-mono text-foreground">
-                                  {event.error.table}
-                                </span>
-                              </p>
+                              {(event.error.policy || event.error.table) && (
+                                <p className="text-xs mt-1">
+                                  {event.error.policy ? (
+                                    <>
+                                      <span className="text-foreground-light">policy </span>
+                                      <span className="font-mono text-foreground">
+                                        {event.error.policy}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="text-foreground-light">
+                                      policy name unavailable from logs
+                                    </span>
+                                  )}
+                                  {event.error.table && (
+                                    <>
+                                      <span className="text-foreground-light"> on table </span>
+                                      <span className="font-mono text-foreground">
+                                        {event.error.table}
+                                      </span>
+                                    </>
+                                  )}
+                                </p>
+                              )}
                             </div>
                           </>
                         )}

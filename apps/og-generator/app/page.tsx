@@ -195,16 +195,21 @@ function LayoutThumb({ id }: { id: string }) {
   }
 }
 
-/** Real rendered 1-logo preview for the logo-grid carousel tile, instead of an abstract diagram. */
-function LogoGridCarouselThumb({ formatId }: { formatId: FormatId }) {
+// Placeholder icon names backfilled for any unpicked tile slots, so the
+// carousel thumbnail always shows the current tile *count* even before the
+// user has assigned real icons to every slot.
+const DEMO_TILE_ICONS = ['database', 'zap', 'layers', 'globe']
+
+/** Real rendered preview for the logo-grid carousel tile (reflects the live tile count), instead of an abstract diagram. */
+function LogoGridCarouselThumb({ formatId, tileCount }: { formatId: FormatId; tileCount: number }) {
   const endpoint = useMemo(() => {
     const p = new URLSearchParams()
     if (formatId !== DEFAULT_FORMAT_ID) p.set('format', formatId)
     p.set('template', 'logo-grid')
     p.set('headline', 'Now an official "partner"')
-    p.set('icons', 'database')
+    p.set('icons', DEMO_TILE_ICONS.slice(0, tileCount).join(','))
     return `/api/og?${p.toString()}`
-  }, [formatId])
+  }, [formatId, tileCount])
   const { url } = useRenderedImage(endpoint, true)
   if (!url) return <LayoutThumb id="logo-grid" />
   // eslint-disable-next-line @next/next/no-img-element
@@ -872,7 +877,7 @@ export default function Page() {
                 type="button"
                 onClick={() => setTemplate(t.id)}
                 title={t.label}
-                className="flex w-28 shrink-0 flex-col gap-1"
+                className="group flex w-28 shrink-0 flex-col gap-1"
               >
                 <span
                   className={`truncate text-left text-[10px] ${
@@ -889,9 +894,61 @@ export default function Page() {
                   style={{ aspectRatio: `${format.width} / ${format.height}` }}
                 >
                   {t.id === 'logo-grid' ? (
-                    <LogoGridCarouselThumb formatId={formatId} />
+                    <LogoGridCarouselThumb formatId={formatId} tileCount={logoTileIcons.length} />
                   ) : (
                     <LayoutThumb id={t.id} />
+                  )}
+
+                  {/* Cycle through logo-grid's tile-count variations (1-4)
+                      right from the carousel thumbnail, without opening the
+                      full sidebar control — visible on hover/focus. */}
+                  {t.id === 'logo-grid' && (
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        title="Fewer logo tiles"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setTemplate('logo-grid')
+                          setLogoTileIcons((tiles) => (tiles.length > 1 ? tiles.slice(0, -1) : tiles))
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key !== 'Enter' && e.key !== ' ') return
+                          e.stopPropagation()
+                          e.preventDefault()
+                          setTemplate('logo-grid')
+                          setLogoTileIcons((tiles) => (tiles.length > 1 ? tiles.slice(0, -1) : tiles))
+                        }}
+                        className="pointer-events-auto flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                          <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        title="More logo tiles"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setTemplate('logo-grid')
+                          setLogoTileIcons((tiles) => (tiles.length < 4 ? [...tiles, null] : tiles))
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key !== 'Enter' && e.key !== ' ') return
+                          e.stopPropagation()
+                          e.preventDefault()
+                          setTemplate('logo-grid')
+                          setLogoTileIcons((tiles) => (tiles.length < 4 ? [...tiles, null] : tiles))
+                        }}
+                        className="pointer-events-auto flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                          <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                    </div>
                   )}
                 </div>
               </button>

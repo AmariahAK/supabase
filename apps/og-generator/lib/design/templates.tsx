@@ -29,6 +29,8 @@ export interface TemplateParts {
   logoHeight: number
   /** Resolved partner logo/icon tiles (1-4), for logo-grid. */
   logoTiles?: ReactNode[]
+  /** Which element-arrangement variant to render — currently only logo-grid uses this. */
+  arrangement?: number
 }
 
 export interface Template {
@@ -322,6 +324,22 @@ export const TEMPLATES: Template[] = [
           )
         }
       })
+      const tilesRow =
+        tiles.length > 0 ? (
+          <div
+            key="tiles"
+            style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: tileGap }}
+          >
+            {rowChildren}
+          </div>
+        ) : null
+
+      // Arrangement cycles which row sits top vs. bottom within the
+      // space-between column below — the wordmark signature stays fixed in
+      // the bottom-right corner regardless. Tile count is untouched by this;
+      // that's the sidebar's "Logo tiles" stepper's job, not this pager's.
+      const stackedChildren = p.arrangement === 1 ? [p.textBlock, tilesRow] : [tilesRow, p.textBlock]
+
       return (
         <div
           style={{
@@ -331,12 +349,7 @@ export const TEMPLATES: Template[] = [
             alignItems: 'flex-start',
           }}
         >
-          {tiles.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: tileGap }}>
-              {rowChildren}
-            </div>
-          )}
-          {p.textBlock}
+          {stackedChildren}
           <div
             style={{
               display: 'flex',

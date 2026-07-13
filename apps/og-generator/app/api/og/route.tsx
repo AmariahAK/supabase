@@ -346,6 +346,10 @@ export async function GET(req: Request) {
       )
     ).filter((el): el is NonNullable<typeof el> => el !== null)
 
+    // logo-grid: which element-arrangement variant to render (which row
+    // sits top vs. bottom) — never changes the tile count above.
+    const arrangement = Number(searchParams.get('arrangement') ?? 0) || 0
+
     const root = template.build({
       W,
       H,
@@ -357,6 +361,7 @@ export async function GET(req: Request) {
       logoEl,
       logoHeight,
       logoTiles,
+      arrangement,
       iconEl,
       hasIcon,
     })

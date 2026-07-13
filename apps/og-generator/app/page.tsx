@@ -25,10 +25,21 @@ const SOFT_LIMIT = 40
 const HARD_LIMIT = 50
 const EYEBROW_LIMIT = 20
 
+// logo-grid element-arrangement variants (which row sits top vs. bottom) —
+// keep in sync with the `arrangement` handling in lib/design/templates.tsx.
+const LOGO_GRID_ARRANGEMENT_COUNT = 2
+
 /** Truncate to a max grapheme count — matches the `[...s].length` counters below. */
 function clampChars(value: string, limit: number) {
   const chars = [...value]
   return chars.length > limit ? chars.slice(0, limit).join('') : value
+}
+
+/** Picks a random icon/logo name for a freshly-added logo-grid tile, so the
+ * render updates immediately instead of sitting on an empty "Pick" slot. */
+function randomIconName(icons: SeedIcon[]): string | null {
+  if (!icons.length) return null
+  return icons[Math.floor(Math.random() * icons.length)].name
 }
 
 type View = 'og' | 'thumb' | 'both'
@@ -473,11 +484,15 @@ export default function Page() {
   const [icon, setIcon] = useState<string | null>(null)
   const [iconPickerOpen, setIconPickerOpen] = useState(false)
   const iconPickerRef = useRef<HTMLDivElement>(null)
-  // logo-grid: 1-4 partner logo tiles, cycled via a count stepper — each
+  // logo-grid: 1-4 partner logo tiles, adjusted via a count stepper — each
   // slot holds its own icon/logo name (or null while unpicked).
   const [logoTileIcons, setLogoTileIcons] = useState<(string | null)[]>(['database'])
   const [logoTilePickerOpen, setLogoTilePickerOpen] = useState<number | null>(null)
   const logoTilePickerRef = useRef<HTMLDivElement>(null)
+  // logo-grid: which element-arrangement variant is active (tile row vs.
+  // copy top/bottom, tile count is untouched by this — see "Alternate
+  // layouts" pager under the canvas).
+  const [logoArrangement, setLogoArrangement] = useState(0)
   const [uploadedIcons, setUploadedIcons] = useState<SeedIcon[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -700,13 +715,14 @@ export default function Page() {
     if (template === 'logo-grid') {
       const names = logoTileIcons.filter((n): n is string => !!n)
       if (names.length) p.set('icons', names.join(','))
+      if (logoArrangement) p.set('arrangement', String(logoArrangement))
     } else if (icon) {
       p.set('icon', icon)
     }
     if (scale === 2) p.set('scale', '2')
     return `/api/og?${p.toString()}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandId, formatId, headline, eyebrow, template, icon, logoTileIcons, scale])
+  }, [brandId, formatId, headline, eyebrow, template, icon, logoTileIcons, logoArrangement, scale])
 
   const thumbEndpoint = useMemo(() => {
     const p = new URLSearchParams()
@@ -724,6 +740,7 @@ export default function Page() {
       if (template === 'logo-grid') {
         const names = logoTileIcons.filter((n): n is string => !!n)
         if (names.length) p.set('icons', names.join(','))
+        if (logoArrangement) p.set('arrangement', String(logoArrangement))
       } else if (icon) {
         p.set('icon', icon)
       }
@@ -735,7 +752,7 @@ export default function Page() {
     if (scale === 2) p.set('scale', '2')
     return `/api/og?${p.toString()}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandId, formatId, hasSecondary, headline, eyebrow, template, icon, logoTileIcons, scale])
+  }, [brandId, formatId, hasSecondary, headline, eyebrow, template, icon, logoTileIcons, logoArrangement, scale])
 
   const og = useRenderedImage(ogEndpoint, showOg)
   const thumb = useRenderedImage(thumbEndpoint, showThumb || wantsThumbForBlogPost)
@@ -829,36 +846,33 @@ export default function Page() {
               )}
             </div>
 
-            {/* Alternate layouts — cycles a template's own variant count
-                (currently just logo-grid's tile count) directly under the
-                canvas, rather than requiring the sidebar's full picker. */}
+            {/* Alternate layouts — cycles how logo-grid arranges its
+                elements (which row sits top vs. bottom, copy alignment) —
+                the tile count itself never changes here, that's the
+                sidebar's "Logo tiles" stepper's job. */}
             {template === 'logo-grid' && showOg && (
               <div className="mx-auto mt-4 flex items-center gap-3 rounded-md border border-default bg-background px-4 py-2.5 shadow-lg">
                 <span className="text-xs font-medium text-foreground-light">Alternate layouts</span>
                 <button
                   type="button"
                   onClick={() =>
-                    setLogoTileIcons((tiles) => (tiles.length > 1 ? tiles.slice(0, -1) : tiles))
+                    setLogoArrangement((a) => (a - 1 + LOGO_GRID_ARRANGEMENT_COUNT) % LOGO_GRID_ARRANGEMENT_COUNT)
                   }
-                  disabled={logoTileIcons.length <= 1}
                   title="Previous layout"
-                  className="flex h-7 w-7 items-center justify-center rounded-md border border-default bg-surface-100 text-foreground-light hover:border-strong disabled:opacity-40"
+                  className="flex h-7 w-7 items-center justify-center rounded-md border border-default bg-surface-100 text-foreground-light hover:border-strong"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                     <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </button>
                 <span className="w-10 text-center text-xs text-foreground-lighter">
-                  {logoTileIcons.length} / 4
+                  {logoArrangement + 1} / {LOGO_GRID_ARRANGEMENT_COUNT}
                 </span>
                 <button
                   type="button"
-                  onClick={() =>
-                    setLogoTileIcons((tiles) => (tiles.length < 4 ? [...tiles, null] : tiles))
-                  }
-                  disabled={logoTileIcons.length >= 4}
+                  onClick={() => setLogoArrangement((a) => (a + 1) % LOGO_GRID_ARRANGEMENT_COUNT)}
                   title="Next layout"
-                  className="flex h-7 w-7 items-center justify-center rounded-md border border-default bg-surface-100 text-foreground-light hover:border-strong disabled:opacity-40"
+                  className="flex h-7 w-7 items-center justify-center rounded-md border border-default bg-surface-100 text-foreground-light hover:border-strong"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                     <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
@@ -1301,7 +1315,7 @@ export default function Page() {
                     <button
                       type="button"
                       onClick={() =>
-                        setLogoTileIcons((tiles) => (tiles.length < 4 ? [...tiles, null] : tiles))
+                        setLogoTileIcons((tiles) => (tiles.length < 4 ? [...tiles, randomIconName(allIcons)] : tiles))
                       }
                       disabled={logoTileIcons.length >= 4}
                       title="More tiles"

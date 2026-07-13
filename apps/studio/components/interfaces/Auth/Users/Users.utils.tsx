@@ -440,7 +440,7 @@ export const formatUserColumns = ({
                 }}
               >
                 <ScrollText size={12} />
-                <span>View users logs</span>
+                <span>View user logs</span>
               </ContextMenuItem>
 
               <ContextMenuSeparator />

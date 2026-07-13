@@ -782,18 +782,18 @@ export default function Page() {
               their content, so this can't clip an overflowing row — it just
               grows.) */
           <div className="flex w-full flex-1 flex-col">
-            {/* `mx-auto` centers the card horizontally while it fits, and
+            {/* `mx-auto` centers the row horizontally while it fits, and
                 automatically collapses to 0 (i.e. start-aligned) once it
                 overflows — so zooming in never clips the leading edge.
                 Top-aligned (not vertically centered) so the Alternate
                 layouts pagination below always sits directly under the
-                card instead of floating mid-canvas. */}
-            <div
-              className="mx-auto flex flex-col gap-6 @4xl:flex-row @4xl:items-start"
-              style={{ width: `${Math.round((view === 'both' ? 100 : 65) * (zoom / 100))}%` }}
-            >
+                card instead of floating mid-canvas. Each card gets an
+                explicit px width (format px × zoom) instead of stretching
+                to fill — so 100% zoom renders the image at its actual
+                pixel dimensions, not an arbitrary fraction of the canvas. */}
+            <div className="mx-auto flex flex-col gap-6 @4xl:flex-row @4xl:items-start">
               {showOg && (
-                <div className="min-w-0 @4xl:flex-1">
+                <div className="min-w-0" style={{ width: `${Math.round(format.width * (zoom / 100))}px` }}>
                   <PreviewCard
                     label={primarySlotLabel}
                     width={format.width}
@@ -807,7 +807,10 @@ export default function Page() {
               )}
 
               {showThumb && (
-                <div className="min-w-0 @4xl:flex-1">
+                <div
+                  className="min-w-0"
+                  style={{ width: `${Math.round(secondSlotWidth * (zoom / 100))}px` }}
+                >
                   <PreviewCard
                     label={secondSlotLabel}
                     width={secondSlotWidth}

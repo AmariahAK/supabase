@@ -35,6 +35,18 @@ function fitBox(naturalW: number, naturalH: number, boxSize: number): { width: n
   return ratio >= 1 ? { width: boxSize, height: boxSize / ratio } : { width: boxSize * ratio, height: boxSize }
 }
 
+/** Scale (naturalW, naturalH) to fit within a boxW × boxH rect, preserving aspect ratio. */
+function fitRect(
+  naturalW: number,
+  naturalH: number,
+  boxW: number,
+  boxH: number
+): { width: number; height: number } {
+  const ratio = naturalW / naturalH || 1
+  const boxRatio = boxW / boxH
+  return ratio >= boxRatio ? { width: boxW, height: boxW / ratio } : { width: boxH * ratio, height: boxH }
+}
+
 const CORS_AND_CACHE = {
   'access-control-allow-origin': '*',
   'cache-control': 'no-store, max-age=0',
@@ -91,6 +103,9 @@ export async function GET(req: Request) {
     // Seed icons first, then uploaded assets from Supabase (brief §6).
     const iconObj = iconName ? await resolveIcon(iconName, brand.id) : null
     const type = searchParams.get('type') === 'thumb' ? 'thumb' : 'og'
+    // Resolved above the Thumb branch too — some templates (Announcement)
+    // override the Thumb's default square icon crop via `thumbBox`.
+    const template = TEMPLATE_MAP[searchParams.get('template') ?? ''] ?? TEMPLATE_MAP[DEFAULT_TEMPLATE_ID]
 
     // ---- Thumb variant: same canvas + icon system, no text layer (brief §3) -
     if (type === 'thumb') {
@@ -100,6 +115,10 @@ export async function GET(req: Request) {
         ? Math.min(thumb.max, Math.max(thumb.min, Math.round(thumbNum)))
         : thumb.default
       const thumbBgImage = iconObj ? null : randomBackgroundDataUri()
+      // A template can override the Thumb's default square crop with a fixed
+      // (possibly non-square) box — e.g. Announcement's 375×200 logo box.
+      const thumbBoxW = (template.thumbBox?.width ?? thumbSize) * s
+      const thumbBoxH = (template.thumbBox?.height ?? thumbSize) * s
 
       const thumbRoot = (
         <div
@@ -120,17 +139,14 @@ export async function GET(req: Request) {
             // Custom color logo — rendered as-is (no stroke normalization),
             // fit to its natural aspect ratio (brief follow-up: partnerships).
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              {...fitBox(iconObj.width ?? 1, iconObj.height ?? 1, thumbSize * s)}
-              src={iconObj.url}
-            />
+            <img {...fitRect(iconObj.width ?? 1, iconObj.height ?? 1, thumbBoxW, thumbBoxH)} src={iconObj.url} />
           ) : iconObj ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              width={thumbSize * s}
-              height={thumbSize * s}
+              width={Math.min(thumbBoxW, thumbBoxH)}
+              height={Math.min(thumbBoxW, thumbBoxH)}
               src={iconDataUri(iconObj, {
-                sizePx: thumbSize * s,
+                sizePx: Math.min(thumbBoxW, thumbBoxH),
                 strokePx: ICON_STROKE * s,
                 color: color('illustration.stroke', brand),
               })}
@@ -151,7 +167,10 @@ export async function GET(req: Request) {
     }
 
     // ---- OG image (template-driven) -----------------------------------------
-    const template = TEMPLATE_MAP[searchParams.get('template') ?? ''] ?? TEMPLATE_MAP[DEFAULT_TEMPLATE_ID]
+    // Which element-arrangement variant to render (grouped templates only,
+    // e.g. icon-layout/logo-layout/logo-grid) — never changes tile count or
+    // any other content, just which sub-layout the template's `build` picks.
+    const arrangement = Number(searchParams.get('arrangement') ?? 0) || 0
 
     const rawHeadline = (searchParams.get('headline') ?? DEFAULT_HEADLINE).slice(0, 200)
     const eyebrow = template.noEyebrow ? null : searchParams.get('eyebrow')?.trim().slice(0, 20) || null
@@ -170,8 +189,11 @@ export async function GET(req: Request) {
       ? Math.min(HEADLINE.sizeTiers.default.maxSize, Math.max(HEADLINE.sizeTiers.compact.minSize, Math.round(manualSizeNum)))
       : null
 
+    const effectiveTextAlign = template.textAlignForArrangement
+      ? template.textAlignForArrangement(arrangement)
+      : template.textAlign
     const textCrossAlign =
-      template.textAlign === 'center' ? 'center' : template.textAlign === 'right' ? 'flex-end' : 'flex-start'
+      effectiveTextAlign === 'center' ? 'center' : effectiveTextAlign === 'right' ? 'flex-end' : 'flex-start'
     const headline = sentenceCase ? toSentenceCase(rawHeadline) : rawHeadline
     // "Quotation" override: wrap a run in "double quotes" to highlight it in
     // the brand accent color. Quotes are stripped before layout/measurement
@@ -188,11 +210,11 @@ export async function GET(req: Request) {
     const initialTier = hasIcon ? HEADLINE.sizeTiers.compact : HEADLINE.sizeTiers.default
     const fitAt = (tier: { minSize: number; maxSize: number }) =>
       fitHeadline(cleanedHeadline, headlineFont, {
-        boxWidth: template.headlineBox(format),
+        boxWidth: template.headlineBox(format, arrangement),
         minSize: manualSize ?? tier.minSize,
         maxSize: manualSize ?? tier.maxSize,
         step: 2,
-        maxLines: 3,
+        maxLines: template.maxHeadlineLines ?? 3,
         letterSpacingEm: HEADLINE.letterSpacing,
         manualBreaks,
       })
@@ -346,9 +368,30 @@ export async function GET(req: Request) {
       )
     ).filter((el): el is NonNullable<typeof el> => el !== null)
 
-    // logo-grid: which element-arrangement variant to render (which row
-    // sits top vs. bottom) — never changes the tile count above.
-    const arrangement = Number(searchParams.get('arrangement') ?? 0) || 0
+    // Announcement: single icon/logo pre-sized to 50% of the template's
+    // Thumb box (e.g. 375×200 → 187.5×100), for the OG's bottom-anchored logo.
+    const halfThumbLogoEl =
+      template.thumbBox && iconObj
+        ? (() => {
+            const boxW = (template.thumbBox!.width / 2) * s
+            const boxH = (template.thumbBox!.height / 2) * s
+            return iconObj.kind === 'logo' && iconObj.url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img {...fitRect(iconObj.width ?? 1, iconObj.height ?? 1, boxW, boxH)} src={iconObj.url} />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                width={Math.min(boxW, boxH)}
+                height={Math.min(boxW, boxH)}
+                src={iconDataUri(iconObj, {
+                  sizePx: Math.min(boxW, boxH),
+                  strokePx: ICON_STROKE * s,
+                  color: color('illustration.stroke', brand),
+                })}
+              />
+            )
+          })()
+        : null
 
     const root = template.build({
       W,
@@ -362,6 +405,7 @@ export async function GET(req: Request) {
       logoHeight,
       logoTiles,
       arrangement,
+      halfThumbLogoEl,
       iconEl,
       hasIcon,
     })

@@ -12,6 +12,7 @@ import {
   DEFAULT_TEMPLATE_ID,
   NEWSLETTER_TEMPLATES,
   SOCIAL_TEMPLATES,
+  TEMPLATE_MAP,
   TEMPLATES,
 } from '@/lib/design/templates'
 import { IN_CONTEXT_OPTS, InContextPreview, type InContextMode } from './InContextPreview'
@@ -24,10 +25,6 @@ import { IN_CONTEXT_OPTS, InContextPreview, type InContextMode } from './InConte
 const SOFT_LIMIT = 40
 const HARD_LIMIT = 50
 const EYEBROW_LIMIT = 20
-
-// logo-grid element-arrangement variants (which row sits top vs. bottom) —
-// keep in sync with the `arrangement` handling in lib/design/templates.tsx.
-const LOGO_GRID_ARRANGEMENT_COUNT = 2
 
 /** Truncate to a max grapheme count — matches the `[...s].length` counters below. */
 function clampChars(value: string, limit: number) {
@@ -134,26 +131,11 @@ function LayoutThumb({ id }: { id: string }) {
     </div>
   )
   switch (id) {
-    case 'split-right':
-      return (
-        <div className="relative h-full w-full">
-          <div className="absolute left-1.5 top-1/2 -translate-y-1/2">{bars('items-start')}</div>
-          <div className="absolute right-1.5 top-1/2 -translate-y-1/2">{iconBox}</div>
-        </div>
-      )
     case 'social-instagram':
-    case 'centered':
       return (
         <div className="relative h-full w-full">
           <div className="absolute left-1/2 top-1.5 -translate-x-1/2">{iconBox}</div>
           <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2">{bars('items-center')}</div>
-        </div>
-      )
-    case 'stacked':
-      return (
-        <div className="relative h-full w-full">
-          <div className="absolute left-1.5 top-1.5">{bars('items-start')}</div>
-          <div className="absolute bottom-1.5 right-1.5">{iconBox}</div>
         </div>
       )
     case 'newsletter-section':
@@ -163,24 +145,10 @@ function LayoutThumb({ id }: { id: string }) {
           <div className="absolute left-6 top-1/2 h-1 w-6 -translate-y-1/2 rounded-full bg-foreground-lighter" />
         </div>
       )
-    case 'logo-top-left':
+    case 'logo-layout':
       return (
         <div className="relative h-full w-full">
           <div className="absolute left-1.5 top-1.5 h-1.5 w-4 rounded-sm bg-surface-300" />
-          <div className="absolute bottom-1.5 left-1.5">{bars('items-start')}</div>
-        </div>
-      )
-    case 'logo-left-text-right':
-      return (
-        <div className="relative h-full w-full">
-          <div className="absolute left-1.5 top-1/2 h-1.5 w-3 -translate-y-1/2 rounded-sm bg-surface-300" />
-          <div className="absolute right-1.5 top-1/2 -translate-y-1/2">{bars('items-end')}</div>
-        </div>
-      )
-    case 'logo-center-left':
-      return (
-        <div className="relative h-full w-full">
-          <div className="absolute left-1.5 top-1/2 h-1.5 w-4 -translate-y-1/2 rounded-sm bg-surface-300" />
           <div className="absolute bottom-1.5 left-1.5">{bars('items-start')}</div>
         </div>
       )
@@ -194,9 +162,16 @@ function LayoutThumb({ id }: { id: string }) {
           <div className="absolute bottom-1.5 left-1.5">{bars('items-start')}</div>
         </div>
       )
+    case 'announcement':
+      return (
+        <div className="relative h-full w-full">
+          <div className="absolute left-1.5 top-1.5">{bars('items-start')}</div>
+          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2">{iconBox}</div>
+        </div>
+      )
     case 'newsletter-cover':
     case 'social-twitter':
-    case 'bottom-left':
+    case 'icon-layout':
     default:
       return (
         <div className="relative h-full w-full">
@@ -207,18 +182,29 @@ function LayoutThumb({ id }: { id: string }) {
   }
 }
 
-/** Real rendered 1-logo preview for the logo-grid carousel tile, instead of an abstract diagram. */
-function LogoGridCarouselThumb({ formatId }: { formatId: FormatId }) {
+// Demo params for carousel tiles that get a REAL rendered preview instead of
+// the abstract LayoutThumb diagram — grouped templates especially benefit
+// since one carousel entry now stands in for several merged sub-layouts.
+const CAROUSEL_DEMO_PARAMS: Record<string, Record<string, string>> = {
+  'icon-layout': { headline: 'Now an official "partner"', icon: 'database' },
+  'logo-layout': { headline: 'Acme joins Supabase' },
+  'logo-grid': { headline: 'Now an official "partner"', icons: 'database' },
+  announcement: { headline: 'Acme joins Supabase', icon: 'database' },
+}
+
+/** Real rendered preview for carousel tiles listed in `CAROUSEL_DEMO_PARAMS`, instead of an abstract diagram. */
+function TemplateCarouselThumb({ id, formatId }: { id: string; formatId: FormatId }) {
+  const demo = CAROUSEL_DEMO_PARAMS[id]
   const endpoint = useMemo(() => {
     const p = new URLSearchParams()
     if (formatId !== DEFAULT_FORMAT_ID) p.set('format', formatId)
-    p.set('template', 'logo-grid')
-    p.set('headline', 'Now an official "partner"')
-    p.set('icons', 'database')
+    p.set('template', id)
+    Object.entries(demo ?? {}).forEach(([k, v]) => p.set(k, v))
     return `/api/og?${p.toString()}`
-  }, [formatId])
-  const { url } = useRenderedImage(endpoint, true)
-  if (!url) return <LayoutThumb id="logo-grid" />
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, formatId])
+  const { url } = useRenderedImage(endpoint, !!demo)
+  if (!demo || !url) return <LayoutThumb id={id} />
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" />
 }
@@ -489,10 +475,17 @@ export default function Page() {
   const [logoTileIcons, setLogoTileIcons] = useState<(string | null)[]>(['database'])
   const [logoTilePickerOpen, setLogoTilePickerOpen] = useState<number | null>(null)
   const logoTilePickerRef = useRef<HTMLDivElement>(null)
-  // logo-grid: which element-arrangement variant is active (tile row vs.
-  // copy top/bottom, tile count is untouched by this — see "Alternate
-  // layouts" pager under the canvas).
-  const [logoArrangement, setLogoArrangement] = useState(0)
+  // Which element-arrangement variant is active for the current template —
+  // grouped templates (icon-layout, logo-layout, logo-grid) each merge
+  // several sub-layouts behind one carousel entry; this cycles between them
+  // via the "Alternate layouts" pager under the canvas. Reset to 0 whenever
+  // the template changes so switching layouts doesn't carry over an
+  // out-of-range arrangement index.
+  const [arrangement, setArrangement] = useState(0)
+  const arrangementCount = TEMPLATE_MAP[template]?.arrangementCount ?? 1
+  useEffect(() => {
+    setArrangement(0)
+  }, [template])
   const [uploadedIcons, setUploadedIcons] = useState<SeedIcon[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -506,6 +499,14 @@ export default function Page() {
   const showIconControl = !selectedTemplateObj?.noIcon
   const showEyebrowControl = !selectedTemplateObj?.noEyebrow
   const selectedIcon = useMemo(() => allIcons.find((i) => i.name === icon) ?? null, [allIcons, icon])
+
+  // icon-layout defaults to showing an icon (rather than the usual "None")
+  // since the layout is designed around one — auto-pick the first time the
+  // user lands on it with nothing selected yet.
+  useEffect(() => {
+    if (template === 'icon-layout' && !icon) setIcon('database')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template])
 
   // Load the shared asset library (uploaded icons) for the active brand; empty
   // when Supabase is off.
@@ -715,14 +716,14 @@ export default function Page() {
     if (template === 'logo-grid') {
       const names = logoTileIcons.filter((n): n is string => !!n)
       if (names.length) p.set('icons', names.join(','))
-      if (logoArrangement) p.set('arrangement', String(logoArrangement))
     } else if (icon) {
       p.set('icon', icon)
     }
+    if (arrangement) p.set('arrangement', String(arrangement))
     if (scale === 2) p.set('scale', '2')
     return `/api/og?${p.toString()}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandId, formatId, headline, eyebrow, template, icon, logoTileIcons, logoArrangement, scale])
+  }, [brandId, formatId, headline, eyebrow, template, icon, logoTileIcons, arrangement, scale])
 
   const thumbEndpoint = useMemo(() => {
     const p = new URLSearchParams()
@@ -740,19 +741,23 @@ export default function Page() {
       if (template === 'logo-grid') {
         const names = logoTileIcons.filter((n): n is string => !!n)
         if (names.length) p.set('icons', names.join(','))
-        if (logoArrangement) p.set('arrangement', String(logoArrangement))
       } else if (icon) {
         p.set('icon', icon)
       }
+      if (arrangement) p.set('arrangement', String(arrangement))
       p.set('variant', 'secondary')
     } else {
+      // The classic icon-only Thumb still needs `template` — some templates
+      // (e.g. Announcement) override the default square icon crop via
+      // `thumbBox`, which the render route looks up by template id.
       p.set('type', 'thumb')
+      p.set('template', template)
       if (icon) p.set('icon', icon)
     }
     if (scale === 2) p.set('scale', '2')
     return `/api/og?${p.toString()}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandId, formatId, hasSecondary, headline, eyebrow, template, icon, logoTileIcons, logoArrangement, scale])
+  }, [brandId, formatId, hasSecondary, headline, eyebrow, template, icon, logoTileIcons, arrangement, scale])
 
   const og = useRenderedImage(ogEndpoint, showOg)
   const thumb = useRenderedImage(thumbEndpoint, showThumb || wantsThumbForBlogPost)
@@ -846,18 +851,17 @@ export default function Page() {
               )}
             </div>
 
-            {/* Alternate layouts — cycles how logo-grid arranges its
-                elements (which row sits top vs. bottom, copy alignment) —
-                the tile count itself never changes here, that's the
-                sidebar's "Logo tiles" stepper's job. */}
-            {template === 'logo-grid' && showOg && (
+            {/* Alternate layouts — cycles how a grouped template arranges
+                its elements (icon-layout, logo-layout, logo-grid each merge
+                several sub-layouts behind one carousel entry). Never
+                changes content itself (e.g. logo-grid's tile count is the
+                sidebar's "Logo tiles" stepper's job, not this pager's). */}
+            {arrangementCount > 1 && showOg && (
               <div className="mx-auto mt-4 flex items-center gap-3 rounded-md border border-default bg-background px-4 py-2.5 shadow-lg">
                 <span className="text-xs font-medium text-foreground-light">Alternate layouts</span>
                 <button
                   type="button"
-                  onClick={() =>
-                    setLogoArrangement((a) => (a - 1 + LOGO_GRID_ARRANGEMENT_COUNT) % LOGO_GRID_ARRANGEMENT_COUNT)
-                  }
+                  onClick={() => setArrangement((a) => (a - 1 + arrangementCount) % arrangementCount)}
                   title="Previous layout"
                   className="flex h-7 w-7 items-center justify-center rounded-md border border-default bg-surface-100 text-foreground-light hover:border-strong"
                 >
@@ -866,11 +870,11 @@ export default function Page() {
                   </svg>
                 </button>
                 <span className="w-10 text-center text-xs text-foreground-lighter">
-                  {logoArrangement + 1} / {LOGO_GRID_ARRANGEMENT_COUNT}
+                  {arrangement + 1} / {arrangementCount}
                 </span>
                 <button
                   type="button"
-                  onClick={() => setLogoArrangement((a) => (a + 1) % LOGO_GRID_ARRANGEMENT_COUNT)}
+                  onClick={() => setArrangement((a) => (a + 1) % arrangementCount)}
                   title="Next layout"
                   className="flex h-7 w-7 items-center justify-center rounded-md border border-default bg-surface-100 text-foreground-light hover:border-strong"
                 >
@@ -949,8 +953,8 @@ export default function Page() {
                   }`}
                   style={{ aspectRatio: `${format.width} / ${format.height}` }}
                 >
-                  {t.id === 'logo-grid' ? (
-                    <LogoGridCarouselThumb formatId={formatId} />
+                  {CAROUSEL_DEMO_PARAMS[t.id] ? (
+                    <TemplateCarouselThumb id={t.id} formatId={formatId} />
                   ) : (
                     <LayoutThumb id={t.id} />
                   )}

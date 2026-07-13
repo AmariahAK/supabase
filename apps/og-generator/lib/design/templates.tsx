@@ -29,8 +29,10 @@ export interface TemplateParts {
   logoHeight: number
   /** Resolved partner logo/icon tiles (1-4), for logo-grid. */
   logoTiles?: ReactNode[]
-  /** Which element-arrangement variant to render — currently only logo-grid uses this. */
+  /** Which element-arrangement variant to render (0-based) — see `Template.arrangementCount`. */
   arrangement?: number
+  /** Single icon/logo pre-sized to 50% of `thumbBox` — Announcement's OG logo. */
+  halfThumbLogoEl?: ReactNode | null
 }
 
 export interface Template {
@@ -42,9 +44,11 @@ export interface Template {
    * handful of layouts.
    */
   category: string
-  /** Headline text-box width (1x px) the auto-fit measures against, for a given format. */
-  headlineBox: (format: Format) => number
+  /** Headline text-box width (1x px) the auto-fit measures against, for a given format + arrangement. */
+  headlineBox: (format: Format, arrangement?: number) => number
   textAlign: 'left' | 'center' | 'right'
+  /** Overrides `textAlign` per arrangement variant — only needed by grouped templates whose sub-layouts don't share one alignment (e.g. icon-layout's centered variant). */
+  textAlignForArrangement?: (arrangement: number) => 'left' | 'center' | 'right'
   /** Where the content sits (§4). */
   anchorX: 'left' | 'center' | 'right'
   anchorY: 'top' | 'center' | 'bottom'
@@ -57,6 +61,12 @@ export interface Template {
   noIcon?: boolean
   /** Hides the Eyebrow control and omits the eyebrow pill from the render. */
   noEyebrow?: boolean
+  /** Number of alternate element-arrangement variants (default 1 = none) — drives the "Alternate layouts" pager. */
+  arrangementCount?: number
+  /** Overrides the default square Thumb box (1x px) — e.g. Announcement's 375×200 logo-only thumb. */
+  thumbBox?: { width: number; height: number }
+  /** Caps headline line count below the default 3 (e.g. Announcement's 2-line max). */
+  maxHeadlineLines?: number
 }
 
 // Gap (1x px) between the headline and the icon column in split-right.
@@ -64,6 +74,10 @@ const SPLIT_RIGHT_GAP = 56
 
 // How far (1x px) logo-center-left's logo sits above dead-center vertically.
 const LOGO_CENTER_LIFT_1X = 40
+
+// Announcement: distance (1x px) from the canvas bottom edge to the *bottom*
+// of the centered logo — a fixed brand guideline, not tied to headlineInset.
+const ANNOUNCEMENT_LOGO_BOTTOM_1X = 80
 
 function rootBase(p: TemplateParts): CSSProperties {
   return {
@@ -79,197 +93,178 @@ function rootBase(p: TemplateParts): CSSProperties {
 
 export const TEMPLATES: Template[] = [
   {
-    id: 'bottom-left',
-    label: 'Headline bottom-left',
+    id: 'icon-layout',
+    label: 'Headline + icon',
     category: 'Icon layouts',
-    headlineBox: fullHeadlineBoxWidth,
+    // arrangement 0: bottom-left · 1: split-right · 2: centered · 3: stacked
+    // (formerly 4 separate template ids — grouped behind one carousel entry
+    // + the "Alternate layouts" pager so it doesn't crowd the picker).
+    headlineBox: (format, arrangement = 0) =>
+      arrangement === 1
+        ? fullHeadlineBoxWidth(format) - format.iconSize - SPLIT_RIGHT_GAP
+        : arrangement === 2
+          ? Math.round(format.width * 0.75)
+          : fullHeadlineBoxWidth(format),
     textAlign: 'left',
+    textAlignForArrangement: (arrangement) => (arrangement === 2 ? 'center' : 'left'),
     anchorX: 'left',
     anchorY: 'bottom',
-    build: (p) => (
-      <div
-        style={{
-          ...rootBase(p),
-          flexDirection: 'column',
-          justifyContent: p.hasIcon ? 'space-between' : 'flex-end',
-          alignItems: 'flex-start',
-        }}
-      >
-        {p.hasIcon ? (
-          <div style={{ display: 'flex', width: p.W - p.padX * 2, justifyContent: 'flex-end' }}>
+    arrangementCount: 4,
+    build: (p) => {
+      const arrangement = p.arrangement ?? 0
+      if (arrangement === 1) {
+        // Headline left, icon right.
+        return (
+          <div
+            style={{
+              ...rootBase(p),
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 56 * p.scaleFactor,
+            }}
+          >
+            {p.textBlock}
             {p.iconEl}
           </div>
-        ) : null}
-        {p.textBlock}
-      </div>
-    ),
-  },
-  {
-    id: 'split-right',
-    label: 'Headline left, icon right',
-    category: 'Icon layouts',
-    // Leaves room for the icon column (764 at the OG/Twitter format's 1200 width).
-    headlineBox: (format) => fullHeadlineBoxWidth(format) - format.iconSize - SPLIT_RIGHT_GAP,
-    textAlign: 'left',
-    anchorX: 'left',
-    anchorY: 'center',
-    build: (p) => (
-      <div
-        style={{
-          ...rootBase(p),
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 56 * p.scaleFactor,
-        }}
-      >
-        {p.textBlock}
-        {p.iconEl}
-      </div>
-    ),
-  },
-  {
-    id: 'centered',
-    label: 'Centered',
-    category: 'Icon layouts',
-    // 75% of the format width (900 at the OG/Twitter format's 1200 width) —
-    // deliberately narrower than the full inset box for shorter, balanced lines.
-    headlineBox: (format) => Math.round(format.width * 0.75),
-    textAlign: 'center',
-    anchorX: 'center',
-    anchorY: 'center',
-    build: (p) => (
-      <div
-        style={{
-          ...rootBase(p),
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          textAlign: 'center',
-        }}
-      >
-        {p.hasIcon ? (
-          <div style={{ display: 'flex', marginBottom: 36 * p.scaleFactor }}>{p.iconEl}</div>
-        ) : null}
-        {p.textBlock}
-      </div>
-    ),
-  },
-  {
-    id: 'stacked',
-    label: 'Headline top, icon bottom',
-    category: 'Icon layouts',
-    headlineBox: fullHeadlineBoxWidth,
-    textAlign: 'left',
-    anchorX: 'left',
-    anchorY: 'top',
-    build: (p) => (
-      <div
-        style={{
-          ...rootBase(p),
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-        }}
-      >
-        {p.textBlock}
-        {p.iconEl}
-      </div>
-    ),
-  },
-  {
-    id: 'logo-top-left',
-    label: 'Logo top-left',
-    category: 'Logo layouts',
-    headlineBox: fullHeadlineBoxWidth,
-    textAlign: 'left',
-    anchorX: 'left',
-    anchorY: 'bottom',
-    noIcon: true,
-    build: (p) => (
-      <div
-        style={{
-          ...rootBase(p),
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-        }}
-      >
-        <div style={{ display: 'flex' }}>{p.logoEl}</div>
-        {p.textBlock}
-      </div>
-    ),
-  },
-  {
-    id: 'logo-left-text-right',
-    label: 'Logo left, text right',
-    category: 'Logo layouts',
-    // Narrower fixed box (rather than a fraction of the format width) so the
-    // headline reads as a tidy right-hand column regardless of format width.
-    headlineBox: (format) => Math.min(580, fullHeadlineBoxWidth(format) - format.width * 0.28),
-    // The text block itself is left-aligned (ragged-right per line) — it's
-    // the block's bounding box, sized to the widest line, that's pinned to
-    // the column's right edge via the row's `justifyContent: flex-end`.
-    textAlign: 'left',
-    anchorX: 'right',
-    anchorY: 'center',
-    noIcon: true,
-    build: (p) => (
-      <div style={{ ...rootBase(p), flexDirection: 'row', alignItems: 'stretch' }}>
+        )
+      }
+      if (arrangement === 2) {
+        // Centered.
+        return (
+          <div
+            style={{
+              ...rootBase(p),
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'center',
+            }}
+          >
+            {p.hasIcon ? (
+              <div style={{ display: 'flex', marginBottom: 36 * p.scaleFactor }}>{p.iconEl}</div>
+            ) : null}
+            {p.textBlock}
+          </div>
+        )
+      }
+      if (arrangement === 3) {
+        // Headline top, icon bottom.
+        return (
+          <div
+            style={{
+              ...rootBase(p),
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+            }}
+          >
+            {p.textBlock}
+            {p.iconEl}
+          </div>
+        )
+      }
+      // arrangement 0 (default): headline bottom-left, icon top-right.
+      return (
         <div
           style={{
-            display: 'flex',
-            flex: '0 0 28%',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
+            ...rootBase(p),
+            flexDirection: 'column',
+            justifyContent: p.hasIcon ? 'space-between' : 'flex-end',
+            alignItems: 'flex-start',
           }}
         >
-          {p.logoEl}
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            flex: '1 1 auto',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-          }}
-        >
-          <div style={{ display: 'flex', maxWidth: 580 * p.scaleFactor }}>{p.textBlock}</div>
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: 'logo-center-left',
-    label: 'Logo center, text bottom',
-    category: 'Logo layouts',
-    headlineBox: fullHeadlineBoxWidth,
-    textAlign: 'left',
-    anchorX: 'left',
-    anchorY: 'bottom',
-    noIcon: true,
-    noEyebrow: true,
-    build: (p) => (
-      <div style={{ ...rootBase(p), position: 'relative' }}>
-        <div
-          style={{
-            display: 'flex',
-            position: 'absolute',
-            left: p.padX,
-            top: '50%',
-            // Sit a bit above dead-center — nudges the logo up off the true
-            // vertical midpoint (1x design px, scaled) so it doesn't read as
-            // mechanically centered against the bottom-anchored text.
-            marginTop: -(p.logoHeight / 2) - LOGO_CENTER_LIFT_1X * p.scaleFactor,
-          }}
-        >
-          {p.logoEl}
-        </div>
-        <div style={{ display: 'flex', position: 'absolute', left: p.padX, bottom: p.padY }}>
+          {p.hasIcon ? (
+            <div style={{ display: 'flex', width: p.W - p.padX * 2, justifyContent: 'flex-end' }}>
+              {p.iconEl}
+            </div>
+          ) : null}
           {p.textBlock}
         </div>
-      </div>
-    ),
+      )
+    },
+  },
+  {
+    id: 'logo-layout',
+    label: 'Headline + logo',
+    category: 'Logo layouts',
+    // arrangement 0: logo top-left · 1: logo left, text right · 2: logo center-left
+    // (formerly 3 separate template ids — grouped the same way as icon-layout).
+    headlineBox: (format, arrangement = 0) =>
+      arrangement === 1 ? Math.min(580, fullHeadlineBoxWidth(format) - format.width * 0.28) : fullHeadlineBoxWidth(format),
+    textAlign: 'left',
+    anchorX: 'left',
+    anchorY: 'bottom',
+    noIcon: true,
+    arrangementCount: 3,
+    build: (p) => {
+      const arrangement = p.arrangement ?? 0
+      if (arrangement === 1) {
+        // Logo left, text right.
+        return (
+          <div style={{ ...rootBase(p), flexDirection: 'row', alignItems: 'stretch' }}>
+            <div
+              style={{
+                display: 'flex',
+                flex: '0 0 28%',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+              }}
+            >
+              {p.logoEl}
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                flex: '1 1 auto',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <div style={{ display: 'flex', maxWidth: 580 * p.scaleFactor }}>{p.textBlock}</div>
+            </div>
+          </div>
+        )
+      }
+      if (arrangement === 2) {
+        // Logo center, text bottom.
+        return (
+          <div style={{ ...rootBase(p), position: 'relative' }}>
+            <div
+              style={{
+                display: 'flex',
+                position: 'absolute',
+                left: p.padX,
+                top: '50%',
+                // Sit a bit above dead-center — nudges the logo up off the
+                // true vertical midpoint so it doesn't read as mechanically
+                // centered against the bottom-anchored text.
+                marginTop: -(p.logoHeight / 2) - LOGO_CENTER_LIFT_1X * p.scaleFactor,
+              }}
+            >
+              {p.logoEl}
+            </div>
+            <div style={{ display: 'flex', position: 'absolute', left: p.padX, bottom: p.padY }}>
+              {p.textBlock}
+            </div>
+          </div>
+        )
+      }
+      // arrangement 0 (default): logo top-left, text bottom-left.
+      return (
+        <div
+          style={{
+            ...rootBase(p),
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+          }}
+        >
+          <div style={{ display: 'flex' }}>{p.logoEl}</div>
+          {p.textBlock}
+        </div>
+      )
+    },
   },
   {
     id: 'logo-grid',
@@ -283,6 +278,7 @@ export const TEMPLATES: Template[] = [
     // single-icon control — hides that control the same way the fixed-logo
     // wordmark templates do.
     noIcon: true,
+    arrangementCount: 2,
     build: (p) => {
       const tiles = p.logoTiles ?? []
       const tileSize = 160 * p.scaleFactor
@@ -364,6 +360,39 @@ export const TEMPLATES: Template[] = [
         </div>
       )
     },
+  },
+  {
+    id: 'announcement',
+    label: 'Announcement',
+    category: 'Announcement layouts',
+    headlineBox: fullHeadlineBoxWidth,
+    textAlign: 'left',
+    anchorX: 'left',
+    anchorY: 'top',
+    // Brand guideline caps this composition at 2 lines (vs. the usual 3),
+    // and its Thumb companion is a fixed 375×200 logo box instead of the
+    // default square icon crop — the OG logo below is 50% of that box.
+    maxHeadlineLines: 2,
+    thumbBox: { width: 375, height: 200 },
+    build: (p) => (
+      <div style={{ ...rootBase(p), flexDirection: 'column', alignItems: 'flex-start' }}>
+        {p.textBlock}
+        {p.halfThumbLogoEl && (
+          <div
+            style={{
+              display: 'flex',
+              position: 'absolute',
+              left: p.padX,
+              right: p.padX,
+              bottom: ANNOUNCEMENT_LOGO_BOTTOM_1X * p.scaleFactor,
+              justifyContent: 'center',
+            }}
+          >
+            {p.halfThumbLogoEl}
+          </div>
+        )}
+      </div>
+    ),
   },
 ]
 
@@ -494,6 +523,6 @@ export const TEMPLATE_MAP: Record<string, Template> = Object.fromEntries(
   [...TEMPLATES, ...NEWSLETTER_TEMPLATES, ...SOCIAL_TEMPLATES].map((t) => [t.id, t])
 )
 
-export const DEFAULT_TEMPLATE_ID = 'bottom-left'
+export const DEFAULT_TEMPLATE_ID = 'icon-layout'
 export const DEFAULT_NEWSLETTER_TEMPLATE_ID = 'newsletter-cover'
 export const DEFAULT_SOCIAL_TEMPLATE_ID = 'social-twitter'

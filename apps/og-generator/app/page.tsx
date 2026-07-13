@@ -195,21 +195,16 @@ function LayoutThumb({ id }: { id: string }) {
   }
 }
 
-// Placeholder icon names backfilled for any unpicked tile slots, so the
-// carousel thumbnail always shows the current tile *count* even before the
-// user has assigned real icons to every slot.
-const DEMO_TILE_ICONS = ['database', 'zap', 'layers', 'globe']
-
-/** Real rendered preview for the logo-grid carousel tile (reflects the live tile count), instead of an abstract diagram. */
-function LogoGridCarouselThumb({ formatId, tileCount }: { formatId: FormatId; tileCount: number }) {
+/** Real rendered 1-logo preview for the logo-grid carousel tile, instead of an abstract diagram. */
+function LogoGridCarouselThumb({ formatId }: { formatId: FormatId }) {
   const endpoint = useMemo(() => {
     const p = new URLSearchParams()
     if (formatId !== DEFAULT_FORMAT_ID) p.set('format', formatId)
     p.set('template', 'logo-grid')
     p.set('headline', 'Now an official "partner"')
-    p.set('icons', DEMO_TILE_ICONS.slice(0, tileCount).join(','))
+    p.set('icons', 'database')
     return `/api/og?${p.toString()}`
-  }, [formatId, tileCount])
+  }, [formatId])
   const { url } = useRenderedImage(endpoint, true)
   if (!url) return <LayoutThumb id="logo-grid" />
   // eslint-disable-next-line @next/next/no-img-element
@@ -787,13 +782,14 @@ export default function Page() {
               their content, so this can't clip an overflowing row — it just
               grows.) */
           <div className="flex w-full flex-1 flex-col">
-            {/* `mx-auto`/`my-auto` center the card while it fits, and
-                automatically collapse to 0 (i.e. start-aligned) once it
-                overflows — so zooming in never clips the leading edge, but
-                also never forces an off-center position once the zoomed
-                card still fits on screen. */}
+            {/* `mx-auto` centers the card horizontally while it fits, and
+                automatically collapses to 0 (i.e. start-aligned) once it
+                overflows — so zooming in never clips the leading edge.
+                Top-aligned (not vertically centered) so the Alternate
+                layouts pagination below always sits directly under the
+                card instead of floating mid-canvas. */}
             <div
-              className="mx-auto my-auto flex flex-col gap-6 @4xl:flex-row @4xl:items-start"
+              className="mx-auto flex flex-col gap-6 @4xl:flex-row @4xl:items-start"
               style={{ width: `${Math.round((view === 'both' ? 100 : 65) * (zoom / 100))}%` }}
             >
               {showOg && (
@@ -824,6 +820,44 @@ export default function Page() {
                 </div>
               )}
             </div>
+
+            {/* Alternate layouts — cycles a template's own variant count
+                (currently just logo-grid's tile count) directly under the
+                canvas, rather than requiring the sidebar's full picker. */}
+            {template === 'logo-grid' && showOg && (
+              <div className="mx-auto mt-4 flex items-center gap-3 rounded-md border border-default bg-background px-4 py-2.5 shadow-lg">
+                <span className="text-xs font-medium text-foreground-light">Alternate layouts</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setLogoTileIcons((tiles) => (tiles.length > 1 ? tiles.slice(0, -1) : tiles))
+                  }
+                  disabled={logoTileIcons.length <= 1}
+                  title="Previous layout"
+                  className="flex h-7 w-7 items-center justify-center rounded-md border border-default bg-surface-100 text-foreground-light hover:border-strong disabled:opacity-40"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                <span className="w-10 text-center text-xs text-foreground-lighter">
+                  {logoTileIcons.length} / 4
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setLogoTileIcons((tiles) => (tiles.length < 4 ? [...tiles, null] : tiles))
+                  }
+                  disabled={logoTileIcons.length >= 4}
+                  title="Next layout"
+                  className="flex h-7 w-7 items-center justify-center rounded-md border border-default bg-surface-100 text-foreground-light hover:border-strong disabled:opacity-40"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           /* In-context preview takes over the full canvas — the OG/Thumb
@@ -894,61 +928,9 @@ export default function Page() {
                   style={{ aspectRatio: `${format.width} / ${format.height}` }}
                 >
                   {t.id === 'logo-grid' ? (
-                    <LogoGridCarouselThumb formatId={formatId} tileCount={logoTileIcons.length} />
+                    <LogoGridCarouselThumb formatId={formatId} />
                   ) : (
                     <LayoutThumb id={t.id} />
-                  )}
-
-                  {/* Cycle through logo-grid's tile-count variations (1-4)
-                      right from the carousel thumbnail, without opening the
-                      full sidebar control — visible on hover/focus. */}
-                  {t.id === 'logo-grid' && (
-                    <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        title="Fewer logo tiles"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setTemplate('logo-grid')
-                          setLogoTileIcons((tiles) => (tiles.length > 1 ? tiles.slice(0, -1) : tiles))
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key !== 'Enter' && e.key !== ' ') return
-                          e.stopPropagation()
-                          e.preventDefault()
-                          setTemplate('logo-grid')
-                          setLogoTileIcons((tiles) => (tiles.length > 1 ? tiles.slice(0, -1) : tiles))
-                        }}
-                        className="pointer-events-auto flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
-                      >
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                          <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </span>
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        title="More logo tiles"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setTemplate('logo-grid')
-                          setLogoTileIcons((tiles) => (tiles.length < 4 ? [...tiles, null] : tiles))
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key !== 'Enter' && e.key !== ' ') return
-                          e.stopPropagation()
-                          e.preventDefault()
-                          setTemplate('logo-grid')
-                          setLogoTileIcons((tiles) => (tiles.length < 4 ? [...tiles, null] : tiles))
-                        }}
-                        className="pointer-events-auto flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
-                      >
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                          <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </span>
-                    </div>
                   )}
                 </div>
               </button>

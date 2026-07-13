@@ -143,11 +143,11 @@ export const ReplicationPipelineStatus = () => {
   const displayState = getPipelineDisplayState(requestStatus, statusName)
   const config = getDisabledStateConfig({ requestStatus, statusName })
 
-  // Sort tables by name for consistent ordering (memoized)
+  // Sort tables by schema and name for consistent ordering (memoized)
   const tableStatuses = useMemo(
     () =>
-      (replicationStatusData?.table_statuses || []).sort((a, b) =>
-        a.table_name.localeCompare(b.table_name)
+      (replicationStatusData?.table_statuses || []).sort(
+        (a, b) => a.schema.localeCompare(b.schema) || a.name.localeCompare(b.name)
       ),
     [replicationStatusData?.table_statuses]
   )
@@ -160,7 +160,7 @@ export const ReplicationPipelineStatus = () => {
       searchString.length === 0
         ? tableStatuses
         : tableStatuses.filter((table) =>
-            table.table_name.toLowerCase().includes(searchString.toLowerCase())
+            `${table.schema}.${table.name}`.toLowerCase().includes(searchString.toLowerCase())
           ),
     [tableStatuses, searchString]
   )
@@ -382,9 +382,9 @@ export const ReplicationPipelineStatus = () => {
                   <div className="rounded-sm border border-default/50 bg-surface-200/40">
                     <ul className="divide-y divide-default/40">
                       {tablesWithLag.map((table) => (
-                        <li key={`${table.table_id}-${table.table_name}`} className="px-3 py-2">
+                        <li key={table.id} className="px-3 py-2">
                           <SlotLagMetricsInline
-                            tableName={table.table_name}
+                            tableName={`${table.schema}.${table.name}`}
                             metrics={table.table_sync_lag as SlotLagMetrics}
                           />
                         </li>
@@ -485,7 +485,7 @@ export const ReplicationPipelineStatus = () => {
                   </TableHeader>
                   <TableBody>
                     {filteredTableStatuses.map((table) => {
-                      const isRestarting = restartingTableIds.has(table.table_id)
+                      const isRestarting = restartingTableIds.has(table.id)
                       const isErrorState = table.state.name === 'error'
                       const errorReason =
                         isErrorState && 'reason' in table.state ? table.state.reason : undefined
@@ -493,7 +493,7 @@ export const ReplicationPipelineStatus = () => {
                         isErrorState && 'solution' in table.state ? table.state.solution : undefined
                       return (
                         <TableReplicationRow
-                          key={table.table_id}
+                          key={table.id}
                           table={table}
                           isRestarting={isRestarting}
                           showDisabledState={showDisabledState}
@@ -502,8 +502,8 @@ export const ReplicationPipelineStatus = () => {
                           isPipelineStopped={statusName === PipelineStatusName.STOPPED}
                           onSelectRestart={() => {
                             setSelectedTableForRestart({
-                              tableId: table.table_id,
-                              tableName: table.table_name,
+                              tableId: table.id,
+                              tableName: `${table.schema}.${table.name}`,
                             })
                             setShowRestartDialog(true)
                           }}
@@ -511,7 +511,7 @@ export const ReplicationPipelineStatus = () => {
                             isErrorState && errorReason
                               ? () => {
                                   setSelectedTableError({
-                                    tableName: table.table_name,
+                                    tableName: `${table.schema}.${table.name}`,
                                     reason: errorReason,
                                     solution: errorSolution,
                                   })

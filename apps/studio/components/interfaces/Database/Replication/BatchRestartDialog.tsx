@@ -44,7 +44,7 @@ export const BatchRestartDialog = ({
   // Calculate which table IDs will be restarted based on mode (memoized)
   const affectedTableIds = useMemo(() => {
     if (mode === 'all') {
-      return tables.map((t) => t.table_id)
+      return tables.map((t) => t.id)
     } else {
       return tables
         .filter(
@@ -53,7 +53,7 @@ export const BatchRestartDialog = ({
             'retry_policy' in t.state &&
             t.state.retry_policy?.policy === 'manual_retry'
         )
-        .map((t) => t.table_id)
+        .map((t) => t.id)
     }
   }, [mode, tables])
 

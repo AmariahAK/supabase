@@ -35,6 +35,7 @@ import {
 } from '@/data/replication/create-destination-pipeline-mutation'
 import { type ReplicationDestinationByIdData } from '@/data/replication/destination-by-id-query'
 import { type ReplicationPipelineByIdData } from '@/data/replication/pipeline-by-id-query'
+import { type ReplicationPublication } from '@/data/replication/publications-query'
 import { type ValidationFailure } from '@/data/replication/validate-destination-mutation'
 import {
   type CreateS3AccessKeyCredentialVariables,
@@ -93,7 +94,7 @@ export const generateDefaultValues = ({
     type: 'include_all_tables' as const,
   }
   const tableSyncCopyTableIds =
-    'tables' in tableSyncCopy ? tableSyncCopy.tables.map(({ id }) => String(id)) : []
+    'table_ids' in tableSyncCopy ? tableSyncCopy.table_ids.map((id) => String(id)) : []
 
   return {
     // Common fields
@@ -177,6 +178,39 @@ export const buildTableSyncCopyConfig = ({
     type: mode,
     table_ids: tableIds,
   }
+}
+
+// The set of table ids (as strings, matching form state) currently in the
+// selected publication. Selective table-copy only ever offers/keeps ids that
+// are in this set; ids selected previously that fall out of it are dropped at
+// submit time rather than resolved or displayed.
+export const getPublicationTableIds = (
+  publications: ReplicationPublication[],
+  publicationName: string
+): Set<string> => {
+  const publication = publications.find(({ name }) => name === publicationName)
+  return new Set((publication?.tables ?? []).map(({ id }) => String(id)))
+}
+
+// Drops selected table ids that are no longer in the current publication.
+// Selective table-copy ids are validated against the publication server-side
+// (etl-api rejects ids that aren't published), so stale ids must be pruned
+// before submitting rather than sent as-is.
+export const pruneStaleSelectedTableIds = ({
+  mode,
+  selectedTableIds,
+  publications,
+  publicationName,
+}: {
+  mode: DestinationPanelSchemaType['tableSyncCopyMode']
+  selectedTableIds: string[]
+  publications: ReplicationPublication[]
+  publicationName: string
+}): string[] => {
+  if (mode === 'include_all_tables' || mode === 'skip_all_tables') return selectedTableIds
+
+  const publicationTableIds = getPublicationTableIds(publications, publicationName)
+  return selectedTableIds.filter((id) => publicationTableIds.has(id))
 }
 
 const buildBigQueryConfig = (

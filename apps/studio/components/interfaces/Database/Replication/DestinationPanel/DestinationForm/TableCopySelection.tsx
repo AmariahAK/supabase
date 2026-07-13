@@ -1,62 +1,55 @@
 import { useMemo } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
-import { Badge, FormControl, FormField, Select, SelectContent, SelectItem, SelectTrigger } from 'ui'
+import { FormControl, FormField, Select, SelectContent, SelectItem, SelectTrigger } from 'ui'
 import { Admonition } from 'ui-patterns/admonition'
 import { FormItemLayout } from 'ui-patterns/form/FormItemLayout/FormItemLayout'
 import { MultiSelector } from 'ui-patterns/multi-select'
 
+import { getPublicationTableIds } from './DestinationForm.utils'
 import type { DestinationPanelSchemaType } from './DestinationForm.schema'
-import type { ReplicationConfiguredTable } from '@/data/replication/pipeline-by-id-query'
 import type { ReplicationPublication } from '@/data/replication/publications-query'
 
 type TableCopySelectionProps = {
   form: UseFormReturn<DestinationPanelSchemaType>
   publications: ReplicationPublication[]
-  configuredTables: ReplicationConfiguredTable[]
   isLoadingPublications: boolean
 }
 
 const isSelectiveMode = (mode: DestinationPanelSchemaType['tableSyncCopyMode']) =>
   mode === 'include_tables' || mode === 'skip_tables'
 
-// `schema`/`name` are `null` when the table was dropped after being selected.
-const tableLabel = ({
-  id,
-  schema,
-  name,
-}: {
-  id: number
-  schema: string | null
-  name: string | null
-}) => (schema !== null && name !== null ? `${schema}.${name}` : `Table ${id} (deleted)`)
+const tableLabel = ({ schema, name }: { schema: string; name: string }) => `${schema}.${name}`
 
 export const TableCopySelection = ({
   form,
   publications,
-  configuredTables,
   isLoadingPublications,
 }: TableCopySelectionProps) => {
   const { publicationName, tableSyncCopyMode, tableSyncCopyTableIds } = form.watch()
 
+  // Only publication tables are ever selectable or displayed by name. A table
+  // id is never resolved outside of the publication response — there's no
+  // other source for a name to come from without a separate, source-wide
+  // catalog fetch, which selective table-copy doesn't need.
   const publicationTables = useMemo(() => {
     const publication = publications.find(({ name }) => name === publicationName)
-
-    return (publication?.tables ?? [])
-      .map((table) => ({ ...table, isMissingFromPublication: false }))
-      .sort((a, b) => tableLabel(a).localeCompare(tableLabel(b)))
+    return [...(publication?.tables ?? [])].sort((a, b) =>
+      tableLabel(a).localeCompare(tableLabel(b))
+    )
   }, [publicationName, publications])
 
-  const publicationTableIds = new Set(publicationTables.map(({ id }) => String(id)))
-  const selectedTableIds = new Set(tableSyncCopyTableIds)
-  const missingConfiguredTables = configuredTables
-    .filter(({ id }) => selectedTableIds.has(String(id)) && !publicationTableIds.has(String(id)))
-    .map((table) => ({ ...table, isMissingFromPublication: true }))
-  const selectableTables = [...publicationTables, ...missingConfiguredTables].sort((a, b) =>
-    tableLabel(a).localeCompare(tableLabel(b))
+  const publicationTableIds = useMemo(
+    () => getPublicationTableIds(publications, publicationName),
+    [publications, publicationName]
   )
-  const tableLabelsById = new Map(selectableTables.map((table) => [String(table.id), tableLabel(table)]))
+  const tableLabelsById = new Map(
+    publicationTables.map((table) => [String(table.id), tableLabel(table)])
+  )
   const selectedPublicationCount = tableSyncCopyTableIds.filter((id) =>
     publicationTableIds.has(id)
+  ).length
+  const staleSelectedCount = tableSyncCopyTableIds.filter(
+    (id) => !publicationTableIds.has(id)
   ).length
   const tableCount = publicationTables.length
 
@@ -127,9 +120,7 @@ export const TableCopySelection = ({
                 <MultiSelector
                   values={field.value}
                   onValuesChange={field.onChange}
-                  disabled={
-                    isLoadingPublications || !publicationName || selectableTables.length === 0
-                  }
+                  disabled={isLoadingPublications || !publicationName || tableCount === 0}
                 >
                   <MultiSelector.Trigger
                     badgeLimit={2}
@@ -144,34 +135,23 @@ export const TableCopySelection = ({
                   />
                   <MultiSelector.Content>
                     <MultiSelector.List>
-                      {selectableTables.map((table) => (
+                      {publicationTables.map((table) => (
                         <MultiSelector.Item key={table.id} value={String(table.id)}>
-                          <div className="flex w-full items-center justify-between gap-2">
-                            <span>{tableLabel(table)}</span>
-                            {table.schema === null || table.name === null ? (
-                              <Badge variant="warning">Table deleted</Badge>
-                            ) : (
-                              table.isMissingFromPublication && (
-                                <Badge variant="warning">No longer in publication</Badge>
-                              )
-                            )}
-                          </div>
+                          {tableLabel(table)}
                         </MultiSelector.Item>
                       ))}
                     </MultiSelector.List>
                   </MultiSelector.Content>
                 </MultiSelector>
               </FormControl>
-              {missingConfiguredTables.length > 0 && (
+              {staleSelectedCount > 0 && (
                 <Admonition type="warning" className="mt-2">
                   <p className="leading-normal!">
-                    {missingConfiguredTables.length === 1
-                      ? 'A selected table is'
-                      : `${missingConfiguredTables.length} selected tables are`}{' '}
-                    no longer in this publication. The pipeline will keep the{' '}
-                    {missingConfiguredTables.length === 1 ? 'table' : 'tables'} in its initial-copy
-                    configuration until you deselect{' '}
-                    {missingConfiguredTables.length === 1 ? 'it' : 'them'}.
+                    {staleSelectedCount === 1
+                      ? 'A previously selected table is'
+                      : `${staleSelectedCount} previously selected tables are`}{' '}
+                    no longer in this publication. {staleSelectedCount === 1 ? 'It' : 'They'} will
+                    be excluded from this pipeline's initial-copy configuration when you save.
                   </p>
                 </Admonition>
               )}

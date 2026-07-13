@@ -230,6 +230,9 @@ describe('DestinationRow', () => {
     addPipelineStatusMock('started')
     addReplicationStatusMock(0, [
       {
+        id: 1,
+        schema: 'public',
+        name: 'orders',
         table_id: 1,
         table_name: 'public.orders',
         state: { name: 'error', reason: 'table not found', retry_policy: { policy: 'no_retry' } },
@@ -252,6 +255,9 @@ describe('DestinationRow', () => {
     addPipelineStatusMock('stopped')
     addReplicationStatusMock(0, [
       {
+        id: 1,
+        schema: 'public',
+        name: 'orders',
         table_id: 1,
         table_name: 'public.orders',
         state: { name: 'error', reason: 'table not found', retry_policy: { policy: 'no_retry' } },

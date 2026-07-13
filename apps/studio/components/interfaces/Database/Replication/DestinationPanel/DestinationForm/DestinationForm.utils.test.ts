@@ -8,10 +8,12 @@ import {
   buildDestinationConfigForValidation,
   buildTableSyncCopyConfig,
   generateDefaultValues,
+  pruneStaleSelectedTableIds,
 } from './DestinationForm.utils'
 import { getDucklakeValidationIssues } from './DuckLake/DuckLake.utils'
 import { getSnowflakeValidationIssues } from './Snowflake/Snowflake.utils'
 import type { ReplicationPipelineByIdData } from '@/data/replication/pipeline-by-id-query'
+import type { ReplicationPublication } from '@/data/replication/publications-query'
 
 const baseDucklakeFormData = {
   name: 'DuckLake Destination',
@@ -117,16 +119,13 @@ describe('DestinationForm.utils table copy selection', () => {
     ).toThrow('The selected table IDs are invalid')
   })
 
-  it('hydrates resolved pipeline tables as selected table ids in edit mode', () => {
+  it('hydrates configured pipeline table ids as selected table ids in edit mode', () => {
     const pipelineData = {
       config: {
         publication_name: 'analytics',
         table_sync_copy: {
           type: 'include_tables',
-          tables: [
-            { id: 202, schema: 'private', name: 'customers' },
-            { id: 101, schema: 'public', name: 'orders' },
-          ],
+          table_ids: [202, 101],
         },
       },
     } as unknown as ReplicationPipelineByIdData
@@ -139,6 +138,36 @@ describe('DestinationForm.utils table copy selection', () => {
 
     expect(defaults.tableSyncCopyMode).toBe('include_tables')
     expect(defaults.tableSyncCopyTableIds).toEqual(['202', '101'])
+  })
+
+  it('drops selected ids that are no longer in the publication', () => {
+    const publications = [
+      { name: 'analytics', tables: [{ id: 101, schema: 'public', name: 'orders' }] },
+    ] as ReplicationPublication[]
+
+    expect(
+      pruneStaleSelectedTableIds({
+        mode: 'include_tables',
+        selectedTableIds: ['101', '202'],
+        publications,
+        publicationName: 'analytics',
+      })
+    ).toEqual(['101'])
+  })
+
+  it('leaves selected ids untouched for non-selective modes', () => {
+    const publications = [
+      { name: 'analytics', tables: [{ id: 101, schema: 'public', name: 'orders' }] },
+    ] as ReplicationPublication[]
+
+    expect(
+      pruneStaleSelectedTableIds({
+        mode: 'include_all_tables',
+        selectedTableIds: ['202'],
+        publications,
+        publicationName: 'analytics',
+      })
+    ).toEqual(['202'])
   })
 })
 

@@ -34,7 +34,11 @@ import { AnalyticsBucketFields } from './AnalyticsBucket/Fields'
 import { getBigQueryValidationIssues } from './BigQuery/BigQuery.utils'
 import { BigQueryFields } from './BigQuery/Fields'
 import { DestinationPanelFormSchema as FormSchema } from './DestinationForm.schema'
-import { areValidationFailuresEqual, generateDefaultValues } from './DestinationForm.utils'
+import {
+  areValidationFailuresEqual,
+  generateDefaultValues,
+  pruneStaleSelectedTableIds,
+} from './DestinationForm.utils'
 import { DestinationNameInput } from './DestinationNameInput'
 import { getDucklakeValidationIssues } from './DuckLake/DuckLake.utils'
 import { DuckLakeFields } from './DuckLake/Fields'
@@ -162,9 +166,6 @@ export const DestinationForm = ({
     [destinationData, pipelineData, catalogToken, projectSettings, projectRef, editMode]
   )
 
-  const tableSyncCopy = pipelineData?.config.table_sync_copy
-  const configuredTables = tableSyncCopy && 'tables' in tableSyncCopy ? tableSyncCopy.tables : []
-
   const form = useForm<z.infer<typeof FormSchema>>({
     mode: 'onChange',
     reValidateMode: 'onChange',
@@ -244,7 +245,20 @@ export const DestinationForm = ({
     }
   }
 
-  const onSubmit = async (data: z.infer<typeof FormSchema>) => {
+  const onSubmit = async (rawData: z.infer<typeof FormSchema>) => {
+    // Selective table-copy ids are validated against the publication
+    // server-side, so drop any previously selected id that has since fallen
+    // out of the publication before validating or submitting.
+    const data: z.infer<typeof FormSchema> = {
+      ...rawData,
+      tableSyncCopyTableIds: pruneStaleSelectedTableIds({
+        mode: rawData.tableSyncCopyMode,
+        selectedTableIds: rawData.tableSyncCopyTableIds,
+        publications,
+        publicationName: rawData.publicationName,
+      }),
+    }
+
     if (!editMode) {
       const previousValidationFailures = allValidationFailures
       const previousWarnings = previousValidationFailures.filter(
@@ -347,7 +361,6 @@ export const DestinationForm = ({
                   <TableCopySelection
                     form={form}
                     publications={publications}
-                    configuredTables={configuredTables}
                     isLoadingPublications={isLoadingPublications}
                   />
                   <FormItemLayout

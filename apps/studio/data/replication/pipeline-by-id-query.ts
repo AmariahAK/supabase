@@ -26,15 +26,9 @@ async function fetchReplicationPipelineById(
 
 export type ReplicationPipelineByIdData = components['schemas']['ReplicationPipelineResponse']
 
-export type ReplicationTableSyncCopyConfig = ReplicationPipelineByIdData['config']['table_sync_copy']
-
-// A table referenced by `table_sync_copy`. `schema`/`name` are `null` when the
-// table id no longer resolves to a table in the source database, for example
-// because the table was dropped after being selected.
-export type ReplicationConfiguredTable = Extract<
-  ReplicationTableSyncCopyConfig,
-  { type: 'include_tables' }
->['tables'][number]
+export type ReplicationTableSyncCopyConfig = NonNullable<
+  ReplicationPipelineByIdData['config']['table_sync_copy']
+>
 
 export const useReplicationPipelineByIdQuery = <TData = ReplicationPipelineByIdData>(
   { projectRef, pipelineId }: ReplicationPipelineByIdParams,

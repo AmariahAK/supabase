@@ -62,7 +62,7 @@ export const EdgeFunctionOverviewHeader = ({
     : undefined
 
   return (
-    <PageHeader size="full">
+    <PageHeader size="full" className="pt-12 pb-12">
       <PageHeaderMeta>
         <PageHeaderSummary>
           <PageHeaderTitle>{name || functionSlug}</PageHeaderTitle>

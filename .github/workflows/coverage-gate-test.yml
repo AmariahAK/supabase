@@ -1,0 +1,34 @@
+name: Coverage Gate Script Test
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/scripts/coverage-gate.sh'
+      - '.github/scripts/coverage-gate.test.sh'
+      - '.github/workflows/coverage-gate-test.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - '.github/scripts/coverage-gate.sh'
+      - '.github/scripts/coverage-gate.test.sh'
+      - '.github/workflows/coverage-gate-test.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  self-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/scripts
+      - name: Run coverage-gate self-test
+        run: bash .github/scripts/coverage-gate.test.sh

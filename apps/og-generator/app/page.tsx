@@ -58,8 +58,9 @@ function Hint({ text }: { text: string }) {
   )
 }
 
-// Section header — deliberately dominant (bold, uppercase, dark, with a divider)
-// so it reads clearly above the lighter option labels within each section.
+// Section header — uppercase with a divider for structure, but intentionally
+// faint (not aiming for AA contrast) so it recedes behind the option labels
+// within each section rather than competing with them.
 function Group({
   title,
   children,
@@ -75,7 +76,7 @@ function Group({
         noDivider ? '' : 'border-t border-default first:border-t-0'
       }`}
     >
-      <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-foreground-light">{title}</h2>
+      <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-foreground-lighter">{title}</h2>
       {children}
     </section>
   )
@@ -658,35 +659,15 @@ export default function Page() {
   const [inContext, setInContext] = useState<InContextMode>('none')
   const [exportOpen, setExportOpen] = useState(false)
   // Canvas zoom (brief follow-up) — scales the rendered image cards
-  // themselves, not the surrounding UI/controls. 100% renders the card at
-  // its actual pixel dimensions, so the *default* is auto-fit (below) rather
-  // than a hardcoded 100 — a 1200px-wide OG card at true size dwarfs a
-  // typical laptop screen otherwise.
-  const [zoom, setZoom] = useState(100)
+  // themselves, not the surrounding UI/controls. 100% renders a card at its
+  // actual pixel dimensions, which on a retina display is 2x the physical
+  // pixels a normal screen shows — defaulting to 50% approximates native
+  // resolution on typical (non-retina-aware-CSS) screens instead of a
+  // 1200px-wide OG card dwarfing the canvas on load.
+  const [zoom, setZoom] = useState(50)
   const ZOOM_MIN = 25
   const ZOOM_MAX = 200
   const ZOOM_STEP = 25
-  // Measures the available canvas area (excludes main's own padding, and is
-  // unaffected by the zoomed cards' own explicit pixel widths since it's the
-  // `w-full flex-1` parent, not a shrink-wrap of its children) to auto-fit
-  // the initial zoom whenever the format or view changes.
-  const canvasAreaRef = useRef<HTMLDivElement>(null)
-  const CARD_GAP_PX = 24 // gap-6
-
-  useEffect(() => {
-    const el = canvasAreaRef.current
-    const availableWidth = el?.clientWidth
-    if (!availableWidth) return
-    const contentWidth =
-      view === 'both' && hasSecondSlot
-        ? format.width + CARD_GAP_PX + secondSlotWidth
-        : view === 'thumb' && hasSecondSlot
-          ? secondSlotWidth
-          : format.width
-    const fitPct = Math.floor((availableWidth / contentWidth) * 100)
-    setZoom(Math.max(ZOOM_MIN, Math.min(100, fitPct)))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formatId, view, hasSecondSlot])
   // "Z" zoom tool (brief follow-up, Illustrator/Photoshop-style): toggles a
   // zoom cursor over the canvas; click to zoom in, Alt+click to zoom out.
   const [zoomToolActive, setZoomToolActive] = useState(false)
@@ -805,7 +786,7 @@ export default function Page() {
               the row centers within it. (flex-1 items don't shrink below
               their content, so this can't clip an overflowing row — it just
               grows.) */
-          <div ref={canvasAreaRef} className="flex w-full flex-1 flex-col">
+          <div className="flex w-full flex-1 flex-col">
             {/* `mx-auto` centers the row horizontally while it fits, and
                 automatically collapses to 0 (i.e. start-aligned) once it
                 overflows — so zooming in never clips the leading edge.

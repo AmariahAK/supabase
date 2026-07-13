@@ -300,8 +300,8 @@ export const TEMPLATES: Template[] = [
               width: tileSize,
               height: tileSize,
               borderRadius: 16 * p.scaleFactor,
-              backgroundColor: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              backgroundColor: '#171717',
+              border: `${1.5 * p.scaleFactor}px solid #2E2E2E`,
             }}
           >
             {tile}

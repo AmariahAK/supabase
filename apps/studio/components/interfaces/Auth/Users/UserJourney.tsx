@@ -65,6 +65,9 @@ export const UserJourney = ({ user }: UserJourneyProps) => {
   const { ref } = useParams()
   const useOtel = useFlag('otelLegacyLogs')
 
+  // Sample data is a local-only demo affordance — never expose it to customers.
+  const isLocal = process.env.NEXT_PUBLIC_ENVIRONMENT === 'local'
+
   const [errorsOnly, setErrorsOnly] = useState(false)
   const [showSample, setShowSample] = useState(false)
 
@@ -151,15 +154,17 @@ export const UserJourney = ({ user }: UserJourneyProps) => {
             </Button>
           </div>
           <div className="flex items-center gap-x-2">
-            <ButtonTooltip
-              variant={showSample ? 'secondary' : 'default'}
-              className="px-2"
-              icon={<FlaskConical />}
-              onClick={() => setShowSample((value) => !value)}
-              tooltip={{
-                content: { text: showSample ? 'Showing sample data' : 'Show sample data' },
-              }}
-            />
+            {isLocal && (
+              <ButtonTooltip
+                variant={showSample ? 'secondary' : 'default'}
+                className="px-2"
+                icon={<FlaskConical />}
+                onClick={() => setShowSample((value) => !value)}
+                tooltip={{
+                  content: { text: showSample ? 'Showing sample data' : 'Show sample data' },
+                }}
+              />
+            )}
             <ButtonTooltip
               asChild
               variant="default"

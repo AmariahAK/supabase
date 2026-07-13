@@ -11,6 +11,7 @@ import { TimestampInfo } from 'ui-patterns/TimestampInfo'
 import { UserHeader } from './UserHeader'
 import { PANEL_PADDING } from './Users.constants'
 import { LOGS_TABLES } from '@/components/interfaces/Settings/Logs/Logs.constants'
+import { LogTypeIcon } from '@/components/interfaces/UnifiedLogs/components/LogTypeIcon'
 import { getLevelRowClassName } from '@/components/interfaces/UnifiedLogs/UnifiedLogs.utils'
 import { ButtonTooltip } from '@/components/ui/ButtonTooltip'
 import { DataTableColumnLevelIndicator } from '@/components/ui/DataTable/DataTableColumn/DataTableColumnLevelIndicator'
@@ -132,51 +133,63 @@ export const UserLogs = ({ user }: UserLogsProps) => {
           />
         ) : (
           <div>
-            <div className="border border-b-0 rounded-t-md divide-y overflow-hidden">
-              {authLogs.map((log) => {
-                const status =
-                  log.status !== undefined && log.status !== null ? String(log.status) : undefined
-                const level = status?.startsWith('5')
-                  ? 'error'
-                  : status?.startsWith('4')
-                    ? 'warning'
-                    : 'success'
+            <div className="border border-b-0 rounded-t-md overflow-x-auto">
+              <div className="min-w-[640px] divide-y">
+                {authLogs.map((log) => {
+                  const status =
+                    log.status !== undefined && log.status !== null ? String(log.status) : undefined
+                  const level = status?.startsWith('5')
+                    ? 'error'
+                    : status?.startsWith('4')
+                      ? 'warning'
+                      : 'success'
+                  const method = log.method ? String(log.method) : ''
 
-                return (
-                  <div
-                    key={log.id}
-                    className={cn(
-                      'group relative flex items-center gap-x-2 h-[30px] px-2 text-xs hover:bg-surface-200',
-                      getLevelRowClassName(level)
-                    )}
-                  >
-                    <DataTableColumnLevelIndicator value={level} className="w-2 shrink-0" />
-                    <div className="font-mono tracking-tight text-foreground-light w-[120px] shrink-0">
-                      <TimestampInfo utcTimestamp={log.timestamp / 1000} />
-                    </div>
-                    <div className="flex items-center justify-start w-[40px] shrink-0">
-                      <DataTableColumnStatusCode value={status} level={level} />
-                    </div>
-                    <span className="font-mono tracking-tight text-foreground truncate shrink-0 max-w-[45%]">
-                      {String(log.path ?? '')}
-                    </span>
-                    <span className="font-mono tracking-tight text-muted-foreground truncate flex-1">
-                      {String(log.msg ?? '')}
-                    </span>
-
-                    <ButtonTooltip
-                      variant="outline"
-                      asChild
-                      tooltip={{ content: { text: 'Open in logs' } }}
-                      className="px-1.5 absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition bg-background focus-visible:opacity-100"
+                  return (
+                    <div
+                      key={log.id}
+                      className={cn(
+                        'group relative flex items-center h-[30px] pl-3 text-xs hover:bg-surface-200',
+                        getLevelRowClassName(level)
+                      )}
                     >
-                      <Link href={`/project/${ref}/logs/auth-logs?log=${log.id}`}>
-                        <ExternalLink size="12" className="text-foreground-light" />
-                      </Link>
-                    </ButtonTooltip>
-                  </div>
-                )
-              })}
+                      <DataTableColumnLevelIndicator
+                        value={level}
+                        className="w-2 min-w-2 shrink-0"
+                      />
+                      <div className="font-mono tracking-tight text-foreground-light w-[140px] shrink-0 truncate pl-3 pr-2">
+                        <TimestampInfo utcTimestamp={log.timestamp / 1000} />
+                      </div>
+                      <div className="w-[32px] shrink-0 flex items-center justify-end pr-2">
+                        <LogTypeIcon type="auth" size={14} className="text-foreground-lighter" />
+                      </div>
+                      <div className="w-[60px] shrink-0 flex items-center px-2">
+                        <DataTableColumnStatusCode value={status} level={level} />
+                      </div>
+                      <div className="font-mono tracking-tight text-foreground-lighter w-[64px] shrink-0 truncate px-2">
+                        {method}
+                      </div>
+                      <div className="font-mono tracking-tight text-foreground w-[200px] shrink-0 truncate px-2">
+                        {String(log.path ?? '')}
+                      </div>
+                      <div className="font-mono tracking-tight text-muted-foreground flex-1 min-w-[160px] truncate px-2">
+                        {String(log.msg ?? '')}
+                      </div>
+
+                      <ButtonTooltip
+                        variant="outline"
+                        asChild
+                        tooltip={{ content: { text: 'Open in logs' } }}
+                        className="px-1.5 absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition bg-background focus-visible:opacity-100"
+                      >
+                        <Link href={`/project/${ref}/logs/auth-logs?log=${log.id}`}>
+                          <ExternalLink size="12" className="text-foreground-light" />
+                        </Link>
+                      </ButtonTooltip>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
             <Button
               block

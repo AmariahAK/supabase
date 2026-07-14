@@ -143,7 +143,7 @@ alter role postgres set log_statement = default;
 
 <Admonition type="tip">
 
-If you are changing log settings for Data API roles, such as `authenticator`, `anon`, ..., you will need to reload PostgREST to reflect the timeout changes by running the following script:
+If you are changing log settings for Data API roles, such as `authenticator`, `anon`, ..., you will need to reload PostgREST to reflect the configuration changes by running the following script:
 
 ```sql
 NOTIFY pgrst, 'reload config';

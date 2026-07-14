@@ -469,6 +469,10 @@ export default function Page() {
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE_ID)
   const [icon, setIcon] = useState<string | null>(null)
   const [iconPickerOpen, setIconPickerOpen] = useState(false)
+  // Separates the picker grid (and its upload button) into line-art icons
+  // vs. full-color logos — the two are rendered completely differently
+  // (stroke-only vs. as-is) so browsing them mixed together was noisy.
+  const [iconPickerTab, setIconPickerTab] = useState<'icon' | 'logo'>('icon')
   const iconPickerRef = useRef<HTMLDivElement>(null)
   // logo-grid: 1-4 partner logo tiles, adjusted via a count stepper — each
   // slot holds its own icon/logo name (or null while unpicked).
@@ -1198,6 +1202,16 @@ export default function Page() {
 
                 {iconPickerOpen && (
                   <div className="absolute bottom-full z-20 mb-1 w-full rounded-md border border-default bg-background p-2 shadow-lg">
+                    <div className="mb-2">
+                      <Segmented
+                        value={iconPickerTab}
+                        onChange={setIconPickerTab}
+                        options={[
+                          { value: 'icon', label: 'Icons' },
+                          { value: 'logo', label: 'Logos' },
+                        ]}
+                      />
+                    </div>
                     <div className="grid max-h-56 grid-cols-4 gap-2 overflow-y-auto">
                       <button
                         type="button"
@@ -1214,77 +1228,82 @@ export default function Page() {
                       >
                         None
                       </button>
-                      {allIcons.map((ic) => (
-                        <button
-                          key={ic.name}
-                          type="button"
-                          onClick={() => {
-                            setIcon(ic.name)
-                            setIconPickerOpen(false)
-                          }}
-                          title={ic.kind === 'logo' ? `${ic.label} (color logo)` : ic.label}
-                          className={`flex h-14 items-center justify-center rounded-md border p-1.5 ${
-                            icon === ic.name
-                              ? 'border-brand bg-brand/10 text-brand'
-                              : 'border-default bg-surface-100 text-foreground-light hover:border-strong'
+                      {allIcons
+                        .filter((ic) => (iconPickerTab === 'logo' ? ic.kind === 'logo' : ic.kind !== 'logo'))
+                        .map((ic) => (
+                          <button
+                            key={ic.name}
+                            type="button"
+                            onClick={() => {
+                              setIcon(ic.name)
+                              setIconPickerOpen(false)
+                            }}
+                            title={ic.kind === 'logo' ? `${ic.label} (color logo)` : ic.label}
+                            className={`flex h-14 items-center justify-center rounded-md border p-1.5 ${
+                              icon === ic.name
+                                ? 'border-brand bg-brand/10 text-brand'
+                                : 'border-default bg-surface-100 text-foreground-light hover:border-strong'
+                            }`}
+                          >
+                            {ic.kind === 'logo' && ic.url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={ic.url} alt={ic.label} className="max-h-full max-w-full object-contain" />
+                            ) : (
+                              <svg
+                                width={22}
+                                height={22}
+                                viewBox={ic.viewBox}
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                dangerouslySetInnerHTML={{ __html: ic.body }}
+                              />
+                            )}
+                          </button>
+                        ))}
+                    </div>
+                    <div className="mt-2">
+                      {iconPickerTab === 'icon' ? (
+                        <label
+                          className={`block rounded-md border border-dashed border-default px-3 py-2 text-center text-xs text-foreground-light hover:border-strong ${
+                            uploading ? 'cursor-wait opacity-70' : 'cursor-pointer'
                           }`}
                         >
-                          {ic.kind === 'logo' && ic.url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={ic.url} alt={ic.label} className="max-h-full max-w-full object-contain" />
-                          ) : (
-                            <svg
-                              width={22}
-                              height={22}
-                              viewBox={ic.viewBox}
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth={2}
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              dangerouslySetInnerHTML={{ __html: ic.body }}
-                            />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="mt-2 grid grid-cols-2 gap-2">
-                      <label
-                        className={`rounded-md border border-dashed border-default px-3 py-2 text-center text-xs text-foreground-light hover:border-strong ${
-                          uploading ? 'cursor-wait opacity-70' : 'cursor-pointer'
-                        }`}
-                      >
-                        {uploading ? 'Uploading…' : '+ Upload SVG icon'}
-                        <input
-                          type="file"
-                          accept=".svg,image/svg+xml"
-                          className="hidden"
-                          disabled={uploading}
-                          onChange={(e) => {
-                            const f = e.target.files?.[0]
-                            if (f) uploadSvg(f)
-                            e.target.value = ''
-                          }}
-                        />
-                      </label>
-                      <label
-                        className={`rounded-md border border-dashed border-default px-3 py-2 text-center text-xs text-foreground-light hover:border-strong ${
-                          uploadingLogo ? 'cursor-wait opacity-70' : 'cursor-pointer'
-                        }`}
-                      >
-                        {uploadingLogo ? 'Uploading…' : '+ Upload logo (color)'}
-                        <input
-                          type="file"
-                          accept=".svg,.png,.jpg,.jpeg,.webp,image/svg+xml,image/png,image/jpeg,image/webp"
-                          className="hidden"
-                          disabled={uploadingLogo}
-                          onChange={(e) => {
-                            const f = e.target.files?.[0]
-                            if (f) uploadLogo(f)
-                            e.target.value = ''
-                          }}
-                        />
-                      </label>
+                          {uploading ? 'Uploading…' : '+ Upload SVG icon'}
+                          <input
+                            type="file"
+                            accept=".svg,image/svg+xml"
+                            className="hidden"
+                            disabled={uploading}
+                            onChange={(e) => {
+                              const f = e.target.files?.[0]
+                              if (f) uploadSvg(f)
+                              e.target.value = ''
+                            }}
+                          />
+                        </label>
+                      ) : (
+                        <label
+                          className={`block rounded-md border border-dashed border-default px-3 py-2 text-center text-xs text-foreground-light hover:border-strong ${
+                            uploadingLogo ? 'cursor-wait opacity-70' : 'cursor-pointer'
+                          }`}
+                        >
+                          {uploadingLogo ? 'Uploading…' : '+ Upload logo (color)'}
+                          <input
+                            type="file"
+                            accept=".svg,.png,.jpg,.jpeg,.webp,image/svg+xml,image/png,image/jpeg,image/webp"
+                            className="hidden"
+                            disabled={uploadingLogo}
+                            onChange={(e) => {
+                              const f = e.target.files?.[0]
+                              if (f) uploadLogo(f)
+                              e.target.value = ''
+                            }}
+                          />
+                        </label>
+                      )}
                     </div>
                     {uploadError && <p className="mt-2 text-xs text-warning-600">{uploadError}</p>}
                     {logoError && <p className="mt-2 text-xs text-warning-600">{logoError}</p>}

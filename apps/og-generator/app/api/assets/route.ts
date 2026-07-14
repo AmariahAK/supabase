@@ -12,6 +12,11 @@ export async function GET(req: Request): Promise<Response> {
   return Response.json({ assets: await listAssets(brand) })
 }
 
+/** Surfaces the underlying DB error text so a stale-schema guess never masks the real cause. */
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
+}
+
 function slugify(s: string): string {
   return (
     s
@@ -101,7 +106,12 @@ async function handleIconUpload(form: FormData, brand: string): Promise<Response
     return Response.json({ asset })
   } catch (err) {
     console.error('[api/assets] icon insert failed:', err)
-    return Response.json({ error: 'Could not save the icon — is 0001_init.sql applied?' }, { status: 500 })
+    return Response.json(
+      {
+        error: `Could not save the icon — is every supabase/migrations/*.sql file applied? (${errorMessage(err)})`,
+      },
+      { status: 500 }
+    )
   }
 }
 
@@ -169,7 +179,9 @@ async function handleLogoUpload(form: FormData, brand: string): Promise<Response
   } catch (err) {
     console.error('[api/assets] logo insert failed:', err)
     return Response.json(
-      { error: 'Could not save the logo — is 0002_logo_assets.sql applied?' },
+      {
+        error: `Could not save the logo — is every supabase/migrations/*.sql file applied? (${errorMessage(err)})`,
+      },
       { status: 500 }
     )
   }

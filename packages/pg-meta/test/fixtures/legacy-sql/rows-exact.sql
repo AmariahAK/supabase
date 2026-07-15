@@ -1,0 +1,1 @@
+select (select count(*) from public.my_table), false as is_estimate;

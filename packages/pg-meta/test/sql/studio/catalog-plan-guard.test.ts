@@ -13,6 +13,8 @@ import {
   getTablesPaginatedSql,
   getViewDefinitionSql,
 } from '../../../src'
+import tablePrivileges from '../../../src/pg-meta-table-privileges'
+import * as types from '../../../src/pg-meta-types'
 import { assertPlanWithinBudget, explainAnalyze } from '../../db/plan-guard'
 import { buildStressCatalog, STRESS_TABLE_COUNT } from '../../db/stress-catalog'
 import { cleanupRoot, createTestDatabase } from '../../db/utils'
@@ -286,4 +288,67 @@ test('getEntityDefinitionsSql: plan stays scoped for a schema', async () => {
 test('getViewDefinitionSql: plan stays scoped for a single view', async () => {
   const result = await explainAnalyze(db, getViewDefinitionSql({ id: viewId }))
   assertPlanWithinBudget(result, {})
+}, 60_000)
+
+// ── types.list (sql/types.ts) — per-schema user-defined types listing ────────
+// The scoped rewrite filters pg_type by schema FIRST and then computes enums /
+// composite attributes per surviving row via correlated subqueries (index scans
+// on pg_enum's (enumtypid) and pg_attribute's (attrelid, attnum)), instead of
+// the legacy catalog-wide GROUP BY aggregates. At stress scale the plan carries
+// no seq scan over a scaling catalog (pg_type/pg_attribute/pg_enum), so the
+// budget is empty.
+test('types.list: scoped plan stays scoped for a schema', async () => {
+  const result = await explainAnalyze(
+    db,
+    types.list({ includedSchemas: ['stress'], scoped: true }).sql
+  )
+  assertPlanWithinBudget(result, {})
+}, 60_000)
+
+test('types.list: scoped real query returns the schema’s enums and composites', async () => {
+  const { sql, zod } = types.list({ includedSchemas: ['stress'], scoped: true })
+  const rows = zod.parse(await db.executeQuery(sql))
+  // stress has enums (mood/priority/e_*) and composites (addr/pair/ct_*).
+  const mood = rows.find((t) => t.name === 'mood')
+  expect(mood?.enums).toEqual(['ecstatic', 'sad', 'happy', 'ok'])
+  // `pair` dropped its middle attribute; the scoped path must skip it.
+  expect(rows.find((t) => t.name === 'pair')?.attributes.map((a) => a.name)).toEqual(['a', 'b'])
+  expect(rows.length).toBeGreaterThan(400)
+}, 60_000)
+
+// The grantee/grantor resolution joins pg_roles (a view over pg_authid) TWICE —
+// once for the grantor, once for the grantee UNION that appends PUBLIC — so the
+// plan seq-scans pg_authid twice. pg_authid holds a fixed handful of roles and
+// does NOT scale with schema size (tables/columns/constraints), so this is
+// structural and unrelated to the O(catalog) regression this harness guards.
+const TABLE_PRIVILEGES_BUDGET = {
+  allowedSeqScans: {
+    pg_authid: {
+      max: 2,
+      reason:
+        'grantee/grantor resolution joins pg_roles (view over pg_authid) twice (grantor + grantee-with-PUBLIC union); pg_authid scales with role count, not schema size',
+    },
+  },
+}
+
+// ── tablePrivileges.list (sql/table-privileges.ts) — per-schema listing ──────
+// Scoped pushes the schema filter into the base WHERE (before the aclexplode
+// lateral / GROUP BY) so pg_class is pruned before privileges are exploded.
+test('tablePrivileges.list: scoped plan stays scoped for a schema', async () => {
+  const result = await explainAnalyze(
+    db,
+    tablePrivileges.list({ includedSchemas: ['stress'], scoped: true }).sql
+  )
+  assertPlanWithinBudget(result, TABLE_PRIVILEGES_BUDGET)
+}, 60_000)
+
+// ── tablePrivileges.retrieve (sql/table-privileges.ts) — per-relation ────────
+// Scoped pushes the schema+name (or oid) predicate into the base WHERE so the
+// relation is resolved via pg_class's (relname, relnamespace) index.
+test('tablePrivileges.retrieve: scoped plan stays scoped for a single relation', async () => {
+  const result = await explainAnalyze(
+    db,
+    tablePrivileges.retrieve({ name: 't_1000', schema: 'stress', scoped: true }).sql
+  )
+  assertPlanWithinBudget(result, TABLE_PRIVILEGES_BUDGET)
 }, 60_000)

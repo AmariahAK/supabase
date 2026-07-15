@@ -3,6 +3,7 @@ import { ChevronRight } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Button, Form, ScrollArea, Separator, SheetClose, SheetFooter } from 'ui'
+import { Admonition } from 'ui-patterns/admonition'
 
 import { countConfigured, PermissionMode } from '../../AccessToken.permissions'
 import { DEFAULT_EXPIRY, TokenFormSchema, TokenFormValues } from './NewScopedTokenForm.utils'
@@ -44,20 +45,23 @@ export const NewScopedTokenForm = ({
     mode: 'onChange',
   })
   const [step, setStep] = useState<'form' | 'review'>('form')
-  const [showZeroWarning, setShowZeroWarning] = useState(false)
+  const [showMissingPermissionsWarning, setShowMissingPermissionsWarning] = useState(false)
   const resourceSectionRef = useRef<HTMLDivElement>(null)
   const values = form.watch()
   const selection = values.permissions
   const configuredCount = countConfigured(selection)
 
   const handleReviewAccess = async () => {
-    if (configuredCount === 0) setShowZeroWarning(true)
+    if (configuredCount === 0) {
+      setShowMissingPermissionsWarning(true)
+      return
+    }
     setStep('review')
   }
 
   const handlePermissionChange = (key: string, mode: PermissionMode) => {
     form.setValue('permissions', { ...selection, [key]: mode })
-    if (mode !== 'none') setShowZeroWarning(false)
+    if (mode !== 'none') setShowMissingPermissionsWarning(false)
   }
 
   return (
@@ -72,11 +76,19 @@ export const NewScopedTokenForm = ({
                 <ResourceAccessStep form={form} />
               </div>
               <Separator />
-              <PermissionsAccordion
-                selection={selection}
-                onChange={handlePermissionChange}
-                showZeroWarning={showZeroWarning}
-              />
+              <PermissionsAccordion selection={selection} onChange={handlePermissionChange} />
+              {showMissingPermissionsWarning && (
+                <div className="space-y-3 px-5 sm:px-6 pb-6">
+                  <Admonition
+                    ref={(node) => {
+                      node?.scrollIntoView()
+                    }}
+                    type="warning"
+                    title="No permissions selected"
+                    description="This token won't be able to do anything until you grant at least one permission."
+                  />
+                </div>
+              )}
             </form>
           </Form>
         ) : (

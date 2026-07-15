@@ -23,21 +23,15 @@ import { PermissionRow } from './PermissionRow'
 interface PermissionsAccordionProps {
   selection: PermissionSelection
   onChange: (key: string, mode: PermissionMode) => void
-  /** Shown after an attempt to advance with zero configured scopes. */
-  showZeroWarning?: boolean
 }
 
-export const PermissionsAccordion = ({
-  selection,
-  onChange,
-  showZeroWarning,
-}: PermissionsAccordionProps) => {
+export const PermissionsAccordion = ({ selection, onChange }: PermissionsAccordionProps) => {
   const [openCategories, setOpenCategories] = useState<string[]>([
     PERMISSION_CATALOG_BY_CATEGORY[0]?.key,
   ])
 
   return (
-    <section className="space-y-3 px-5 sm:px-6 py-6">
+    <div className="space-y-3 px-5 sm:px-6 py-6">
       <div>
         <h3 className="text-sm text-foreground">Permissions</h3>
         <p className="text-xs text-foreground-light">
@@ -95,14 +89,6 @@ export const PermissionsAccordion = ({
           )
         })}
       </Accordion>
-
-      {showZeroWarning && (
-        <Admonition
-          type="warning"
-          title="No permissions selected"
-          description="This token won't be able to do anything until you grant at least one permission."
-        />
-      )}
-    </section>
+    </div>
   )
 }

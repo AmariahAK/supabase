@@ -370,6 +370,7 @@ allow_list = [
     "[Ss]avepoint",
     "SDKs",
     "SQL",
+    "SQLSTATE",
     "SQLAlchemy",
     "SQLModel",
     "SQLite",

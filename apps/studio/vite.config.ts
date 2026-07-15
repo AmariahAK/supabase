@@ -270,6 +270,7 @@ function isKnownCycle(scc: string[]): boolean {
 function assertNoChunkCycles(): Plugin {
   return {
     name: 'studio-assert-no-chunk-cycles',
+    apply: 'build',
     generateBundle(_options, bundle) {
       const graph: Record<string, Set<string>> = {}
       for (const [name, asset] of Object.entries(bundle)) {
@@ -331,7 +332,6 @@ function assertNoChunkCycles(): Plugin {
         summary
       this.error(msg)
     },
-    apply: 'build',
   }
 }
 

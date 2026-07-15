@@ -31,6 +31,10 @@ const partnersPageData = {
       link: '/partners/catalog',
       icon: <ArrowRight strokeWidth={1.5} />,
     },
+    secondaryCta: {
+      label: 'Partner Catalog',
+      link: '/partners/catalog',
+    },
   },
   reasonsSection: {
     eyebrow: 'Why partner',

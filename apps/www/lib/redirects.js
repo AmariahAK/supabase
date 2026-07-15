@@ -2329,41 +2329,31 @@ module.exports = [
     destination: '/blog/flutter-authorization-with-rls',
   },
   // /partners/integrations → /partners/catalog redirects
-  {
-    permanent: true,
-    source: '/partners/integrations/refine_dev',
-    destination: '/partners/catalog/refine',
-  },
-  {
-    permanent: true,
-    source: '/partners/integrations/supabase_wrapper_stripe',
-    destination: '/partners/catalog/stripe',
-  },
-  // Wrapper listing slugs → clean partner slugs
+  // Wrapper listing slugs → clean partner slugs (open the matching listing tab)
   {
     permanent: true,
     source: '/partners/catalog/bigquery-wrapper',
-    destination: '/partners/catalog/bigquery',
+    destination: '/partners/catalog/bigquery?tab=bigquery-wrapper',
   },
   {
     permanent: true,
     source: '/partners/catalog/firebase-wrapper',
-    destination: '/partners/catalog/firebase',
+    destination: '/partners/catalog/firebase?tab=firebase-wrapper',
   },
   {
     permanent: true,
     source: '/partners/catalog/stripe-wrapper',
-    destination: '/partners/catalog/stripe',
+    destination: '/partners/catalog/stripe?tab=stripe-wrapper',
+  },
+  {
+    permanent: true,
+    source: '/partners/catalog/aikido-security',
+    destination: '/partners/catalog/aikido',
   },
   {
     permanent: true,
     source: '/partners/integrations',
     destination: '/partners/catalog',
-  },
-  {
-    permanent: true,
-    source: '/partners/integrations/:slug*',
-    destination: '/partners/catalog/:slug*',
   },
   {
     permanent: true,
@@ -2492,6 +2482,31 @@ module.exports = [
   },
   {
     permanent: true,
+    source: '/partners/integrations/atomic_crm',
+    destination: '/partners/catalog/atomic-crm',
+  },
+  {
+    permanent: true,
+    source: '/partners/integrations/refine_dev',
+    destination: '/partners/catalog/refine',
+  },
+  {
+    permanent: true,
+    source: '/partners/integrations/supabase_wrapper_bigquery',
+    destination: '/partners/catalog/bigquery?tab=bigquery-wrapper',
+  },
+  {
+    permanent: true,
+    source: '/partners/integrations/supabase_wrapper_firebase',
+    destination: '/partners/catalog/firebase?tab=firebase-wrapper',
+  },
+  {
+    permanent: true,
+    source: '/partners/integrations/supabase_wrapper_stripe',
+    destination: '/partners/catalog/stripe?tab=stripe-wrapper',
+  },
+  {
+    permanent: true,
     source: '/docs/guides/integrations/sequin',
     destination: '/partners/catalog/sequin',
   },
@@ -2530,6 +2545,13 @@ module.exports = [
     permanent: true,
     source: '/partners/integrations/toddle',
     destination: '/partners/catalog/nordcraft',
+  },
+  // Catch-all: any other /partners/integrations/<slug> not covered by a specific rule above.
+  // Must come after all specific /partners/integrations/* rules
+  {
+    permanent: true,
+    source: '/partners/integrations/:slug*',
+    destination: '/partners/catalog/:slug*',
   },
   {
     permanent: true,
@@ -2882,7 +2904,12 @@ module.exports = [
   {
     permanent: true,
     source: '/docs/guides/cli/local-development',
-    destination: '/docs/guides/local-development/overview',
+    destination: '/docs/guides/local-development/database-migrations',
+  },
+  {
+    permanent: true,
+    source: '/docs/guides/local-development/overview',
+    destination: '/docs/guides/local-development/database-migrations',
   },
   {
     permanent: true,
@@ -2955,7 +2982,12 @@ module.exports = [
   {
     permanent: true,
     source: '/docs/guides/platform/marketplace',
-    destination: '/docs/guides/integrations/supabase-marketplace',
+    destination: '/docs/guides/integrations/partner-catalog',
+  },
+  {
+    permanent: true,
+    source: '/docs/guides/integrations/supabase-marketplace',
+    destination: '/docs/guides/integrations/partner-catalog',
   },
   {
     permanent: true,

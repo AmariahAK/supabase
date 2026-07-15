@@ -7,6 +7,8 @@ import {
 import {
   createMarketplaceClient,
   fullImageUrl,
+  SUPABASE_LISTING_OVERRIDES,
+  SUPABASE_PARTNER_SLUG,
   type CatalogListing,
 } from 'common/marketplace-client'
 
@@ -19,19 +21,6 @@ export const isUseMarketplaceDb =
   process.env.NEXT_PUBLIC_INTEGRATIONS_MARKETPLACE_DB?.toLowerCase() === 'true'
 
 const marketplaceClient = createMarketplaceClient()
-
-// Supabase-owned listings that are remapped to appear as independent partners in the catalog.
-// The key is the listing slug; the value is the partner name to display.
-const SUPABASE_PARTNER_SLUG = 'supabase'
-
-// Key = listing DB slug; Value = { display name, clean URL slug for the catalog page }
-const SUPABASE_LISTING_OVERRIDES: Record<string, { name: string; slug: string }> = {
-  'bigquery-wrapper': { name: 'BigQuery', slug: 'bigquery' },
-  'firebase-wrapper': { name: 'Firebase', slug: 'firebase' },
-  'stripe-wrapper': { name: 'Stripe', slug: 'stripe' },
-  vercel: { name: 'Vercel', slug: 'vercel' },
-  cyberduck: { name: 'Cyberduck', slug: 'cyberduck' },
-}
 
 // URL-facing slugs for overridden listings (e.g. 'bigquery', 'firebase', 'stripe').
 const OVERRIDE_URL_SLUGS = new Set(Object.values(SUPABASE_LISTING_OVERRIDES).map((o) => o.slug))
@@ -52,18 +41,6 @@ export function isMarketplaceListing(listing: CatalogListing): boolean {
 // Partners whose catalog pages are not yet ready to launch.
 // Excluded from listing, detail, slug generation, and search.
 const PRE_LAUNCH_CATALOG_BLOCKLIST = new Set<string>([])
-
-// Listings that must show as "Integration", never "Dashboard Integration",
-// regardless of what published_in_marketplace_at is set to in the DB.
-const PLAIN_INTEGRATION_SLUGS = new Set([
-  'aikido',
-  'aikido-security',
-  'doppler',
-  'stripe-sync-engine',
-])
-
-// Listings that must show as "Guide", regardless of marketplace_url or DB flags.
-const GUIDE_SLUGS = new Set(['resend'])
 
 /** Returns true if a listing is a Foreign Data Wrapper (FDW). */
 function isFdwListing(listing: CatalogListing): boolean {
@@ -210,19 +187,12 @@ async function getPartnersFromMarketplace(): Promise<Partner[]> {
 }
 
 /**
- * Derives a human-readable tab label from a listing's metadata.
- * Priority: one-click install → Foreign Data Wrapper → plain integration → guide/overview.
- * FDW listings use their own title (e.g. "BigQuery Wrapper") rather than the generic
- * "Foreign Data Wrapper" string, so partners with more than one FDW (e.g. Amazon's S3 and
- * Redshift wrappers) get distinct, identifiable tabs instead of two identical labels.
+ * Derives a human-readable tab label from a listing's metadata — always the listing's own
+ * title (e.g. "BigQuery Wrapper", "Stripe Sync Engine"), so partners with more than one listing
+ * get distinct, identifiable tabs instead of generic "Guide"/"Integration" labels.
  */
 function getLabelForListing(listing: CatalogListing): string {
-  if (isFdwListing(listing)) return listing.title || 'Foreign Data Wrapper'
-  if (GUIDE_SLUGS.has(listing.slug)) return 'Guide'
-  if (listing.published_in_marketplace && !PLAIN_INTEGRATION_SLUGS.has(listing.slug))
-    return 'Dashboard Integration'
-  if (listing.marketplace_url || PLAIN_INTEGRATION_SLUGS.has(listing.slug)) return 'Integration'
-  return 'Guide'
+  return listing.title || listing.slug || 'Listing'
 }
 
 /**
@@ -266,11 +236,10 @@ async function getPartnerFromMarketplace(slug: string): Promise<Partner | null> 
           slug: listing.slug,
           label: getLabelForListing(listing),
           content: listing.content,
-          publishedInMarketplace:
-            !listing.published_in_marketplace || isMarketplaceListing(listing),
+          publishedInMarketplace: listing.published_in_marketplace || isMarketplaceListing(listing),
           installUrl: listing.marketplace_url ?? null,
           dashboardUrl:
-            !listing.published_in_marketplace || isMarketplaceListing(listing)
+            listing.published_in_marketplace || isMarketplaceListing(listing)
               ? `https://supabase.com/dashboard/project/_/integrations/${isFdwListing(listing) ? listing.slug.replaceAll('-', '_') : listing.slug}/overview`
               : null,
           docsUrl: listing.documentation_url || null,

@@ -4,7 +4,6 @@ import 'swiper/css'
 
 import { CH } from '@code-hike/mdx/components'
 import DefaultLayout from '~/components/Layouts/Default'
-import SectionContainer from '~/components/Layouts/SectionContainer'
 import { type ListingDetail, type Partner } from '~/types/partners'
 import { useBreakpoint } from 'common'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -20,7 +19,7 @@ import { Button, cn } from 'ui'
 import { Admonition } from 'ui-patterns/admonition'
 import { ExpandableVideo } from 'ui-patterns/ExpandableVideo'
 
-import SectionContainerWithCn from '../../../../components/Layouts/SectionContainerWithCn'
+import SectionContainerWithCn from '@/components/Layouts/SectionContainerWithCn'
 
 function mdxComponents(callback: Dispatch<SetStateAction<string | null>>) {
   return {
@@ -120,7 +119,7 @@ export default function PartnerCatalogDetail({ partner, serializedListings }: Pr
 
       <DefaultLayout>
         <div className="relative h-auto w-full">
-          <SectionContainerWithCn height="narrow" className="col-span-12  lg:col-span-2">
+          <SectionContainerWithCn height="narrow" className="col-span-12 lg:col-span-2">
             {/* Back button */}
             <Link
               href="/partners/catalog"
@@ -134,7 +133,6 @@ export default function PartnerCatalogDetail({ partner, serializedListings }: Pr
             <div className="flex mt-6 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center space-x-4">
                 <Image
-                  layout="fixed"
                   width={56}
                   height={56}
                   className="bg-white p-1 shrink-0 h-14 w-14 rounded-full border"
@@ -154,33 +152,35 @@ export default function PartnerCatalogDetail({ partner, serializedListings }: Pr
               )}
             </div>
           </SectionContainerWithCn>
-          <SectionContainerWithCn
-            height="none"
-            className="border-b overflow-x-scroll overflow-y-hidden"
-            ref={tabsRef}
-          >
-            {/* Listings tabs */}
-            <div className="flex">
-              {allListings.map((listing, i) => (
-                <button
-                  key={listing.slug}
-                  type="button"
-                  onClick={() => {
-                    setActiveSlug(listing.slug)
-                    setFocusedImage(null)
-                  }}
-                  className={cn(
-                    'px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap hover:cursor-pointer',
-                    activeTabIndex === i
-                      ? 'border-foreground text-foreground'
-                      : 'border-transparent text-foreground-lighter hover:text-foreground'
-                  )}
-                >
-                  {listing.label}
-                </button>
-              ))}
-            </div>
-          </SectionContainerWithCn>
+          <div className="border-b">
+            <SectionContainerWithCn
+              height="none"
+              className="overflow-x-scroll overflow-y-hidden"
+              ref={tabsRef}
+            >
+              {/* Listings tabs */}
+              <div className="flex">
+                {allListings.map((listing, i) => (
+                  <button
+                    key={listing.slug}
+                    type="button"
+                    onClick={() => {
+                      setActiveSlug(listing.slug)
+                      setFocusedImage(null)
+                    }}
+                    className={cn(
+                      'px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap hover:cursor-pointer',
+                      activeTabIndex === i
+                        ? 'border-foreground text-foreground'
+                        : 'border-transparent text-foreground-lighter hover:text-foreground'
+                    )}
+                  >
+                    {listing.label}
+                  </button>
+                ))}
+              </div>
+            </SectionContainerWithCn>
+          </div>
 
           {/* Images for active listing */}
           {(activeListing.images?.length ?? 0) > 0 && (
@@ -235,7 +235,7 @@ export default function PartnerCatalogDetail({ partner, serializedListings }: Pr
           )}
 
           {/* Main content */}
-          <SectionContainerWithCn height="narrow" className="">
+          <SectionContainerWithCn height="narrow">
             <div className="grid gap-y-12 lg:grid-cols-8 lg:gap-x-20">
               {isNarrow && <PartnerDetails partner={partner} activeListing={activeListing} />}
 
@@ -259,61 +259,50 @@ export default function PartnerCatalogDetail({ partner, serializedListings }: Pr
 
               {!isNarrow && <PartnerDetails partner={partner} activeListing={activeListing} />}
             </div>
-
-            {installHref && (
-              <div className="bg-background hover:border-default-control border-default rounded-2xl border p-10 drop-shadow-xs max-w-5xl mx-auto mt-12">
-                <div className="flex flex-row justify-between">
-                  <h1 className="text-2xl self-center">
-                    Get started with {partner.title} and Supabase.
-                  </h1>
-                  <a href={installHref} target="_blank" rel="noreferrer">
-                    <Button size="medium" variant="secondary">
-                      Add integration
-                    </Button>
-                  </a>
-                </div>
-              </div>
-            )}
           </SectionContainerWithCn>
-          <div className="absolute h-full w-full inset-0 z-20 pointer-events-none lg:hidden">
+          <div className="absolute h-full w-full inset-0 z-20 pointer-events-none">
             <div
               className={cn(
-                'transition-all bg-background/90 -translate-y-3/4 dark:bg-background/95 backdrop-blur-xs border-b sticky top-16 z-20 flex justify-between items-center gap-4 px-6 py-2',
+                'transition-all border-b bg-background/90 -translate-y-3/4 dark:bg-background/95 backdrop-blur-xs sticky top-16 z-20',
                 showStickyBar
                   ? 'opacity-100 pointer-events-auto translate-y-0'
                   : 'opacity-0 pointer-events-none'
               )}
             >
-              <div className="flex items-center space-x-2">
-                <Image
-                  layout="fixed"
-                  width={56}
-                  height={56}
-                  className="hidden sm:block bg-white p-0.5 shrink-0 h-6 w-6 rounded-full border"
-                  src={partner.logo}
-                  alt={partner.title}
-                />
-                <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1">
-                  <span className="sm:text-lg truncate">{partner.title}</span>
-                  {activeListing && (
-                    <>
-                      <span className="text-foreground-lighter text-sm hidden sm:inline">—</span>
-                      <span className="text-foreground-lighter text-sm truncate">
-                        {activeListing.label}
-                      </span>
-                    </>
-                  )}
+              <SectionContainerWithCn
+                height="none"
+                className="flex justify-between items-center gap-4 py-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <Image
+                    width={56}
+                    height={56}
+                    className="hidden sm:block bg-white p-0.5 shrink-0 h-6 w-6 rounded-full border"
+                    src={partner.logo}
+                    alt={partner.title}
+                  />
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1">
+                    <span className="sm:text-lg truncate">{partner.title}</span>
+                    {activeListing && (
+                      <>
+                        <span className="text-foreground-lighter text-sm hidden sm:inline">—</span>
+                        <span className="text-foreground-lighter text-sm truncate">
+                          {activeListing.label}
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-              {installHref && (
-                <Button asChild>
-                  <a href={installHref} target="_blank" rel="noreferrer">
-                    {activeListing.publishedInMarketplace
-                      ? 'Install integration'
-                      : 'Add integration'}
-                  </a>
-                </Button>
-              )}
+                {installHref && (
+                  <Button asChild>
+                    <a href={installHref} target="_blank" rel="noreferrer">
+                      {activeListing.publishedInMarketplace
+                        ? 'Install integration'
+                        : 'Add integration'}
+                    </a>
+                  </Button>
+                )}
+              </SectionContainerWithCn>
             </div>
           </div>
         </div>
@@ -340,12 +329,13 @@ function PartnerDetails({
 }) {
   return (
     <div className="lg:col-span-3">
-      <div className="sticky top-20 flex flex-col gap-4">
+      <div className="sticky top-32 flex flex-col gap-4">
         <h2 className="text-foreground font-mono uppercase tracking-wide text-xs">Details</h2>
 
         {activeListing.youtubeId && (
           <ExpandableVideo
             videoId={activeListing.youtubeId}
+            imgUrl={`https://img.youtube.com/vi/${activeListing.youtubeId}/0.jpg`}
             imgOverlayText="Watch an introductory video"
             triggerContainerClassName="w-full"
           />

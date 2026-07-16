@@ -35,6 +35,8 @@ export interface TemplateParts {
   halfThumbLogoEl?: ReactNode | null
   /** Resolved line count of the fitted headline — Announcement positions differently at 1 vs. 2 lines. */
   headlineLineCount?: number
+  /** Single icon pre-sized to `ICON_TILE_ICON_SIZE_1X` — icon-layout's icon inside its chip bounding box. */
+  boxedIconEl?: ReactNode | null
 }
 
 export interface Template {
@@ -73,6 +75,35 @@ export interface Template {
   maxHeadlineLines?: number
   /** Pins the auto-fit font-size range instead of the default hasIcon-based tier (e.g. Announcement's fixed 72px-at-one-line). */
   headlineSizeTier?: { minSize: number; maxSize: number }
+}
+
+// Shared icon "chip" bounding box (Partner logos' tile look, reused by
+// icon-layout) — fixed 160px dark rounded box, sized to hold a 56px icon.
+export const ICON_TILE_SIZE_1X = 160
+export const ICON_TILE_ICON_SIZE_1X = 56
+const ICON_TILE_RADIUS_1X = 16
+const ICON_TILE_BORDER_WIDTH_1X = 1.5
+const ICON_TILE_BG = '#171717'
+const ICON_TILE_BORDER_COLOR = '#2E2E2E'
+
+/** Wraps `content` (expected to be `ICON_TILE_ICON_SIZE_1X`-sized) in the shared dark chip box. */
+function iconTile(p: TemplateParts, content: ReactNode): ReactElement {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: ICON_TILE_SIZE_1X * p.scaleFactor,
+        height: ICON_TILE_SIZE_1X * p.scaleFactor,
+        borderRadius: ICON_TILE_RADIUS_1X * p.scaleFactor,
+        backgroundColor: ICON_TILE_BG,
+        border: `${ICON_TILE_BORDER_WIDTH_1X * p.scaleFactor}px solid ${ICON_TILE_BORDER_COLOR}`,
+      }}
+    >
+      {content}
+    </div>
+  )
 }
 
 // Gap (1x px) between the headline and the icon column in split-right.
@@ -128,6 +159,9 @@ export const TEMPLATES: Template[] = [
     noEyebrowForArrangement: (arrangement) => arrangement === 3,
     build: (p) => {
       const arrangement = p.arrangement ?? 0
+      // Icon renders inside the same dark chip bounding box Partner logos
+      // uses, not bare — consistent icon treatment across both templates.
+      const icon = p.hasIcon ? iconTile(p, p.boxedIconEl) : null
       if (arrangement === 1) {
         // Headline left, icon right.
         return (
@@ -141,7 +175,7 @@ export const TEMPLATES: Template[] = [
             }}
           >
             {p.textBlock}
-            {p.iconEl}
+            {icon}
           </div>
         )
       }
@@ -157,9 +191,7 @@ export const TEMPLATES: Template[] = [
               textAlign: 'center',
             }}
           >
-            {p.hasIcon ? (
-              <div style={{ display: 'flex', marginBottom: 36 * p.scaleFactor }}>{p.iconEl}</div>
-            ) : null}
+            {icon ? <div style={{ display: 'flex', marginBottom: 36 * p.scaleFactor }}>{icon}</div> : null}
             {p.textBlock}
           </div>
         )
@@ -176,7 +208,7 @@ export const TEMPLATES: Template[] = [
             }}
           >
             {p.textBlock}
-            {p.iconEl}
+            {icon}
           </div>
         )
       }
@@ -190,10 +222,8 @@ export const TEMPLATES: Template[] = [
             alignItems: 'flex-start',
           }}
         >
-          {p.hasIcon ? (
-            <div style={{ display: 'flex', width: p.W - p.padX * 2, justifyContent: 'flex-end' }}>
-              {p.iconEl}
-            </div>
+          {icon ? (
+            <div style={{ display: 'flex', width: p.W - p.padX * 2, justifyContent: 'flex-end' }}>{icon}</div>
           ) : null}
           {p.textBlock}
         </div>
@@ -299,26 +329,13 @@ export const TEMPLATES: Template[] = [
     arrangementCount: 2,
     build: (p) => {
       const tiles = p.logoTiles ?? []
-      const tileSize = 160 * p.scaleFactor
       const tileGap = 20 * p.scaleFactor
       const sepFontSize = 32 * p.scaleFactor
       const rowChildren: ReactNode[] = []
       tiles.forEach((tile, i) => {
         rowChildren.push(
-          <div
-            key={`tile-${i}`}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: tileSize,
-              height: tileSize,
-              borderRadius: 16 * p.scaleFactor,
-              backgroundColor: '#171717',
-              border: `${1.5 * p.scaleFactor}px solid #2E2E2E`,
-            }}
-          >
-            {tile}
+          <div key={`tile-${i}`} style={{ display: 'flex' }}>
+            {iconTile(p, tile)}
           </div>
         )
         // "x" separator is only used for the 2-logo case (matches reference).

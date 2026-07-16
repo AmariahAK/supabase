@@ -505,7 +505,10 @@ export default function Page() {
   const iconPickerRef = useRef<HTMLDivElement>(null)
   // logo-grid: 1-4 partner logo tiles, adjusted via a count stepper — each
   // slot holds its own icon/logo name (or null while unpicked).
-  const [logoTileIcons, setLogoTileIcons] = useState<(string | null)[]>(['database'])
+  // Starts empty (not a seed icon default) — Partner logos only picks from
+  // uploaded Logos now, and 'database' (a bundled line-art icon) wouldn't
+  // resolve to anything in that restricted list.
+  const [logoTileIcons, setLogoTileIcons] = useState<(string | null)[]>([null])
   const [logoTilePickerOpen, setLogoTilePickerOpen] = useState<number | null>(null)
   const logoTilePickerRef = useRef<HTMLDivElement>(null)
   // Which element-arrangement variant is active for the current template —
@@ -523,6 +526,9 @@ export default function Page() {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const allIcons = useMemo(() => [...ICON_LIBRARY, ...uploadedIcons], [uploadedIcons])
+  // Partner logos' tiles are meant for partner/acquisition brand marks —
+  // restricted to uploaded Logos, not the bundled line-art Icons set.
+  const allLogos = useMemo(() => allIcons.filter((i) => i.kind === 'logo'), [allIcons])
   const selectedTemplateObj = useMemo(
     () => activeTemplates.find((t) => t.id === template) ?? activeTemplates[0],
     [activeTemplates, template]
@@ -1569,7 +1575,7 @@ export default function Page() {
                 <span className="flex items-center justify-between text-sm font-medium text-foreground-light">
                   <span>
                     Logo tiles
-                    <Hint text="Cycle through 1-4 partner-logo tiles. Each tile picks from the same icon/logo library as the single-icon control." />
+                    <Hint text="Cycle through 1-4 partner-logo tiles. Each tile picks from uploaded Logos only, not the bundled Icons set." />
                   </span>
                   <span className="flex items-center gap-1">
                     <button
@@ -1589,7 +1595,7 @@ export default function Page() {
                     <button
                       type="button"
                       onClick={() =>
-                        setLogoTileIcons((tiles) => (tiles.length < 4 ? [...tiles, randomIconName(allIcons)] : tiles))
+                        setLogoTileIcons((tiles) => (tiles.length < 4 ? [...tiles, randomIconName(allLogos)] : tiles))
                       }
                       disabled={logoTileIcons.length >= 4}
                       title="More tiles"
@@ -1601,7 +1607,7 @@ export default function Page() {
                 </span>
                 <div className="grid grid-cols-4 gap-2" ref={logoTilePickerRef}>
                   {logoTileIcons.map((tileIcon, tileIdx) => {
-                    const tileSelected = allIcons.find((i) => i.name === tileIcon) ?? null
+                    const tileSelected = allLogos.find((i) => i.name === tileIcon) ?? null
                     return (
                       <div key={tileIdx} className="relative">
                         <button
@@ -1643,7 +1649,7 @@ export default function Page() {
                         {logoTilePickerOpen === tileIdx && (
                           <div className="absolute bottom-full z-20 mb-1 w-56 rounded-md border border-strong bg-background p-2 shadow-[0_8px_30px_rgba(0,0,0,0.35)] ring-1 ring-black/5">
                             <div className="grid max-h-56 grid-cols-4 gap-2 overflow-y-auto">
-                              {allIcons.map((ic) => (
+                              {allLogos.map((ic) => (
                                 <button
                                   key={ic.name}
                                   type="button"

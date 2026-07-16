@@ -349,6 +349,26 @@ export async function GET(req: Request) {
         />
       ) : null
 
+    // icon-layout: the icon rendered inside its chip bounding box — same
+    // per-tile icon size as logo-grid's tiles (LOGO_TILE_ICON_SIZE_1X),
+    // rather than the standalone format.iconSize used by `iconEl` above.
+    const boxedIconEl =
+      iconObj && iconObj.url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img {...fitBox(iconObj.width ?? 1, iconObj.height ?? 1, LOGO_TILE_ICON_SIZE_1X * s)} src={iconObj.url} />
+      ) : iconObj ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          width={LOGO_TILE_ICON_SIZE_1X * s}
+          height={LOGO_TILE_ICON_SIZE_1X * s}
+          src={iconDataUri(iconObj, {
+            sizePx: LOGO_TILE_ICON_SIZE_1X * s,
+            strokePx: ICON_STROKE * s,
+            color: color('illustration.stroke', brand),
+          })}
+        />
+      ) : null
+
     const logoHeight = WORDMARK_HEIGHT_1X * s
     const logoEl = (
       // eslint-disable-next-line @next/next/no-img-element
@@ -413,6 +433,7 @@ export async function GET(req: Request) {
       halfThumbLogoEl,
       headlineLineCount: fit.lineCount,
       iconEl,
+      boxedIconEl,
       hasIcon,
     })
 

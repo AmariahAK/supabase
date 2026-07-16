@@ -30,7 +30,25 @@ export interface SeedIcon {
   height?: number
 }
 
+// Bundled brand-mark logo — NOT brand-scoped (unlike uploaded logo assets),
+// so it's always available for Partner logos/Announcement's default
+// regardless of the active brand or that brand's uploaded asset list.
+// Data URI of apps/www/public/images/supabase-logo-icon.svg (viewBox 0 0 109 113).
+const SUPABASE_BOLT_DATA_URI =
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDkiIGhlaWdodD0iMTEzIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMTA5IDExMyI+PHBhdGggZmlsbD0idXJsKCNhKSIgZD0iTTYzLjcwOCAxMTAuMjg0Yy0yLjg2IDMuNjAxLTguNjU4IDEuNjI4LTguNzI3LTIuOTdsLTEuMDA3LTY3LjI1MWg0NS4yMmM4LjE5IDAgMTIuNzU4IDkuNDYgNy42NjUgMTUuODc0eiIvPjxwYXRoIGZpbGw9InVybCgjYikiIGZpbGwtb3BhY2l0eT0iLjIiIGQ9Ik02My43MDggMTEwLjI4NGMtMi44NiAzLjYwMS04LjY1OCAxLjYyOC04LjcyNy0yLjk3bC0xLjAwNy02Ny4yNTFoNDUuMjJjOC4xOSAwIDEyLjc1OCA5LjQ2IDcuNjY1IDE1Ljg3NHoiLz48cGF0aCBmaWxsPSIjM2VjZjhlIiBkPSJNNDUuMzE3IDIuMDcxYzIuODYtMy42MDEgOC42NTctMS42MjggOC43MjYgMi45N2wuNDQyIDY3LjI1MUg5LjgzYy04LjE5IDAtMTIuNzU5LTkuNDYtNy42NjUtMTUuODc1eiIvPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iYSIgeDE9IjUzLjk3NCIgeDI9Ijk0LjE2MyIgeTE9IjU0Ljk3NCIgeTI9IjcxLjgyOSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIHN0b3AtY29sb3I9IiMyNDkzNjEiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzZWNmOGUiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0iYiIgeDE9IjM2LjE1NiIgeDI9IjU0LjQ4NCIgeTE9IjMwLjU3OCIgeTI9IjY1LjA4MSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3Atb3BhY2l0eT0iMCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjwvc3ZnPg=='
+
 export const SEED_ICONS: SeedIcon[] = [
+  {
+    name: 'supabase-bolt',
+    label: 'Supabase bolt',
+    tags: ['supabase', 'bolt', 'brand'],
+    viewBox: '0 0 109 113',
+    body: '',
+    kind: 'logo',
+    url: SUPABASE_BOLT_DATA_URI,
+    width: 109,
+    height: 113,
+  },
   {
     name: 'database',
     label: 'Database',

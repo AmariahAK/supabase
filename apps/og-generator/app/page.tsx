@@ -566,10 +566,12 @@ export default function Page() {
 
   // Partner logos' first tile defaults to the Supabase bolt mark — the
   // layout is built to showcase a partner alongside Supabase, so leading
-  // with our own mark makes more sense than an empty "Pick" slot.
+  // with our own mark makes more sense than an empty "Pick" slot. The bolt
+  // is a bundled ICON_LIBRARY entry (name 'supabase-bolt'), not a per-brand
+  // uploaded asset, so this default works even on brands with zero uploads.
   useEffect(() => {
     if (template !== 'logo-grid' || logoTileIcons[0]) return
-    const bolt = allLogos.find((l) => l.tags?.includes('bolt')) ?? null
+    const bolt = allLogos.find((l) => l.name === 'supabase-bolt') ?? allLogos.find((l) => l.tags?.includes('bolt')) ?? null
     if (bolt) setLogoTileIcons((tiles) => [bolt.name, ...tiles.slice(1)])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template, allLogos])

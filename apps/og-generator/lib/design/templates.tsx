@@ -33,6 +33,8 @@ export interface TemplateParts {
   arrangement?: number
   /** Single icon/logo pre-sized to 50% of `thumbBox` — Announcement's OG logo. */
   halfThumbLogoEl?: ReactNode | null
+  /** Resolved line count of the fitted headline — Announcement positions differently at 1 vs. 2 lines. */
+  headlineLineCount?: number
 }
 
 export interface Template {
@@ -82,9 +84,12 @@ const LOGO_CENTER_LIFT_1X = 40
 const ANNOUNCEMENT_LOGO_BOTTOM_1X = 80
 
 // Announcement headline: fixed max box width (brand guideline) and its
-// absolute top offset from the canvas top (both 1x design px).
+// absolute top offset from the canvas top (both 1x design px) — offset
+// differs between a 1-line and a 2-line headline (both fixed guideline
+// values, not derived from one another).
 const ANNOUNCEMENT_HEADLINE_MAX_WIDTH_1X = 704
 const ANNOUNCEMENT_HEADLINE_TOP_1X = 242
+const ANNOUNCEMENT_HEADLINE_TOP_2LINE_1X = 176
 
 function rootBase(p: TemplateParts): CSSProperties {
   return {
@@ -375,8 +380,8 @@ export const TEMPLATES: Template[] = [
     // Fixed 704px box (brand guideline) rather than a fraction of the format
     // width — pairs with the 72px-at-one-line size tier below.
     headlineBox: () => ANNOUNCEMENT_HEADLINE_MAX_WIDTH_1X,
-    textAlign: 'left',
-    anchorX: 'left',
+    textAlign: 'center',
+    anchorX: 'center',
     anchorY: 'top',
     // Brand guideline caps this composition at 2 lines (vs. the usual 3),
     // pins the font size (72px at one line, shrinking only if a 2nd line is
@@ -392,8 +397,15 @@ export const TEMPLATES: Template[] = [
           style={{
             display: 'flex',
             position: 'absolute',
-            left: p.padX,
-            top: ANNOUNCEMENT_HEADLINE_TOP_1X * p.scaleFactor,
+            left: 0,
+            right: 0,
+            justifyContent: 'center',
+            // 2-line headlines sit higher (176px) than 1-line ones (242px) —
+            // both fixed brand guideline offsets, not derived from each other.
+            top:
+              (p.headlineLineCount && p.headlineLineCount >= 2
+                ? ANNOUNCEMENT_HEADLINE_TOP_2LINE_1X
+                : ANNOUNCEMENT_HEADLINE_TOP_1X) * p.scaleFactor,
           }}
         >
           {p.textBlock}

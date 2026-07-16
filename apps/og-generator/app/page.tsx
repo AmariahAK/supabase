@@ -1074,15 +1074,17 @@ export default function Page() {
               >
                 <span
                   className={`truncate text-left text-[10px] ${
-                    template === t.id ? 'text-brand' : 'text-foreground-lighter'
+                    template === t.id ? 'font-semibold text-brand' : 'text-foreground-lighter'
                   }`}
                 >
                   {t.label}
                 </span>
                 <div
                   data-theme="dark"
-                  className={`relative w-full overflow-hidden rounded-md border bg-background ${
-                    template === t.id ? 'border-brand' : 'border-default hover:border-strong'
+                  className={`relative w-full overflow-hidden rounded-md bg-background ${
+                    template === t.id
+                      ? 'border-2 border-brand'
+                      : 'border border-default hover:border-strong'
                   }`}
                   style={{ aspectRatio: `${format.width} / ${format.height}` }}
                 >

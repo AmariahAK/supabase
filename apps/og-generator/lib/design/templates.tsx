@@ -130,12 +130,20 @@ export function logoTilesRow(tiles: ReactNode[], scaleFactor: number): ReactElem
     )
     if (tiles.length === 2 && i === 0) {
       rowChildren.push(
-        <span
+        <div
           key="sep"
-          style={{ display: 'flex', color: 'rgba(255,255,255,0.35)', fontSize: sepFontSize, fontWeight: 500 }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: sepFontSize,
+            color: 'rgba(255,255,255,0.35)',
+            fontSize: sepFontSize,
+            fontWeight: 500,
+          }}
         >
           x
-        </span>
+        </div>
       )
     }
   })

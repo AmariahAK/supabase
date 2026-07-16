@@ -579,7 +579,7 @@ export default function Page() {
   useEffect(() => {
     if (template !== 'logo-grid') return
     if (arrangement === 0 || arrangement === 1) {
-      setLogoTileIcons(['supabase-bolt', 'openai-logo-ihvv'])
+      setLogoTileIcons(['supabase-bolt', 'openai-mark-ibnt'])
       setHeadline('Supabase is now an "official [C]hat[GPT] app"')
       setEyebrow('')
     } else if (arrangement === 2 || arrangement === 3) {

@@ -136,33 +136,19 @@ export async function GET(req: Request) {
       const thumbBoxH = (template.thumbBox?.height ?? thumbSize) * s
 
       // Partner logos: mimic the OG tile row exactly (same chip styling,
-      // same "x" separator for 2 tiles), just scaled up/down to fill the
-      // Thumb box instead of the generic single-icon crop below.
+      // same "x" separator for 2 tiles) at its native 160px (1x) size — not
+      // scaled to fill the Thumb box, so the chips stay visually consistent
+      // with the OG composition regardless of tile count.
       let logoGridThumbContent: ReactNode = null
       if (template.id === 'logo-grid' && tileNames.length) {
-        const n = tileNames.length
-        const CHIP_1X = 160
-        const CHIP_ICON_1X = 64
-        const GAP_1X = 20
-        const SEP_W_1X = 32
-        const items = n === 2 ? n + 1 : n
-        const rowWidth1x = n * CHIP_1X + (n === 2 ? SEP_W_1X : 0) + (items - 1) * GAP_1X
-        const margin = 0.85
-        const tileScale = Math.min((thumbBoxW * margin) / rowWidth1x, (thumbBoxH * margin) / CHIP_1X)
         const tiles = (
           await Promise.all(
             tileNames.map((name) =>
-              renderIconByName(
-                name,
-                brand.id,
-                CHIP_ICON_1X * tileScale,
-                ICON_STROKE * s,
-                color('illustration.stroke', brand)
-              )
+              renderIconByName(name, brand.id, LOGO_TILE_ICON_SIZE_1X * s, ICON_STROKE * s, color('illustration.stroke', brand))
             )
           )
         ).filter((el): el is NonNullable<typeof el> => el !== null)
-        logoGridThumbContent = logoTilesRow(tiles, tileScale)
+        logoGridThumbContent = logoTilesRow(tiles, s)
       }
 
       const thumbRoot = (

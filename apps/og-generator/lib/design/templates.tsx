@@ -155,8 +155,8 @@ export const TEMPLATES: Template[] = [
     anchorX: 'left',
     anchorY: 'bottom',
     arrangementCount: 4,
-    // Stacked (3/4) has no room for an eyebrow above the headline.
-    noEyebrowForArrangement: (arrangement) => arrangement === 3,
+    // Centered (3/4) has no room for an eyebrow above the headline.
+    noEyebrowForArrangement: (arrangement) => arrangement === 2,
     build: (p) => {
       const arrangement = p.arrangement ?? 0
       // Icon renders inside the same dark chip bounding box Partner logos

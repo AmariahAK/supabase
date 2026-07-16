@@ -50,6 +50,17 @@ function matchesIconQuery(ic: SeedIcon, query: string): boolean {
   )
 }
 
+// Color logos are usually authored for the dark OG canvas (white/light
+// marks) — a light picker swatch makes them invisible, so logo swatches
+// always get a fixed dark backdrop regardless of the app's own theme.
+const LOGO_SWATCH_BG = 'bg-[#171717]'
+
+function pickerSwatchClass(selected: boolean, isLogo: boolean): string {
+  const border = selected ? 'border-brand' : 'border-default hover:border-strong'
+  if (isLogo) return `${border} ${LOGO_SWATCH_BG}`
+  return `${border} ${selected ? 'bg-brand/10 text-brand' : 'bg-surface-100 text-foreground-light'}`
+}
+
 type View = 'og' | 'thumb' | 'both'
 
 interface FitInfo {
@@ -1184,7 +1195,11 @@ export default function Page() {
                   }}
                   className="flex w-full items-center gap-2 rounded-md border border-default bg-surface-100 px-3 py-2 text-sm text-foreground outline-none hover:border-strong focus:border-strong"
                 >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-default bg-background text-foreground-light">
+                  <span
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border border-default text-foreground-light ${
+                      selectedIcon?.kind === 'logo' ? LOGO_SWATCH_BG : 'bg-background'
+                    }`}
+                  >
                     {selectedIcon ? (
                       selectedIcon.kind === 'logo' && selectedIcon.url ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -1267,11 +1282,10 @@ export default function Page() {
                               setIconPickerOpen(false)
                             }}
                             title={ic.kind === 'logo' ? `${ic.label} (color logo)` : ic.label}
-                            className={`flex h-14 items-center justify-center rounded-md border p-1.5 ${
-                              icon === ic.name
-                                ? 'border-brand bg-brand/10 text-brand'
-                                : 'border-default bg-surface-100 text-foreground-light hover:border-strong'
-                            }`}
+                            className={`flex h-14 items-center justify-center rounded-md border p-1.5 ${pickerSwatchClass(
+                              icon === ic.name,
+                              ic.kind === 'logo'
+                            )}`}
                           >
                             {ic.kind === 'logo' && ic.url ? (
                               // eslint-disable-next-line @next/next/no-img-element
@@ -1387,7 +1401,9 @@ export default function Page() {
                             setLogoTilePickerOpen((open) => (open === tileIdx ? null : tileIdx))
                           }
                           title={tileSelected ? tileSelected.label : `Tile ${tileIdx + 1}`}
-                          className="flex h-14 w-full items-center justify-center rounded-md border border-default bg-surface-100 p-1.5 text-foreground-light hover:border-strong"
+                          className={`flex h-14 w-full items-center justify-center rounded-md border p-1.5 text-foreground-light hover:border-strong ${
+                            tileSelected?.kind === 'logo' ? `border-default ${LOGO_SWATCH_BG}` : 'border-default bg-surface-100'
+                          }`}
                         >
                           {tileSelected ? (
                             tileSelected.kind === 'logo' && tileSelected.url ? (
@@ -1429,11 +1445,10 @@ export default function Page() {
                                     setLogoTilePickerOpen(null)
                                   }}
                                   title={ic.kind === 'logo' ? `${ic.label} (color logo)` : ic.label}
-                                  className={`flex h-12 items-center justify-center rounded-md border p-1 ${
-                                    tileIcon === ic.name
-                                      ? 'border-brand bg-brand/10 text-brand'
-                                      : 'border-default bg-surface-100 text-foreground-light hover:border-strong'
-                                  }`}
+                                  className={`flex h-12 items-center justify-center rounded-md border p-1 ${pickerSwatchClass(
+                                    tileIcon === ic.name,
+                                    ic.kind === 'logo'
+                                  )}`}
                                 >
                                   {ic.kind === 'logo' && ic.url ? (
                                     // eslint-disable-next-line @next/next/no-img-element

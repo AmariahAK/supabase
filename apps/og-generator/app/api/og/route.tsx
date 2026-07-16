@@ -206,8 +206,9 @@ export async function GET(req: Request) {
     // Compact tier (40-56) whenever an icon is showing; default tier (48-64)
     // otherwise. Either way, a headline that still needs a 3rd line always
     // drops to the compact tier — checked after the first fit since line
-    // count isn't known up front.
-    const initialTier = hasIcon ? HEADLINE.sizeTiers.compact : HEADLINE.sizeTiers.default
+    // count isn't known up front. A template can pin its own tier instead
+    // (e.g. Announcement's fixed 72px-at-one-line) to skip that logic entirely.
+    const initialTier = template.headlineSizeTier ?? (hasIcon ? HEADLINE.sizeTiers.compact : HEADLINE.sizeTiers.default)
     const fitAt = (tier: { minSize: number; maxSize: number }) =>
       fitHeadline(cleanedHeadline, headlineFont, {
         boxWidth: template.headlineBox(format, arrangement),
@@ -219,7 +220,7 @@ export async function GET(req: Request) {
         manualBreaks,
       })
     let fit = fitAt(initialTier)
-    if (!manualSize && initialTier === HEADLINE.sizeTiers.default && fit.lineCount === 3) {
+    if (!manualSize && !template.headlineSizeTier && initialTier === HEADLINE.sizeTiers.default && fit.lineCount === 3) {
       fit = fitAt(HEADLINE.sizeTiers.compact)
     }
 

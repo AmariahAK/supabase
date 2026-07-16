@@ -67,6 +67,8 @@ export interface Template {
   thumbBox?: { width: number; height: number }
   /** Caps headline line count below the default 3 (e.g. Announcement's 2-line max). */
   maxHeadlineLines?: number
+  /** Pins the auto-fit font-size range instead of the default hasIcon-based tier (e.g. Announcement's fixed 72px-at-one-line). */
+  headlineSizeTier?: { minSize: number; maxSize: number }
 }
 
 // Gap (1x px) between the headline and the icon column in split-right.
@@ -78,6 +80,11 @@ const LOGO_CENTER_LIFT_1X = 40
 // Announcement: distance (1x px) from the canvas bottom edge to the *bottom*
 // of the centered logo — a fixed brand guideline, not tied to headlineInset.
 const ANNOUNCEMENT_LOGO_BOTTOM_1X = 80
+
+// Announcement headline: fixed max box width (brand guideline) and its
+// absolute top offset from the canvas top (both 1x design px).
+const ANNOUNCEMENT_HEADLINE_MAX_WIDTH_1X = 704
+const ANNOUNCEMENT_HEADLINE_TOP_1X = 242
 
 function rootBase(p: TemplateParts): CSSProperties {
   return {
@@ -365,18 +372,32 @@ export const TEMPLATES: Template[] = [
     id: 'announcement',
     label: 'Announcement',
     category: 'Announcement layouts',
-    headlineBox: fullHeadlineBoxWidth,
+    // Fixed 704px box (brand guideline) rather than a fraction of the format
+    // width — pairs with the 72px-at-one-line size tier below.
+    headlineBox: () => ANNOUNCEMENT_HEADLINE_MAX_WIDTH_1X,
     textAlign: 'left',
     anchorX: 'left',
     anchorY: 'top',
     // Brand guideline caps this composition at 2 lines (vs. the usual 3),
-    // and its Thumb companion is a fixed 375×200 logo box instead of the
-    // default square icon crop — the OG logo below is 50% of that box.
+    // pins the font size (72px at one line, shrinking only if a 2nd line is
+    // needed) instead of the default hasIcon-based tier, and its Thumb
+    // companion is a fixed 375×200 logo box instead of the default square
+    // icon crop — the OG logo below is 50% of that box.
     maxHeadlineLines: 2,
+    headlineSizeTier: { minSize: 40, maxSize: 72 },
     thumbBox: { width: 375, height: 200 },
     build: (p) => (
-      <div style={{ ...rootBase(p), flexDirection: 'column', alignItems: 'flex-start' }}>
-        {p.textBlock}
+      <div style={{ ...rootBase(p), position: 'relative' }}>
+        <div
+          style={{
+            display: 'flex',
+            position: 'absolute',
+            left: p.padX,
+            top: ANNOUNCEMENT_HEADLINE_TOP_1X * p.scaleFactor,
+          }}
+        >
+          {p.textBlock}
+        </div>
         {p.halfThumbLogoEl && (
           <div
             style={{

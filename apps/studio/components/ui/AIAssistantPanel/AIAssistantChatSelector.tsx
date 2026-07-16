@@ -240,9 +240,7 @@ export const AIAssistantChatMenu = () => {
   const [editingId, setEditingId] = useState<string>()
 
   const handleSaveName = (id: string) => {
-    if (snap.activeChatId && value?.trim()) {
-      snap.renameChat(id, value.trim())
-    }
+    if (value?.trim()) snap.renameChat(id, value.trim())
     setEditingId(undefined)
   }
 
@@ -283,6 +281,7 @@ export const AIAssistantChatMenu = () => {
                     size="tiny"
                     value={value}
                     className="ring-0! focus-visible:ring-offset-0 text-sm"
+                    onClick={(e) => e.stopPropagation()}
                     onChange={(e) => setValue(e.target.value)}
                     onFocus={(e) => e.target.select()}
                     onBlur={() => handleSaveName(id)}
@@ -316,17 +315,21 @@ export const AIAssistantChatMenu = () => {
                           <Edit size={12} />
                           <div>Rename</div>
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            snap.deleteChat(id)
-                          }}
-                        >
-                          <Trash size={12} />
-                          <div>Delete</div>
-                        </DropdownMenuItem>
+                        {chats.length > 1 && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                snap.deleteChat(id)
+                              }}
+                            >
+                              <Trash size={12} />
+                              <div>Delete</div>
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

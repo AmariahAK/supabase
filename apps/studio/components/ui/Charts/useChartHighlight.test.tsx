@@ -49,4 +49,22 @@ describe('useChartHighlight', () => {
     expect(result.current.left).toBe(BAR)
     expect(result.current.right).toBe(LATER_BAR)
   })
+
+  it('keeps left earlier than right when dragging leftward across epoch-ms labels', () => {
+    const { result } = renderHook(() => useChartHighlight())
+
+    act(() => {
+      result.current.handleMouseDown({ activeLabel: LATER_BAR, coordinates: Number(LATER_BAR) })
+    })
+    act(() => {
+      result.current.handleMouseMove({ activeLabel: BAR, coordinates: Number(BAR) })
+    })
+    act(() => {
+      result.current.handleMouseUp({ chartX: 10, chartY: 20 })
+    })
+
+    expect(Number(result.current.left)).toBeLessThan(Number(result.current.right))
+    expect(result.current.left).toBe(BAR)
+    expect(result.current.right).toBe(LATER_BAR)
+  })
 })

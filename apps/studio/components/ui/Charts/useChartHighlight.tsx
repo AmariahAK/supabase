@@ -3,6 +3,13 @@ import { useState } from 'react'
 
 type Coordinate = string | number
 
+const toDayjs = (value?: string) => {
+  const asNumber = Number(value)
+  return value !== undefined && value !== '' && Number.isFinite(asNumber)
+    ? dayjs(asNumber)
+    : dayjs(value)
+}
+
 type ChartHighlightMouseEvent = {
   activeLabel?: string
   coordinates?: Coordinate
@@ -60,8 +67,8 @@ export function useChartHighlight(): ChartHighlight {
 
     if (e.activeLabel !== initialPoint) setHasDragged(true)
 
-    const currentTimestamp = dayjs(e.activeLabel)
-    const initialTimestamp = dayjs(initialPoint)
+    const currentTimestamp = toDayjs(e.activeLabel)
+    const initialTimestamp = toDayjs(initialPoint)
 
     if (currentTimestamp.isBefore(initialTimestamp)) {
       // If dragging left, update left and keep right as initial

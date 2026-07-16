@@ -685,56 +685,13 @@ export default function Page() {
   // client-side natural-size measurement as uploadLogo below. Expected to
   // already be a white/monochrome mark (label + accept type say so), not
   // enforced pixel-by-pixel.
-  const uploadIcon = async (file: File) => {
-    setUploading(true)
-    setUploadError(null)
-    try {
-      const isSvg = file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg')
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('kind', 'icon')
-      fd.append('brand', brandId)
-      if (!isSvg) {
-        const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
-          const url = URL.createObjectURL(file)
-          const img = new Image()
-          img.onload = () => {
-            resolve({ width: img.naturalWidth, height: img.naturalHeight })
-            URL.revokeObjectURL(url)
-          }
-          img.onerror = () => {
-            URL.revokeObjectURL(url)
-            reject(new Error('Could not read the image — is it a valid SVG or PNG?'))
-          }
-          img.src = url
-        })
-        fd.append('width', String(width))
-        fd.append('height', String(height))
-      }
-      const res = await fetch('/api/assets', { method: 'POST', body: fd })
-      const data = await res.json()
-      if (!res.ok) {
-        setUploadError(data.error ?? 'Upload failed')
-        return
-      }
-      setUploadedIcons((prev) => [data.asset as SeedIcon, ...prev])
-      setIcon((data.asset as SeedIcon).name)
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Upload failed — please try again.')
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  // Custom color logos (partnerships, acquisitions, co-marketing) — rendered
-  // full-color, no stroke normalization. The browser measures natural pixel
-  // size before upload so /api/og can fit it without distortion.
-  const [uploadingLogo, setUploadingLogo] = useState(false)
-  const [logoError, setLogoError] = useState<string | null>(null)
-  const uploadLogo = async (file: File, onSuccess?: (name: string) => void) => {
-    setUploadingLogo(true)
-    setLogoError(null)
-    try {
+  async function uploadOneIcon(file: File): Promise<SeedIcon> {
+    const isSvg = file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg')
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('kind', 'icon')
+    fd.append('brand', brandId)
+    if (!isSvg) {
       const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
         const url = URL.createObjectURL(file)
         const img = new Image()
@@ -748,26 +705,92 @@ export default function Page() {
         }
         img.src = url
       })
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('kind', 'logo')
-      fd.append('brand', brandId)
       fd.append('width', String(width))
       fd.append('height', String(height))
-      const res = await fetch('/api/assets', { method: 'POST', body: fd })
-      const data = await res.json()
-      if (!res.ok) {
-        setLogoError(data.error ?? 'Upload failed')
-        return
-      }
-      setUploadedIcons((prev) => [data.asset as SeedIcon, ...prev])
-      if (onSuccess) onSuccess((data.asset as SeedIcon).name)
-      else setIcon((data.asset as SeedIcon).name)
-    } catch (err) {
-      setLogoError(err instanceof Error ? err.message : 'Upload failed — please try again.')
-    } finally {
-      setUploadingLogo(false)
     }
+    const res = await fetch('/api/assets', { method: 'POST', body: fd })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error ?? 'Upload failed')
+    return data.asset as SeedIcon
+  }
+
+  // Accepts one or many files (multi-select or drag-drop) — uploaded
+  // sequentially so failures on one file don't abort the rest; the last
+  // successfully uploaded icon becomes the active selection.
+  const uploadIcon = async (files: File[]) => {
+    setUploading(true)
+    setUploadError(null)
+    const errors: string[] = []
+    let lastAsset: SeedIcon | null = null
+    for (const file of files) {
+      try {
+        const asset = await uploadOneIcon(file)
+        setUploadedIcons((prev) => [asset, ...prev])
+        lastAsset = asset
+      } catch (err) {
+        errors.push(`${file.name}: ${err instanceof Error ? err.message : 'Upload failed'}`)
+      }
+    }
+    if (lastAsset) setIcon(lastAsset.name)
+    if (errors.length) setUploadError(errors.join('; '))
+    setUploading(false)
+  }
+
+  // Custom color logos (partnerships, acquisitions, co-marketing) — rendered
+  // full-color, no stroke normalization. The browser measures natural pixel
+  // size before upload so /api/og can fit it without distortion.
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [logoError, setLogoError] = useState<string | null>(null)
+  async function uploadOneLogo(file: File): Promise<SeedIcon> {
+    const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+      const url = URL.createObjectURL(file)
+      const img = new Image()
+      img.onload = () => {
+        resolve({ width: img.naturalWidth, height: img.naturalHeight })
+        URL.revokeObjectURL(url)
+      }
+      img.onerror = () => {
+        URL.revokeObjectURL(url)
+        reject(new Error('Could not read the image — is it a valid SVG or PNG?'))
+      }
+      img.src = url
+    })
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('kind', 'logo')
+    fd.append('brand', brandId)
+    fd.append('width', String(width))
+    fd.append('height', String(height))
+    const res = await fetch('/api/assets', { method: 'POST', body: fd })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error ?? 'Upload failed')
+    return data.asset as SeedIcon
+  }
+
+  // Accepts one or many files — uploaded sequentially so failures on one
+  // file don't abort the rest. `onSuccess` (used by the per-tile picker)
+  // fires once per successfully uploaded logo with its position in the
+  // batch, so e.g. a 3-file drop can fan out across the next 3 tiles; the
+  // plain single-icon control instead just selects the last uploaded logo.
+  const uploadLogo = async (files: File[], onSuccess?: (name: string, batchIndex: number) => void) => {
+    setUploadingLogo(true)
+    setLogoError(null)
+    const errors: string[] = []
+    let lastAsset: SeedIcon | null = null
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      try {
+        const asset = await uploadOneLogo(file)
+        setUploadedIcons((prev) => [asset, ...prev])
+        lastAsset = asset
+        if (onSuccess) onSuccess(asset.name, i)
+      } catch (err) {
+        errors.push(`${file.name}: ${err instanceof Error ? err.message : 'Upload failed'}`)
+      }
+    }
+    if (!onSuccess && lastAsset) setIcon(lastAsset.name)
+    if (errors.length) setLogoError(errors.join('; '))
+    setUploadingLogo(false)
   }
 
   const [assetActionError, setAssetActionError] = useState<string | null>(null)
@@ -1576,15 +1599,16 @@ export default function Page() {
                             uploading ? 'cursor-wait opacity-70' : 'cursor-pointer'
                           }`}
                         >
-                          {uploading ? 'Uploading…' : '+ Upload white icon (.svg or .png only)'}
+                          {uploading ? 'Uploading…' : '+ Upload white icon(s) (.svg or .png only)'}
                           <input
                             type="file"
+                            multiple
                             accept=".svg,.png,image/svg+xml,image/png"
                             className="hidden"
                             disabled={uploading}
                             onChange={(e) => {
-                              const f = e.target.files?.[0]
-                              if (f) uploadIcon(f)
+                              const files = Array.from(e.target.files ?? [])
+                              if (files.length) uploadIcon(files)
                               e.target.value = ''
                             }}
                           />
@@ -1595,15 +1619,16 @@ export default function Page() {
                             uploadingLogo ? 'cursor-wait opacity-70' : 'cursor-pointer'
                           }`}
                         >
-                          {uploadingLogo ? 'Uploading…' : '+ Upload color/white logo (.svg or .png only)'}
+                          {uploadingLogo ? 'Uploading…' : '+ Upload color/white logo(s) (.svg or .png only)'}
                           <input
                             type="file"
+                            multiple
                             accept=".svg,.png,image/svg+xml,image/png"
                             className="hidden"
                             disabled={uploadingLogo}
                             onChange={(e) => {
-                              const f = e.target.files?.[0]
-                              if (f) uploadLogo(f)
+                              const files = Array.from(e.target.files ?? [])
+                              if (files.length) uploadLogo(files)
                               e.target.value = ''
                             }}
                           />
@@ -1783,21 +1808,31 @@ export default function Page() {
                                   uploadingLogo ? 'cursor-wait opacity-70' : 'cursor-pointer'
                                 }`}
                               >
-                                {uploadingLogo ? 'Uploading…' : '+ Upload color/white logo (.svg or .png only)'}
+                                {uploadingLogo ? 'Uploading…' : '+ Upload color/white logo(s) (.svg or .png only)'}
                                 <input
                                   type="file"
+                                  multiple
                                   accept=".svg,.png,image/svg+xml,image/png"
                                   className="hidden"
                                   disabled={uploadingLogo}
                                   onChange={(e) => {
-                                    const f = e.target.files?.[0]
-                                    if (f) {
-                                      uploadLogo(f, (name) => {
-                                        setLogoTileIcons((tiles) =>
-                                          tiles.map((t, i) => (i === tileIdx ? name : t))
-                                        )
-                                        setLogoTilePickerOpen(null)
+                                    const files = Array.from(e.target.files ?? [])
+                                    if (files.length) {
+                                      // Fan out across tiles starting at the one clicked — a
+                                      // 3-file drop on tile 2 fills tiles 2, 3, 4 (capped at 4).
+                                      uploadLogo(files, (name, i) => {
+                                        const target = tileIdx + i
+                                        if (target > 3) return
+                                        setLogoTileIcons((tiles) => {
+                                          const next =
+                                            tiles.length > target
+                                              ? [...tiles]
+                                              : [...tiles, ...Array(target - tiles.length + 1).fill(null)]
+                                          next[target] = name
+                                          return next.slice(0, 4)
+                                        })
                                       })
+                                      setLogoTilePickerOpen(null)
                                     }
                                     e.target.value = ''
                                   }}

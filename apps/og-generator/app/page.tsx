@@ -121,7 +121,7 @@ function Segmented<T extends string>({
   onChange,
 }: {
   value: T
-  options: { value: T; label: string }[]
+  options: { value: T; label: string; disabled?: boolean; title?: string }[]
   onChange: (v: T) => void
 }) {
   return (
@@ -129,11 +129,15 @@ function Segmented<T extends string>({
       {options.map((o) => (
         <button
           key={o.value}
-          onClick={() => onChange(o.value)}
+          onClick={() => !o.disabled && onChange(o.value)}
+          disabled={o.disabled}
+          title={o.title}
           className={`rounded px-2.5 py-1 text-xs ${
-            value === o.value
-              ? 'bg-surface-300 text-foreground'
-              : 'text-foreground-light hover:text-foreground'
+            o.disabled
+              ? 'cursor-not-allowed text-foreground-lighter opacity-50'
+              : value === o.value
+                ? 'bg-surface-300 text-foreground'
+                : 'text-foreground-light hover:text-foreground'
           }`}
         >
           {o.label}
@@ -1204,7 +1208,12 @@ export default function Page() {
               <Segmented
                 value={brandId}
                 onChange={setBrandId}
-                options={BRAND_OPTIONS.map((b) => ({ value: b.id, label: b.label }))}
+                options={BRAND_OPTIONS.map((b) => ({
+                  value: b.id,
+                  label: b.label,
+                  disabled: b.id !== DEFAULT_BRAND_ID,
+                  title: b.id !== DEFAULT_BRAND_ID ? 'Coming soon' : undefined,
+                }))}
               />
             </div>
             <div className="flex flex-col gap-2">

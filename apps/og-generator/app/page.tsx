@@ -1255,16 +1255,27 @@ export default function Page() {
                 {FORMAT_OPTIONS.map((f) => {
                   const fmt = getFormat(f.id)
                   const active = formatId === f.id
+                  const disabled = f.id !== DEFAULT_FORMAT_ID
                   return (
                     <button
                       key={f.id}
                       type="button"
-                      onClick={() => setFormatId(f.id)}
+                      onClick={() => !disabled && setFormatId(f.id)}
+                      disabled={disabled}
+                      title={disabled ? 'Coming soon' : undefined}
                       className={`flex w-full flex-col rounded-md border px-3 py-2.5 text-left transition ${
-                        active ? 'border-brand bg-brand/10' : 'border-default bg-surface-100 hover:border-strong'
+                        disabled
+                          ? 'cursor-not-allowed border-default bg-surface-100 opacity-50'
+                          : active
+                            ? 'border-brand bg-brand/10'
+                            : 'border-default bg-surface-100 hover:border-strong'
                       }`}
                     >
-                      <span className={`text-sm font-medium ${active ? 'text-brand' : 'text-foreground'}`}>
+                      <span
+                        className={`text-sm font-medium ${
+                          disabled ? 'text-foreground-lighter' : active ? 'text-brand' : 'text-foreground'
+                        }`}
+                      >
                         {f.label}
                       </span>
                       <span className="text-xs text-foreground-lighter">{fmt.blurb}</span>

@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+import type { ReactNode } from 'react'
 
 import { resolveIcon } from '@/lib/supabase/assets'
 import { randomBackgroundDataUri } from '@/lib/design/backgrounds'
@@ -7,7 +8,7 @@ import { satoriFonts, measurementFont } from '@/lib/design/fonts'
 import { getFormat } from '@/lib/design/formats'
 import { iconDataUri } from '@/lib/design/icons'
 import { SUPABASE_WORDMARK_ASPECT, SUPABASE_WORDMARK_DATA_URI } from '@/lib/design/logo'
-import { DEFAULT_TEMPLATE_ID, TEMPLATE_MAP } from '@/lib/design/templates'
+import { DEFAULT_TEMPLATE_ID, TEMPLATE_MAP, logoTilesRow } from '@/lib/design/templates'
 import { typography } from '@/lib/design/tokens'
 import { fitHeadline, measureLineWidth } from '@/lib/text/fit-headline'
 import { headlineWordHighlights, stripQuoteMarks } from '@/lib/text/quote-highlight'
@@ -109,6 +110,18 @@ export async function GET(req: Request) {
     // override the Thumb's default square icon crop via `thumbBox`.
     const template = TEMPLATE_MAP[searchParams.get('template') ?? ''] ?? TEMPLATE_MAP[DEFAULT_TEMPLATE_ID]
 
+    // logo-grid: up to 4 icons/logos in `icons` (comma-separated names) — parsed
+    // here (not just below, in the OG section) so the Thumb variant below can
+    // render the exact same tiles, just at a different scale.
+    const iconsParam = searchParams.get('icons')
+    const tileNames = iconsParam
+      ? iconsParam
+          .split(',')
+          .map((n) => n.trim())
+          .filter(Boolean)
+          .slice(0, 4)
+      : []
+
     // ---- Thumb variant: same canvas + icon system, no text layer (brief §3) -
     if (type === 'thumb') {
       const thumb = format.thumb ?? { default: 380, min: 160, max: 480 }
@@ -116,11 +129,41 @@ export async function GET(req: Request) {
       const thumbSize = Number.isFinite(thumbNum)
         ? Math.min(thumb.max, Math.max(thumb.min, Math.round(thumbNum)))
         : thumb.default
-      const thumbBgImage = iconObj ? null : randomBackgroundDataUri()
+      const thumbBgImage = iconObj || (template.id === 'logo-grid' && tileNames.length) ? null : randomBackgroundDataUri()
       // A template can override the Thumb's default square crop with a fixed
       // (possibly non-square) box — e.g. Announcement's 375×200 logo box.
       const thumbBoxW = (template.thumbBox?.width ?? thumbSize) * s
       const thumbBoxH = (template.thumbBox?.height ?? thumbSize) * s
+
+      // Partner logos: mimic the OG tile row exactly (same chip styling,
+      // same "x" separator for 2 tiles), just scaled up/down to fill the
+      // Thumb box instead of the generic single-icon crop below.
+      let logoGridThumbContent: ReactNode = null
+      if (template.id === 'logo-grid' && tileNames.length) {
+        const n = tileNames.length
+        const CHIP_1X = 160
+        const CHIP_ICON_1X = 64
+        const GAP_1X = 20
+        const SEP_W_1X = 32
+        const items = n === 2 ? n + 1 : n
+        const rowWidth1x = n * CHIP_1X + (n === 2 ? SEP_W_1X : 0) + (items - 1) * GAP_1X
+        const margin = 0.85
+        const tileScale = Math.min((thumbBoxW * margin) / rowWidth1x, (thumbBoxH * margin) / CHIP_1X)
+        const tiles = (
+          await Promise.all(
+            tileNames.map((name) =>
+              renderIconByName(
+                name,
+                brand.id,
+                CHIP_ICON_1X * tileScale,
+                ICON_STROKE * s,
+                color('illustration.stroke', brand)
+              )
+            )
+          )
+        ).filter((el): el is NonNullable<typeof el> => el !== null)
+        logoGridThumbContent = logoTilesRow(tiles, tileScale)
+      }
 
       const thumbRoot = (
         <div
@@ -137,7 +180,9 @@ export async function GET(req: Request) {
               : {}),
           }}
         >
-          {iconObj && iconObj.url ? (
+          {logoGridThumbContent ? (
+            logoGridThumbContent
+          ) : iconObj && iconObj.url ? (
             // A stored file (color logo, or a raster PNG icon) — rendered
             // as-is (no stroke normalization), fit to its natural aspect ratio.
             // eslint-disable-next-line @next/next/no-img-element
@@ -163,7 +208,7 @@ export async function GET(req: Request) {
         headers: {
           ...CORS_AND_CACHE,
           'x-og-template': 'thumb',
-          'x-og-has-icon': String(!!iconObj),
+          'x-og-has-icon': String(!!iconObj || !!logoGridThumbContent),
         },
       })
     }
@@ -378,16 +423,8 @@ export async function GET(req: Request) {
       <img width={logoHeight * SUPABASE_WORDMARK_ASPECT} height={logoHeight} src={SUPABASE_WORDMARK_DATA_URI} />
     )
 
-    // logo-grid: up to 4 icons/logos in `icons` (comma-separated names),
-    // each rendered through the same resolution path as the single-icon slot.
-    const iconsParam = searchParams.get('icons')
-    const tileNames = iconsParam
-      ? iconsParam
-          .split(',')
-          .map((n) => n.trim())
-          .filter(Boolean)
-          .slice(0, 4)
-      : []
+    // logo-grid: `tileNames` (parsed above, for the Thumb variant) resolved
+    // here at the OG's own tile icon size.
     const logoTiles = (
       await Promise.all(
         tileNames.map((name) =>

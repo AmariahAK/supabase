@@ -901,7 +901,12 @@ export default function Page() {
       // `thumbBox`, which the render route looks up by template id.
       p.set('type', 'thumb')
       p.set('template', template)
-      if (icon) p.set('icon', icon)
+      if (template === 'logo-grid') {
+        const names = logoTileIcons.filter((n): n is string => !!n)
+        if (names.length) p.set('icons', names.join(','))
+      } else if (icon) {
+        p.set('icon', icon)
+      }
     }
     if (scale === 2) p.set('scale', '2')
     return `/api/og?${p.toString()}`

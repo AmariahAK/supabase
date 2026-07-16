@@ -90,20 +90,58 @@ const ICON_TILE_BORDER_COLOR = '#2E2E2E'
 
 /** Wraps `content` (expected to be `ICON_TILE_ICON_SIZE_1X`-sized) in the shared dark chip box. */
 function iconTile(p: TemplateParts, content: ReactNode): ReactElement {
+  return iconTileAtScale(p.scaleFactor, content)
+}
+
+function iconTileAtScale(scaleFactor: number, content: ReactNode): ReactElement {
   return (
     <div
       style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: ICON_TILE_SIZE_1X * p.scaleFactor,
-        height: ICON_TILE_SIZE_1X * p.scaleFactor,
-        borderRadius: ICON_TILE_RADIUS_1X * p.scaleFactor,
+        width: ICON_TILE_SIZE_1X * scaleFactor,
+        height: ICON_TILE_SIZE_1X * scaleFactor,
+        borderRadius: ICON_TILE_RADIUS_1X * scaleFactor,
         backgroundColor: ICON_TILE_BG,
-        border: `${ICON_TILE_BORDER_WIDTH_1X * p.scaleFactor}px solid ${ICON_TILE_BORDER_COLOR}`,
+        border: `${ICON_TILE_BORDER_WIDTH_1X * scaleFactor}px solid ${ICON_TILE_BORDER_COLOR}`,
       }}
     >
       {content}
+    </div>
+  )
+}
+
+/**
+ * Row of logo-grid's tile chips (with the "x" separator for the 2-tile
+ * case) at an arbitrary scale — shared by the OG composition and the Thumb
+ * view so Thumb renders exactly the same tile look, just bigger/smaller.
+ */
+export function logoTilesRow(tiles: ReactNode[], scaleFactor: number): ReactElement | null {
+  if (tiles.length === 0) return null
+  const tileGap = 20 * scaleFactor
+  const sepFontSize = 32 * scaleFactor
+  const rowChildren: ReactNode[] = []
+  tiles.forEach((tile, i) => {
+    rowChildren.push(
+      <div key={`tile-${i}`} style={{ display: 'flex' }}>
+        {iconTileAtScale(scaleFactor, tile)}
+      </div>
+    )
+    if (tiles.length === 2 && i === 0) {
+      rowChildren.push(
+        <span
+          key="sep"
+          style={{ display: 'flex', color: 'rgba(255,255,255,0.35)', fontSize: sepFontSize, fontWeight: 500 }}
+        >
+          x
+        </span>
+      )
+    }
+  })
+  return (
+    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: tileGap }}>
+      {rowChildren}
     </div>
   )
 }
@@ -335,41 +373,7 @@ export const TEMPLATES: Template[] = [
     arrangementCount: 2,
     build: (p) => {
       const tiles = p.logoTiles ?? []
-      const tileGap = 20 * p.scaleFactor
-      const sepFontSize = 32 * p.scaleFactor
-      const rowChildren: ReactNode[] = []
-      tiles.forEach((tile, i) => {
-        rowChildren.push(
-          <div key={`tile-${i}`} style={{ display: 'flex' }}>
-            {iconTile(p, tile)}
-          </div>
-        )
-        // "x" separator is only used for the 2-logo case (matches reference).
-        if (tiles.length === 2 && i === 0) {
-          rowChildren.push(
-            <span
-              key="sep"
-              style={{
-                display: 'flex',
-                color: 'rgba(255,255,255,0.35)',
-                fontSize: sepFontSize,
-                fontWeight: 500,
-              }}
-            >
-              x
-            </span>
-          )
-        }
-      })
-      const tilesRow =
-        tiles.length > 0 ? (
-          <div
-            key="tiles"
-            style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: tileGap }}
-          >
-            {rowChildren}
-          </div>
-        ) : null
+      const tilesRow = logoTilesRow(tiles, p.scaleFactor)
 
       // Arrangement cycles which row sits top vs. bottom within the
       // space-between column below — the wordmark signature stays fixed in

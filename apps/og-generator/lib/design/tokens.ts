@@ -27,6 +27,10 @@ export const typography = {
         compact: { minSize: 40, maxSize: 56 },
       },
       lineHeight: 1.1,
+      // Slightly looser leading once a headline wraps to 2 lines — 1.1 reads
+      // fine for a single line but feels a touch tight once there's a
+      // second line stacked underneath.
+      lineHeightTwoLine: 1.2,
       letterSpacing: -0.02, // em
     },
     eyebrow: {

@@ -262,7 +262,9 @@ export async function GET(req: Request) {
     }
 
     const headlineSize = fit.fontSize * s
-    const headlineLineHeight = Math.round(headlineSize * HEADLINE.lineHeight)
+    const headlineLineHeight = Math.round(
+      headlineSize * (fit.lineCount === 2 ? HEADLINE.lineHeightTwoLine : HEADLINE.lineHeight)
+    )
     // Gap between highlight runs on a line — a real space glyph's advance
     // width at the rendered size, applied as marginLeft (see textBlock below).
     const spaceWidthPx = measureLineWidth(headlineFont, ' ', headlineSize, HEADLINE.letterSpacing)

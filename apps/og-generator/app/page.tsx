@@ -548,6 +548,18 @@ export default function Page() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template])
 
+  // Announcement is a partner/acquisition brand-mark composition — it wants
+  // a full-color Logo, not a bundled line-art Icon. Switch the picker to the
+  // Logos tab and swap out whatever Icon-kind selection carried over from
+  // another template (e.g. icon-layout's 'database' default) for the first
+  // available uploaded Logo.
+  useEffect(() => {
+    if (template !== 'announcement') return
+    setIconPickerTab('logo')
+    if (!icon || selectedIcon?.kind !== 'logo') setIcon(allLogos[0]?.name ?? null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template, allLogos])
+
   // Load the shared asset library (uploaded icons) for the active brand; empty
   // when Supabase is off.
   useEffect(() => {

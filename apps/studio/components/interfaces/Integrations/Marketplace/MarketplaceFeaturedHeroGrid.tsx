@@ -47,10 +47,6 @@ function getIntegrationImage(integration: IntegrationDefinition): ThemedImage | 
   return undefined
 }
 
-// The dark image is always rendered; when a light variant exists it's overlaid on top and shown
-// only in light mode (`dark:hidden`). CSS picks per theme — no theme-hook hydration flash, matching
-// the pattern in BannerCard. The overlay is decorative (`alt=""`) so the base image's alt isn't
-// announced twice in light mode.
 const CoverImage = ({
   image,
   alt,

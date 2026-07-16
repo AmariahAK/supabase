@@ -155,6 +155,10 @@ export const TEMPLATES: Template[] = [
     anchorX: 'left',
     anchorY: 'bottom',
     arrangementCount: 4,
+    // Matches Partner logos' headline size (the default tier) rather than
+    // the usual hasIcon-driven compact tier — the boxed icon here doesn't
+    // need the extra headline room the compact tier exists for.
+    headlineSizeTier: { minSize: 48, maxSize: 64 },
     // Centered (3/4) has no room for an eyebrow above the headline.
     noEyebrowForArrangement: (arrangement) => arrangement === 2,
     build: (p) => {

@@ -176,3 +176,45 @@ export async function insertLogoAsset(a: NewLogo): Promise<SeedIcon> {
   if (error || !data) throw new Error(error?.message ?? 'insert failed')
   return rowToIcon(data as AssetRow)
 }
+
+/** Rename an uploaded asset's display label (admin/secret key). Throws 'NO_ADMIN' if unconfigured. */
+export async function renameAsset(name: string, brand: string, label: string): Promise<SeedIcon> {
+  const admin = getSupabaseAdmin()
+  if (!admin) throw new Error('NO_ADMIN')
+  const { data, error } = await admin
+    .from('assets')
+    .update({ label })
+    .eq('name', name)
+    .eq('brand', brand)
+    .select(COLUMNS)
+    .single()
+  if (error || !data) throw new Error(error?.message ?? 'rename failed')
+  return rowToIcon(data as AssetRow)
+}
+
+/**
+ * Delete an uploaded asset (admin/secret key) — removes its Storage object
+ * too when it's a logo (kind: 'icon' rows have no storage_path). Throws
+ * 'NO_ADMIN' if unconfigured.
+ */
+export async function deleteAsset(name: string, brand: string): Promise<void> {
+  const admin = getSupabaseAdmin()
+  if (!admin) throw new Error('NO_ADMIN')
+
+  const { data: row } = await admin
+    .from('assets')
+    .select('storage_path')
+    .eq('name', name)
+    .eq('brand', brand)
+    .maybeSingle()
+
+  const { error } = await admin.from('assets').delete().eq('name', name).eq('brand', brand)
+  if (error) throw new Error(error.message)
+
+  const storagePath = (row as { storage_path: string | null } | null)?.storage_path
+  if (storagePath) {
+    // Best-effort — the DB row is already gone either way, so a Storage
+    // cleanup failure shouldn't surface as an error to the user.
+    await admin.storage.from(OG_ASSETS_BUCKET).remove([storagePath]).catch(() => {})
+  }
+}

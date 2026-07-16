@@ -1,6 +1,6 @@
 import { sanitizeLogoSvg, sanitizeSvg } from '@/lib/assets/sanitize-svg'
 import { DEFAULT_BRAND_ID } from '@/lib/design/brands'
-import { insertAsset, insertLogoAsset, listAssets } from '@/lib/supabase/assets'
+import { deleteAsset, insertAsset, insertLogoAsset, listAssets, renameAsset } from '@/lib/supabase/assets'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 
 // Node runtime — uses the Supabase server clients + parses uploaded files.
@@ -10,6 +10,52 @@ export const runtime = 'nodejs'
 export async function GET(req: Request): Promise<Response> {
   const brand = new URL(req.url).searchParams.get('brand') || DEFAULT_BRAND_ID
   return Response.json({ assets: await listAssets(brand) })
+}
+
+/** PATCH → rename an uploaded asset's label. Body: { name, brand, label }. */
+export async function PATCH(req: Request): Promise<Response> {
+  if (!getSupabaseAdmin()) {
+    return Response.json({ error: NO_ADMIN_ERROR }, { status: 503 })
+  }
+  let body: { name?: string; brand?: string; label?: string }
+  try {
+    body = await req.json()
+  } catch {
+    return Response.json({ error: 'Expected JSON body.' }, { status: 400 })
+  }
+  const name = typeof body.name === 'string' ? body.name : ''
+  const brand = typeof body.brand === 'string' ? body.brand : DEFAULT_BRAND_ID
+  const label = (typeof body.label === 'string' ? body.label : '').trim().slice(0, 40)
+  if (!name || !label) {
+    return Response.json({ error: 'Missing asset name or new label.' }, { status: 400 })
+  }
+  try {
+    const asset = await renameAsset(name, brand, label)
+    return Response.json({ asset })
+  } catch (err) {
+    console.error('[api/assets] rename failed:', err)
+    return Response.json({ error: `Could not rename the asset (${errorMessage(err)})` }, { status: 500 })
+  }
+}
+
+/** DELETE → remove an uploaded asset. Query params: ?name=&brand= */
+export async function DELETE(req: Request): Promise<Response> {
+  if (!getSupabaseAdmin()) {
+    return Response.json({ error: NO_ADMIN_ERROR }, { status: 503 })
+  }
+  const { searchParams } = new URL(req.url)
+  const name = searchParams.get('name') || ''
+  const brand = searchParams.get('brand') || DEFAULT_BRAND_ID
+  if (!name) {
+    return Response.json({ error: 'Missing asset name.' }, { status: 400 })
+  }
+  try {
+    await deleteAsset(name, brand)
+    return Response.json({ ok: true })
+  } catch (err) {
+    console.error('[api/assets] delete failed:', err)
+    return Response.json({ error: `Could not delete the asset (${errorMessage(err)})` }, { status: 500 })
+  }
 }
 
 /** Surfaces the underlying DB error text so a stale-schema guess never masks the real cause. */

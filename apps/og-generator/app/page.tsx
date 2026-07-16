@@ -701,6 +701,51 @@ export default function Page() {
       setUploadingLogo(false)
     }
   }
+
+  const [assetActionError, setAssetActionError] = useState<string | null>(null)
+
+  const renameUploadedAsset = async (assetToRename: SeedIcon) => {
+    const nextLabel = window.prompt('Rename', assetToRename.label)?.trim()
+    if (!nextLabel || nextLabel === assetToRename.label) return
+    setAssetActionError(null)
+    try {
+      const res = await fetch('/api/assets', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: assetToRename.name, brand: brandId, label: nextLabel }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setAssetActionError(data.error ?? 'Rename failed')
+        return
+      }
+      setUploadedIcons((prev) => prev.map((a) => (a.name === assetToRename.name ? (data.asset as SeedIcon) : a)))
+    } catch {
+      setAssetActionError('Rename failed — please try again.')
+    }
+  }
+
+  const deleteUploadedAsset = async (assetToDelete: SeedIcon) => {
+    if (!window.confirm(`Delete "${assetToDelete.label}"? This can't be undone.`)) return
+    setAssetActionError(null)
+    try {
+      const res = await fetch(
+        `/api/assets?name=${encodeURIComponent(assetToDelete.name)}&brand=${encodeURIComponent(brandId)}`,
+        { method: 'DELETE' }
+      )
+      const data = await res.json()
+      if (!res.ok) {
+        setAssetActionError(data.error ?? 'Delete failed')
+        return
+      }
+      setUploadedIcons((prev) => prev.filter((a) => a.name !== assetToDelete.name))
+      if (icon === assetToDelete.name) setIcon(null)
+      setLogoTileIcons((tiles) => tiles.map((t) => (t === assetToDelete.name ? null : t)))
+    } catch {
+      setAssetActionError('Delete failed — please try again.')
+    }
+  }
+
   const [scale, setScale] = useState<1 | 2>(1)
   const [inContext, setInContext] = useState<InContextMode>('none')
   const [exportOpen, setExportOpen] = useState(false)
@@ -1234,7 +1279,7 @@ export default function Page() {
                 </button>
 
                 {iconPickerOpen && (
-                  <div className="absolute bottom-full z-20 mb-1 w-full rounded-md border border-default bg-background p-2 shadow-lg">
+                  <div className="absolute bottom-full z-20 mb-1 w-full rounded-md border border-strong bg-background p-2 shadow-[0_8px_30px_rgba(0,0,0,0.35)] ring-1 ring-black/5">
                     <div className="mb-2 flex items-center gap-2">
                       <Segmented
                         value={iconPickerTab}
@@ -1273,39 +1318,74 @@ export default function Page() {
                       {allIcons
                         .filter((ic) => (iconPickerTab === 'logo' ? ic.kind === 'logo' : ic.kind !== 'logo'))
                         .filter((ic) => matchesIconQuery(ic, iconPickerQuery))
-                        .map((ic) => (
-                          <button
-                            key={ic.name}
-                            type="button"
-                            onClick={() => {
-                              setIcon(ic.name)
-                              setIconPickerOpen(false)
-                            }}
-                            title={ic.kind === 'logo' ? `${ic.label} (color logo)` : ic.label}
-                            className={`flex h-14 items-center justify-center rounded-md border p-1.5 ${pickerSwatchClass(
-                              icon === ic.name,
-                              ic.kind === 'logo'
-                            )}`}
-                          >
-                            {ic.kind === 'logo' && ic.url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={ic.url} alt={ic.label} className="max-h-full max-w-full object-contain" />
-                            ) : (
-                              <svg
-                                width={22}
-                                height={22}
-                                viewBox={ic.viewBox}
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                dangerouslySetInnerHTML={{ __html: ic.body }}
-                              />
-                            )}
-                          </button>
-                        ))}
+                        .map((ic) => {
+                          const isUploaded = uploadedIcons.some((u) => u.name === ic.name)
+                          return (
+                            <div key={ic.name} className="group relative">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIcon(ic.name)
+                                  setIconPickerOpen(false)
+                                }}
+                                title={ic.kind === 'logo' ? `${ic.label} (color logo)` : ic.label}
+                                className={`flex h-14 w-full items-center justify-center rounded-md border p-1.5 ${pickerSwatchClass(
+                                  icon === ic.name,
+                                  ic.kind === 'logo'
+                                )}`}
+                              >
+                                {ic.kind === 'logo' && ic.url ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={ic.url} alt={ic.label} className="max-h-full max-w-full object-contain" />
+                                ) : (
+                                  <svg
+                                    width={22}
+                                    height={22}
+                                    viewBox={ic.viewBox}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    dangerouslySetInnerHTML={{ __html: ic.body }}
+                                  />
+                                )}
+                              </button>
+                              {isUploaded && (
+                                <div className="absolute right-0.5 top-0.5 hidden gap-0.5 group-hover:flex">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      renameUploadedAsset(ic)
+                                    }}
+                                    title="Rename"
+                                    className="flex h-4 w-4 items-center justify-center rounded bg-background/90 text-foreground-lighter hover:text-foreground"
+                                  >
+                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                      <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      deleteUploadedAsset(ic)
+                                    }}
+                                    title="Delete"
+                                    className="flex h-4 w-4 items-center justify-center rounded bg-background/90 text-foreground-lighter hover:text-destructive-600"
+                                  >
+                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                      <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0-.8 13.6a2 2 0 0 1-2 1.9H7.8a2 2 0 0 1-2-1.9L5 6" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
                     </div>
+                    {assetActionError && <p className="mt-2 text-xs text-warning-600">{assetActionError}</p>}
                     <div className="mt-2">
                       {iconPickerTab === 'icon' ? (
                         <label
@@ -1432,7 +1512,7 @@ export default function Page() {
                         </button>
 
                         {logoTilePickerOpen === tileIdx && (
-                          <div className="absolute bottom-full z-20 mb-1 w-56 rounded-md border border-default bg-background p-2 shadow-lg">
+                          <div className="absolute bottom-full z-20 mb-1 w-56 rounded-md border border-strong bg-background p-2 shadow-[0_8px_30px_rgba(0,0,0,0.35)] ring-1 ring-black/5">
                             <div className="grid max-h-56 grid-cols-4 gap-2 overflow-y-auto">
                               {allIcons.map((ic) => (
                                 <button

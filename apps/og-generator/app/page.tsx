@@ -527,7 +527,8 @@ export default function Page() {
   // Fixed-logo templates render the Supabase wordmark directly — there's no
   // user-selectable icon for them to affect, so hide the control entirely.
   const showIconControl = !selectedTemplateObj?.noIcon
-  const showEyebrowControl = !selectedTemplateObj?.noEyebrow
+  const showEyebrowControl =
+    !selectedTemplateObj?.noEyebrow && !selectedTemplateObj?.noEyebrowForArrangement?.(arrangement)
   const selectedIcon = useMemo(() => allIcons.find((i) => i.name === icon) ?? null, [allIcons, icon])
 
   // icon-layout defaults to showing an icon (rather than the usual "None")

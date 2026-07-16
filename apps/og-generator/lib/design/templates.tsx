@@ -63,6 +63,8 @@ export interface Template {
   noIcon?: boolean
   /** Hides the Eyebrow control and omits the eyebrow pill from the render. */
   noEyebrow?: boolean
+  /** Per-arrangement override of `noEyebrow` — for grouped templates where only some sub-layouts have no room for an eyebrow. */
+  noEyebrowForArrangement?: (arrangement: number) => boolean
   /** Number of alternate element-arrangement variants (default 1 = none) — drives the "Alternate layouts" pager. */
   arrangementCount?: number
   /** Overrides the default square Thumb box (1x px) — e.g. Announcement's 375×200 logo-only thumb. */
@@ -122,6 +124,8 @@ export const TEMPLATES: Template[] = [
     anchorX: 'left',
     anchorY: 'bottom',
     arrangementCount: 4,
+    // Stacked (3/4) has no room for an eyebrow above the headline.
+    noEyebrowForArrangement: (arrangement) => arrangement === 3,
     build: (p) => {
       const arrangement = p.arrangement ?? 0
       if (arrangement === 1) {
@@ -209,6 +213,8 @@ export const TEMPLATES: Template[] = [
     anchorY: 'bottom',
     noIcon: true,
     arrangementCount: 3,
+    // Logo center, text bottom (3/3) has no room for an eyebrow.
+    noEyebrowForArrangement: (arrangement) => arrangement === 2,
     build: (p) => {
       const arrangement = p.arrangement ?? 0
       if (arrangement === 1) {

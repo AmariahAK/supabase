@@ -173,7 +173,8 @@ export async function GET(req: Request) {
     const arrangement = Number(searchParams.get('arrangement') ?? 0) || 0
 
     const rawHeadline = (searchParams.get('headline') ?? DEFAULT_HEADLINE).slice(0, 200)
-    const eyebrow = template.noEyebrow ? null : searchParams.get('eyebrow')?.trim().slice(0, 20) || null
+    const noEyebrow = template.noEyebrow || (template.noEyebrowForArrangement?.(arrangement) ?? false)
+    const eyebrow = noEyebrow ? null : searchParams.get('eyebrow')?.trim().slice(0, 20) || null
     const sentenceCase = searchParams.get('sentenceCase') !== '0'
     const manualBreaks = searchParams.get('manual') === '1' || /\n/.test(rawHeadline)
 

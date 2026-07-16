@@ -217,7 +217,10 @@ function LayoutThumb({ id }: { id: string }) {
 const CAROUSEL_DEMO_PARAMS: Record<string, Record<string, string>> = {
   'icon-layout': { headline: 'Now an official "partner"', icon: 'database' },
   'logo-layout': { headline: 'Acme joins Supabase' },
-  'logo-grid': { headline: 'Now an official "partner"', icons: 'database' },
+  'logo-grid': {
+    headline: 'Supabase is now an "official [C]hat[GPT] app"',
+    icons: 'supabase-bolt,openai-mark-ibnt',
+  },
   announcement: { headline: 'Acme joins Supabase', icon: 'database' },
 }
 

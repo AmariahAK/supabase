@@ -514,6 +514,7 @@ export default function Page() {
   // resolve to anything in that restricted list.
   const [logoTileIcons, setLogoTileIcons] = useState<(string | null)[]>([null])
   const [logoTilePickerOpen, setLogoTilePickerOpen] = useState<number | null>(null)
+  const [logoTilePickerQuery, setLogoTilePickerQuery] = useState('')
   const logoTilePickerRef = useRef<HTMLDivElement>(null)
   // logo-grid: whether the Supabase wordmark signature (bottom-right) renders
   // alongside the partner tiles — on by default, toggleable since the tiles
@@ -730,7 +731,7 @@ export default function Page() {
   // size before upload so /api/og can fit it without distortion.
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [logoError, setLogoError] = useState<string | null>(null)
-  const uploadLogo = async (file: File) => {
+  const uploadLogo = async (file: File, onSuccess?: (name: string) => void) => {
     setUploadingLogo(true)
     setLogoError(null)
     try {
@@ -760,7 +761,8 @@ export default function Page() {
         return
       }
       setUploadedIcons((prev) => [data.asset as SeedIcon, ...prev])
-      setIcon((data.asset as SeedIcon).name)
+      if (onSuccess) onSuccess((data.asset as SeedIcon).name)
+      else setIcon((data.asset as SeedIcon).name)
     } catch (err) {
       setLogoError(err instanceof Error ? err.message : 'Upload failed — please try again.')
     } finally {
@@ -1670,9 +1672,10 @@ export default function Page() {
                       <div key={tileIdx} className="relative">
                         <button
                           type="button"
-                          onClick={() =>
+                          onClick={() => {
                             setLogoTilePickerOpen((open) => (open === tileIdx ? null : tileIdx))
-                          }
+                            setLogoTilePickerQuery('')
+                          }}
                           title={tileSelected ? tileSelected.label : `Tile ${tileIdx + 1}`}
                           className={`flex h-14 w-full items-center justify-center rounded-md border p-1.5 text-foreground-light hover:border-strong ${
                             tileSelected?.url ? `border-default ${LOGO_SWATCH_BG}` : 'border-default bg-surface-100'
@@ -1706,45 +1709,101 @@ export default function Page() {
 
                         {logoTilePickerOpen === tileIdx && (
                           <div className="absolute bottom-full z-20 mb-1 w-56 rounded-md border border-strong bg-background p-2 shadow-[0_8px_30px_rgba(0,0,0,0.35)] ring-1 ring-black/5">
-                            <div className="grid max-h-56 grid-cols-4 gap-2 overflow-y-auto">
-                              {allLogos.map((ic) => (
+                            <input
+                              type="text"
+                              value={logoTilePickerQuery}
+                              onChange={(e) => setLogoTilePickerQuery(e.target.value)}
+                              placeholder="Search…"
+                              className="mb-2 w-full rounded-md border border-default bg-surface-100 px-2 py-1 text-xs text-foreground outline-none focus:border-strong"
+                            />
+                            <div className="grid max-h-56 grid-cols-2 gap-2 overflow-y-auto">
+                              {!logoTilePickerQuery.trim() && (
                                 <button
-                                  key={ic.name}
                                   type="button"
                                   onClick={() => {
                                     setLogoTileIcons((tiles) =>
-                                      tiles.map((t, i) => (i === tileIdx ? ic.name : t))
+                                      tiles.map((t, i) => (i === tileIdx ? null : t))
                                     )
                                     setLogoTilePickerOpen(null)
                                   }}
-                                  title={ic.url ? `${ic.label} (uploaded)` : ic.label}
-                                  className={`flex h-12 items-center justify-center rounded-md border p-1 ${pickerSwatchClass(
-                                    tileIcon === ic.name,
-                                    !!ic.url
-                                  )}`}
+                                  title="No logo"
+                                  className={`flex h-20 items-center justify-center rounded-md border text-xs ${
+                                    tileIcon === null
+                                      ? 'border-brand bg-brand/10 text-brand'
+                                      : 'border-default bg-surface-100 text-foreground-lighter hover:border-strong'
+                                  }`}
                                 >
-                                  {ic.url ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
-                                      src={ic.url}
-                                      alt={ic.label}
-                                      className="max-h-full max-w-full object-contain"
-                                    />
-                                  ) : (
-                                    <svg
-                                      width={18}
-                                      height={18}
-                                      viewBox={ic.viewBox}
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth={2}
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      dangerouslySetInnerHTML={{ __html: ic.body }}
-                                    />
-                                  )}
+                                  None
                                 </button>
-                              ))}
+                              )}
+                              {allLogos
+                                .filter((ic) => matchesIconQuery(ic, logoTilePickerQuery))
+                                .map((ic) => (
+                                  <button
+                                    key={ic.name}
+                                    type="button"
+                                    onClick={() => {
+                                      setLogoTileIcons((tiles) =>
+                                        tiles.map((t, i) => (i === tileIdx ? ic.name : t))
+                                      )
+                                      setLogoTilePickerOpen(null)
+                                    }}
+                                    title={ic.url ? `${ic.label} (uploaded)` : ic.label}
+                                    className={`flex h-20 items-center justify-center rounded-md border p-1 ${pickerSwatchClass(
+                                      tileIcon === ic.name,
+                                      !!ic.url
+                                    )}`}
+                                  >
+                                    {ic.url ? (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img
+                                        src={ic.url}
+                                        alt={ic.label}
+                                        className="max-h-full max-w-full object-contain"
+                                      />
+                                    ) : (
+                                      <svg
+                                        width={22}
+                                        height={22}
+                                        viewBox={ic.viewBox}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth={2}
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        dangerouslySetInnerHTML={{ __html: ic.body }}
+                                      />
+                                    )}
+                                  </button>
+                                ))}
+                            </div>
+                            <div className="mt-2">
+                              <label
+                                className={`block rounded-md border border-dashed border-default px-3 py-2 text-center text-xs text-foreground-light hover:border-strong ${
+                                  uploadingLogo ? 'cursor-wait opacity-70' : 'cursor-pointer'
+                                }`}
+                              >
+                                {uploadingLogo ? 'Uploading…' : '+ Upload color/white logo (.svg or .png only)'}
+                                <input
+                                  type="file"
+                                  accept=".svg,.png,image/svg+xml,image/png"
+                                  className="hidden"
+                                  disabled={uploadingLogo}
+                                  onChange={(e) => {
+                                    const f = e.target.files?.[0]
+                                    if (f) {
+                                      uploadLogo(f, (name) => {
+                                        setLogoTileIcons((tiles) =>
+                                          tiles.map((t, i) => (i === tileIdx ? name : t))
+                                        )
+                                        setLogoTilePickerOpen(null)
+                                      })
+                                    }
+                                    e.target.value = ''
+                                  }}
+                                />
+                              </label>
+                              {logoError && <p className="mt-2 text-xs text-warning-600">{logoError}</p>}
                             </div>
                           </div>
                         )}

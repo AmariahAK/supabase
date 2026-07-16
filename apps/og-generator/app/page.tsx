@@ -570,19 +570,21 @@ export default function Page() {
   }, [template, allLogos])
 
   // Partner logos ships with a curated example per arrangement instead of
-  // an empty "Pick" — arrangement 0 (2 tiles) showcases the ChatGPT app
-  // partnership, arrangement 1 (2/2, 4 tiles) showcases the Supabase for
-  // Platforms lineup. Loads whenever the template/arrangement pair is
-  // selected, same as clicking a curated preset.
+  // an empty "Pick" — arrangements 0/1 (2 tiles) showcase the ChatGPT app
+  // partnership, 2/3 (4 tiles) showcase the Supabase for Platforms lineup;
+  // within each pair the template's build() just flips headline/icon order,
+  // so the content here only depends on which pair is active. Loads
+  // whenever the template/arrangement pair is selected, same as clicking a
+  // curated preset.
   useEffect(() => {
     if (template !== 'logo-grid') return
-    if (arrangement === 0) {
+    if (arrangement === 0 || arrangement === 1) {
       setLogoTileIcons(['supabase-bolt', 'openai-logo-ihvv'])
-      setHeadline('Supabase is now an official "[C]hat[GPT] app"')
+      setHeadline('Supabase is now an "official [C]hat[GPT] app"')
       setEyebrow('')
-    } else if (arrangement === 1) {
+    } else if (arrangement === 2 || arrangement === 3) {
       setLogoTileIcons(['lovable-zqj2', 'v0-tado', 'figma-zqyr', 'bolt-zr9w'])
-      setHeadline('Introducing [S]upabase for [P]latforms')
+      setHeadline('Introducing [S]upabase "for [P]latforms"')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template, arrangement])

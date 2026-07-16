@@ -370,16 +370,22 @@ export const TEMPLATES: Template[] = [
     // single-icon control — hides that control the same way the fixed-logo
     // wordmark templates do.
     noIcon: true,
-    arrangementCount: 2,
+    // 0/1 = the 2-tile "ChatGPT app" example, 2/3 = the 4-tile "Supabase
+    // for Platforms" example — each pairs a base order (icons above
+    // headline) with a reversed sibling (headline above icons).
+    arrangementCount: 4,
     build: (p) => {
       const tiles = p.logoTiles ?? []
       const tilesRow = logoTilesRow(tiles, p.scaleFactor)
 
       // Arrangement cycles which row sits top vs. bottom within the
       // space-between column below — the wordmark signature stays fixed in
-      // the bottom-right corner regardless. Tile count is untouched by this;
-      // that's the sidebar's "Logo tiles" stepper's job, not this pager's.
-      const stackedChildren = p.arrangement === 1 ? [p.textBlock, tilesRow] : [tilesRow, p.textBlock]
+      // the bottom-right corner regardless. Tile count/content is untouched
+      // by this; that's the sidebar's "Logo tiles" stepper's job, not this
+      // pager's. 1 and 2 put the headline on top; 0 and 3 put the tiles on
+      // top (each content set's reversed sibling flips the other way).
+      const headlineOnTop = p.arrangement === 1 || p.arrangement === 2
+      const stackedChildren = headlineOnTop ? [p.textBlock, tilesRow] : [tilesRow, p.textBlock]
 
       return (
         <div

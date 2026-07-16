@@ -142,14 +142,25 @@ function inlineClassStyles(body: string): string {
   if (!styleMatch) return body
 
   const rules = new Map<string, string>()
-  const ruleRe = /\.([\w-]+)\s*\{([^}]*)\}/g
+  // Selector list before `{` — Illustrator commonly groups several classes
+  // sharing one color into `.st0, .st1, .st2 { fill: #000; }` to shrink the
+  // CSS, so each rule can have more than one class selector.
+  const ruleRe = /([^{}]+)\{([^}]*)\}/g
   let m: RegExpExecArray | null
   while ((m = ruleRe.exec(styleMatch[1]))) {
     const safe = sanitizeStyleValue(m[2])
-    if (safe) rules.set(m[1], safe)
+    if (!safe) continue
+    for (const selector of m[1].split(',')) {
+      const classMatch = selector.trim().match(/^\.([\w-]+)$/)
+      if (classMatch) rules.set(classMatch[1], safe)
+    }
   }
   if (!rules.size) return body
 
+  // A class rule's declarations always WIN over any pre-existing inline
+  // style on the same element (Illustrator/Figma never emit both on one
+  // node in practice) — merged, not appended, so an element never ends up
+  // with two `style="..."` attributes.
   const resolveClassAttr = (classList: string) =>
     classList
       .trim()
@@ -158,15 +169,27 @@ function inlineClassStyles(body: string): string {
       .filter((v): v is string => !!v)
       .join(';')
 
-  return body
-    .replace(/\sclass\s*=\s*"([^"]*)"/gi, (full, classList: string) => {
-      const merged = resolveClassAttr(classList)
-      return merged ? ` style="${merged}"` : ''
-    })
-    .replace(/\sclass\s*=\s*'([^']*)'/gi, (full, classList: string) => {
-      const merged = resolveClassAttr(classList)
-      return merged ? ` style='${merged}'` : ''
-    })
+  return body.replace(/<([a-zA-Z][\w:-]*)\b([^>]*)>/g, (tag, tagName: string, rawAttrs: string) => {
+    const classMatch = rawAttrs.match(/\sclass\s*=\s*(["'])([^"']*)\1/i)
+    if (!classMatch) return tag
+    const merged = resolveClassAttr(classMatch[2])
+    if (!merged) return tag
+
+    // Pull the self-closing `/` out before mutating attrs, and put it back
+    // at the very end — otherwise it ends up stranded mid-tag (e.g.
+    // `<path d="M0"/ style="...">`), which is malformed XML that a strict
+    // parser (resvg, underneath satori) may reject outright.
+    const selfClosing = /\/\s*$/.test(rawAttrs)
+    let attrs = rawAttrs.replace(classMatch[0], '').replace(/\/\s*$/, '')
+    const existingStyleMatch = attrs.match(/\sstyle\s*=\s*(["'])([^"']*)\1/i)
+    if (existingStyleMatch) {
+      attrs = attrs.replace(existingStyleMatch[0], ` style="${merged};${existingStyleMatch[2]}"`)
+    } else {
+      attrs += ` style="${merged}"`
+    }
+    if (selfClosing) attrs += ' /'
+    return `<${tagName}${attrs}>`
+  })
 }
 
 export function sanitizeLogoSvg(input: string): SanitizedSvg | null {

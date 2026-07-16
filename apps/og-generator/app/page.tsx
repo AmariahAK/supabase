@@ -987,7 +987,7 @@ export default function Page() {
           independently of the two floating toolbars below, which are their
           own siblings so they stay anchored regardless of scroll position. */}
       <main
-        className="@container absolute inset-0 flex flex-col items-center overflow-auto p-8 pt-24 pb-24 pr-[380px]"
+        className="@container absolute inset-0 flex flex-col items-center overflow-auto p-8 pt-24 pb-48 pr-[380px]"
         onClick={handleCanvasZoomClick}
         style={{
           backgroundColor: '#f4f4f5',
@@ -1120,8 +1120,12 @@ export default function Page() {
           likewise anchored outside main's scroll container. Stacked in a
           column with the Layout carousel (when applicable) so the canvas
           only ever has controls floating on the bottom edge, not scattered
-          across corners. */}
-      <div className="pointer-events-none absolute bottom-6 left-8 right-[380px] z-10 flex flex-col items-center gap-3">
+          across corners. Capped to a fraction of the viewport height and
+          made internally scrollable so that on short windows (or in "Both"
+          view, where the carousel row + preview/zoom row can be tall
+          relative to the window) the cluster shrinks instead of overflowing
+          past the bottom edge or overlapping canvas content underneath. */}
+      <div className="pointer-events-none absolute bottom-6 left-8 right-[380px] z-10 flex max-h-[40vh] flex-col items-center gap-3 overflow-y-auto">
         {showContentControls && inContext === 'none' && (
           <div className="pointer-events-auto flex max-w-full items-center gap-2 overflow-x-auto rounded-md border border-default bg-background p-2 shadow-lg">
             {activeTemplates.map((t) => (

@@ -11,8 +11,12 @@ import { getSupabase, getSupabaseAdmin } from '@/lib/supabase/server'
  * project isn't configured.
  *
  * Two asset kinds share this table (brief follow-up — custom color logos):
- *  - 'icon' (default): line art, inline SVG `body`, rendered stroke-only.
- *  - 'logo': full-color partner/acquisition logos. Stored as a file in the
+ *  - 'icon': either line art (inline SVG `body`, rendered stroke-only and
+ *    dynamically recolored to the brand's illustration stroke color), or —
+ *    when uploaded as a PNG — a file in Storage (`storage_path`) rendered
+ *    as-is, since a raster can't be stroke-recolored. PNG icons are expected
+ *    to already be a white/monochrome mark that reads on the dark canvas.
+ *  - 'logo': full-color partner/acquisition logos. Always a file in the
  *    og-assets Storage bucket (`storage_path`), not inline — may be raster.
  *    `width`/`height` (client-measured at upload) drive aspect-correct
  *    rendering. Rendered as-is, no stroke normalization.
@@ -128,7 +132,7 @@ export async function insertAsset(a: NewAsset): Promise<SeedIcon> {
   return rowToIcon(data as AssetRow)
 }
 
-export interface NewLogo {
+export interface NewFileAsset {
   name: string
   label: string
   tags: string[]
@@ -141,18 +145,27 @@ export interface NewLogo {
   width: number
   height: number
   brand: string
+  /**
+   * 'logo' (default): full-color, rendered as-is. 'icon': expected to be a
+   * white/monochrome mark (rendered as-is too — a raster can't be
+   * dynamically stroke-recolored the way an inline SVG icon can, so "white"
+   * here is an upload-time convention we ask for, not something enforced).
+   */
+  kind?: 'icon' | 'logo'
 }
 
 /**
- * Upload + insert a color logo (admin/secret key). Stores the file in the
- * og-assets Storage bucket rather than inline, so it works for raster too.
- * Throws 'NO_ADMIN' if unconfigured.
+ * Upload + insert a file-backed asset — a full-color logo, or a raster
+ * (PNG) icon (admin/secret key). Stores the file in the og-assets Storage
+ * bucket rather than inline, so it works for raster art. Throws 'NO_ADMIN'
+ * if unconfigured.
  */
-export async function insertLogoAsset(a: NewLogo): Promise<SeedIcon> {
+export async function insertLogoAsset(a: NewFileAsset): Promise<SeedIcon> {
   const admin = getSupabaseAdmin()
   if (!admin) throw new Error('NO_ADMIN')
 
-  const path = `logos/${a.name}.${a.ext}`
+  const kind = a.kind ?? 'logo'
+  const path = `${kind === 'icon' ? 'icons' : 'logos'}/${a.name}.${a.ext}`
   const { error: uploadError } = await admin.storage
     .from(OG_ASSETS_BUCKET)
     .upload(path, a.fileBody, { contentType: a.contentType, upsert: false })
@@ -164,7 +177,7 @@ export async function insertLogoAsset(a: NewLogo): Promise<SeedIcon> {
       name: a.name,
       label: a.label,
       tags: a.tags,
-      kind: 'logo',
+      kind,
       view_box: `0 0 ${a.width} ${a.height}`,
       storage_path: path,
       width: a.width,

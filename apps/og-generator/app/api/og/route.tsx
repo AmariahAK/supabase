@@ -66,7 +66,9 @@ async function renderIconByName(
 ) {
   const obj = await resolveIcon(name, brandId)
   if (!obj) return null
-  if (obj.kind === 'logo' && obj.url) {
+  // A stored file (logo, or a raster PNG icon) renders as-is; only a
+  // body-only line-art icon goes through the stroke-recolor path below.
+  if (obj.url) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img {...fitBox(obj.width ?? 1, obj.height ?? 1, sizePx)} src={obj.url} />
   }
@@ -135,9 +137,9 @@ export async function GET(req: Request) {
               : {}),
           }}
         >
-          {iconObj && iconObj.kind === 'logo' && iconObj.url ? (
-            // Custom color logo — rendered as-is (no stroke normalization),
-            // fit to its natural aspect ratio (brief follow-up: partnerships).
+          {iconObj && iconObj.url ? (
+            // A stored file (color logo, or a raster PNG icon) — rendered
+            // as-is (no stroke normalization), fit to its natural aspect ratio.
             // eslint-disable-next-line @next/next/no-img-element
             <img {...fitRect(iconObj.width ?? 1, iconObj.height ?? 1, thumbBoxW, thumbBoxH)} src={iconObj.url} />
           ) : iconObj ? (
@@ -329,8 +331,9 @@ export async function GET(req: Request) {
     )
 
     const iconEl =
-      iconObj && iconObj.kind === 'logo' && iconObj.url ? (
-        // Custom color logo — rendered as-is, fit to its natural aspect ratio.
+      iconObj && iconObj.url ? (
+        // A stored file (color logo, or a raster PNG icon) — rendered
+        // as-is, fit to its natural aspect ratio.
         // eslint-disable-next-line @next/next/no-img-element
         <img {...fitBox(iconObj.width ?? 1, iconObj.height ?? 1, format.iconSize * s)} src={iconObj.url} />
       ) : iconObj ? (
@@ -377,7 +380,7 @@ export async function GET(req: Request) {
         ? (() => {
             const boxW = (template.thumbBox!.width / 2) * s
             const boxH = (template.thumbBox!.height / 2) * s
-            return iconObj.kind === 'logo' && iconObj.url ? (
+            return iconObj.url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img {...fitRect(iconObj.width ?? 1, iconObj.height ?? 1, boxW, boxH)} src={iconObj.url} />
             ) : (

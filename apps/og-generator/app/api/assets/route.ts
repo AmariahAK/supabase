@@ -1,6 +1,13 @@
 import { sanitizeLogoSvg, sanitizeSvg } from '@/lib/assets/sanitize-svg'
 import { DEFAULT_BRAND_ID } from '@/lib/design/brands'
-import { deleteAsset, insertAsset, insertLogoAsset, listAssets, renameAsset } from '@/lib/supabase/assets'
+import {
+  deleteAsset,
+  insertAsset,
+  insertLogoAsset,
+  listAssets,
+  renameAsset,
+  type NewFileAsset,
+} from '@/lib/supabase/assets'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 
 // Node runtime — uses the Supabase server clients + parses uploaded files.
@@ -76,26 +83,31 @@ function slugify(s: string): string {
 const NO_ADMIN_ERROR =
   'Uploads need SUPABASE_SECRET_KEY in .env.local (and the migrations applied).'
 
+// Restricted to png — svg is handled separately (sanitized + either inlined
+// as line art or stored, depending on kind). jpeg/webp were previously
+// accepted for logos but are dropped: uploads are meant to be a clean
+// color/white mark against the dark canvas, not an arbitrary photo.
 const RASTER_TYPES: Record<string, string> = {
   'image/png': 'png',
-  'image/jpeg': 'jpg',
-  'image/webp': 'webp',
 }
-const MAX_LOGO_BYTES = 2_000_000 // 2 MB
+const MAX_FILE_BYTES = 2_000_000 // 2 MB
 
 /**
- * POST — two upload kinds, selected by the `kind` form field ('icon', default,
- * or 'logo'):
+ * POST — selected by the `kind` form field ('icon', default, or 'logo'),
+ * each accepting an SVG or PNG file (multipart: `file`, optional `label`):
  *
- *  - kind=icon (multipart: `file` = SVG, optional `label`): a line-art icon.
- *    Sanitized to stroke-only and inserted inline (unchanged behavior).
- *  - kind=logo (multipart: `file` = SVG/PNG/JPEG/WebP, `label`, `width`,
- *    `height`): a full-color partner/acquisition logo (brief follow-up).
- *    Colors are preserved; the file is stored in the og-assets bucket rather
- *    than inline, and `width`/`height` (client-measured) drive aspect-correct
- *    rendering later.
+ *  - kind=icon + SVG: a line-art icon. Sanitized to stroke-only and
+ *    inserted inline, rendered with the brand's illustration stroke color
+ *    at request time (unchanged behavior).
+ *  - kind=icon + PNG, or kind=logo (SVG or PNG): stored as a file in the
+ *    og-assets Storage bucket rather than inline, rendered as-is (colors
+ *    preserved, no stroke normalization) — a PNG can't be dynamically
+ *    recolored the way an inline SVG icon can, so icon PNGs are expected to
+ *    already be a white/monochrome mark that reads on the dark canvas, same
+ *    as a color logo upload. `width`/`height` (client-measured) drive
+ *    aspect-correct rendering.
  *
- * Both need SUPABASE_SECRET_KEY — without it we return a clear 503 so the
+ * Needs SUPABASE_SECRET_KEY — without it we return a clear 503 so the
  * button never just silently fails.
  */
 export async function POST(req: Request): Promise<Response> {
@@ -112,10 +124,14 @@ export async function POST(req: Request): Promise<Response> {
 
   const kind = form.get('kind') === 'logo' ? 'logo' : 'icon'
   const brand = typeof form.get('brand') === 'string' ? (form.get('brand') as string) : DEFAULT_BRAND_ID
-  return kind === 'logo' ? handleLogoUpload(form, brand) : handleIconUpload(form, brand)
+  const file = form.get('file')
+  const isSvg =
+    file instanceof File && (file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg'))
+
+  return kind === 'icon' && isSvg ? handleIconSvgUpload(form, brand) : handleFileUpload(form, brand, kind)
 }
 
-async function handleIconUpload(form: FormData, brand: string): Promise<Response> {
+async function handleIconSvgUpload(form: FormData, brand: string): Promise<Response> {
   const file = form.get('file')
   let label = typeof form.get('label') === 'string' ? (form.get('label') as string) : ''
 
@@ -161,24 +177,26 @@ async function handleIconUpload(form: FormData, brand: string): Promise<Response
   }
 }
 
-async function handleLogoUpload(form: FormData, brand: string): Promise<Response> {
+/** Shared by kind=logo (SVG or PNG) and kind=icon+PNG — both are stored as a file, not inlined. */
+async function handleFileUpload(form: FormData, brand: string, kind: 'icon' | 'logo'): Promise<Response> {
   const file = form.get('file')
   let label = typeof form.get('label') === 'string' ? (form.get('label') as string) : ''
   const width = Number(form.get('width'))
   const height = Number(form.get('height'))
+  const noun = kind === 'icon' ? 'icon' : 'logo'
 
   if (!(file instanceof File)) {
-    return Response.json({ error: 'Expected an SVG, PNG, JPEG, or WebP file.' }, { status: 400 })
+    return Response.json({ error: 'Expected an SVG or PNG file.' }, { status: 400 })
   }
-  if (file.size > MAX_LOGO_BYTES) {
-    return Response.json({ error: 'Logo too large (max 2 MB).' }, { status: 400 })
+  if (file.size > MAX_FILE_BYTES) {
+    return Response.json({ error: `${kind === 'icon' ? 'Icon' : 'Logo'} too large (max 2 MB).` }, { status: 400 })
   }
   if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
-    return Response.json({ error: 'Missing or invalid logo dimensions.' }, { status: 400 })
+    return Response.json({ error: `Missing or invalid ${noun} dimensions.` }, { status: 400 })
   }
   if (!label) label = file.name.replace(/\.\w+$/, '')
 
-  const displayLabel = (label || 'Logo').trim().slice(0, 40) || 'Logo'
+  const displayLabel = (label || (kind === 'icon' ? 'Icon' : 'Logo')).trim().slice(0, 40) || 'Logo'
   const name = `${slugify(displayLabel)}-${Date.now().toString(36).slice(-4)}`
   const tags = Array.from(new Set(slugify(displayLabel).split('-').filter((w) => w.length > 1)))
 
@@ -191,7 +209,7 @@ async function handleLogoUpload(form: FormData, brand: string): Promise<Response
     const clean = sanitizeLogoSvg(await file.text())
     if (!clean) {
       return Response.json(
-        { error: 'Not a usable SVG logo (empty, too complex, or contained unsupported content).' },
+        { error: `Not a usable SVG ${noun} (empty, too complex, or contained unsupported content).` },
         { status: 400 }
       )
     }
@@ -203,7 +221,7 @@ async function handleLogoUpload(form: FormData, brand: string): Promise<Response
   } else {
     ext = RASTER_TYPES[file.type]
     if (!ext) {
-      return Response.json({ error: 'Unsupported file type — use SVG, PNG, JPEG, or WebP.' }, { status: 400 })
+      return Response.json({ error: 'Unsupported file type — use SVG or PNG.' }, { status: 400 })
     }
     fileBody = Buffer.from(await file.arrayBuffer())
     contentType = file.type
@@ -220,13 +238,14 @@ async function handleLogoUpload(form: FormData, brand: string): Promise<Response
       width: Math.round(width),
       height: Math.round(height),
       brand,
-    })
+      kind,
+    } satisfies NewFileAsset)
     return Response.json({ asset })
   } catch (err) {
-    console.error('[api/assets] logo insert failed:', err)
+    console.error(`[api/assets] ${noun} insert failed:`, err)
     return Response.json(
       {
-        error: `Could not save the logo — is every supabase/migrations/*.sql file applied? (${errorMessage(err)})`,
+        error: `Could not save the ${noun} — is every supabase/migrations/*.sql file applied? (${errorMessage(err)})`,
       },
       { status: 500 }
     )

@@ -55,9 +55,12 @@ function matchesIconQuery(ic: SeedIcon, query: string): boolean {
 // always get a fixed dark backdrop regardless of the app's own theme.
 const LOGO_SWATCH_BG = 'bg-[#171717]'
 
-function pickerSwatchClass(selected: boolean, isLogo: boolean): string {
+// `isFileBacked`: a stored file (color logo, or a raster PNG icon) — both
+// render as-is and are expected to be white/light marks against the dark
+// canvas, so both get the fixed dark swatch backdrop, not just "logo" kind.
+function pickerSwatchClass(selected: boolean, isFileBacked: boolean): string {
   const border = selected ? 'border-brand' : 'border-default hover:border-strong'
-  if (isLogo) return `${border} ${LOGO_SWATCH_BG}`
+  if (isFileBacked) return `${border} ${LOGO_SWATCH_BG}`
   return `${border} ${selected ? 'bg-brand/10 text-brand' : 'bg-surface-100 text-foreground-light'}`
 }
 
@@ -638,13 +641,37 @@ export default function Page() {
     }
   }
 
-  const uploadSvg = async (file: File) => {
+  // SVG icons stay inline + stroke-recolored (unchanged); a PNG icon can't
+  // be dynamically recolored, so it's stored as a file like a logo — same
+  // client-side natural-size measurement as uploadLogo below. Expected to
+  // already be a white/monochrome mark (label + accept type say so), not
+  // enforced pixel-by-pixel.
+  const uploadIcon = async (file: File) => {
     setUploading(true)
     setUploadError(null)
     try {
+      const isSvg = file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg')
       const fd = new FormData()
       fd.append('file', file)
+      fd.append('kind', 'icon')
       fd.append('brand', brandId)
+      if (!isSvg) {
+        const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+          const url = URL.createObjectURL(file)
+          const img = new Image()
+          img.onload = () => {
+            resolve({ width: img.naturalWidth, height: img.naturalHeight })
+            URL.revokeObjectURL(url)
+          }
+          img.onerror = () => {
+            URL.revokeObjectURL(url)
+            reject(new Error('Could not read the image — is it a valid SVG or PNG?'))
+          }
+          img.src = url
+        })
+        fd.append('width', String(width))
+        fd.append('height', String(height))
+      }
       const res = await fetch('/api/assets', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) {
@@ -653,8 +680,8 @@ export default function Page() {
       }
       setUploadedIcons((prev) => [data.asset as SeedIcon, ...prev])
       setIcon((data.asset as SeedIcon).name)
-    } catch {
-      setUploadError('Upload failed — please try again.')
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed — please try again.')
     } finally {
       setUploading(false)
     }
@@ -678,7 +705,7 @@ export default function Page() {
         }
         img.onerror = () => {
           URL.revokeObjectURL(url)
-          reject(new Error('Could not read the image — is it a valid SVG/PNG/JPEG/WebP?'))
+          reject(new Error('Could not read the image — is it a valid SVG or PNG?'))
         }
         img.src = url
       })
@@ -1242,7 +1269,7 @@ export default function Page() {
             <div className="flex flex-col gap-2">
               <span className="text-sm font-medium text-foreground-light">
                 Icon
-                <Hint text="Line-art icons only, stroke locked to the illustration weight (§4). Logos (SVG, PNG, JPEG, WebP) keep their original colors, for partnerships/acquisitions. The icon is shared between the OG and Thumb. Both are stored in Supabase and need the secret key configured." />
+                <Hint text="Line-art icons (SVG) are stroke-recolored to the illustration weight (§4); uploaded icon images (PNG) should already be white/monochrome, since they render as-is. Logos (SVG or PNG) keep their original colors, for partnerships/acquisitions. The icon is shared between the OG and Thumb. Both are stored in Supabase and need the secret key configured." />
               </span>
               <div className="relative" ref={iconPickerRef}>
                 <button
@@ -1255,11 +1282,11 @@ export default function Page() {
                 >
                   <span
                     className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border border-default text-foreground-light ${
-                      selectedIcon?.kind === 'logo' ? LOGO_SWATCH_BG : 'bg-background'
+                      selectedIcon?.url ? LOGO_SWATCH_BG : 'bg-background'
                     }`}
                   >
                     {selectedIcon ? (
-                      selectedIcon.kind === 'logo' && selectedIcon.url ? (
+                      selectedIcon.url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={selectedIcon.url}
@@ -1430,12 +1457,12 @@ export default function Page() {
                                   setIcon(ic.name)
                                   setIconPickerOpen(false)
                                 }}
-                                title={ic.kind === 'logo' ? `${ic.label} (color logo)` : ic.label}
+                                title={ic.url ? `${ic.label} (uploaded)` : ic.label}
                                 className={`flex w-full items-center justify-center rounded-md border p-1.5 ${
                                   isLogoTab ? 'h-20' : 'h-14'
-                                } ${pickerSwatchClass(icon === ic.name, ic.kind === 'logo')}`}
+                                } ${pickerSwatchClass(icon === ic.name, !!ic.url)}`}
                               >
-                                {ic.kind === 'logo' && ic.url ? (
+                                {ic.url ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img src={ic.url} alt={ic.label} className="max-h-full max-w-full object-contain" />
                                 ) : (
@@ -1495,15 +1522,15 @@ export default function Page() {
                             uploading ? 'cursor-wait opacity-70' : 'cursor-pointer'
                           }`}
                         >
-                          {uploading ? 'Uploading…' : '+ Upload SVG icon'}
+                          {uploading ? 'Uploading…' : '+ Upload white icon (.svg or .png only)'}
                           <input
                             type="file"
-                            accept=".svg,image/svg+xml"
+                            accept=".svg,.png,image/svg+xml,image/png"
                             className="hidden"
                             disabled={uploading}
                             onChange={(e) => {
                               const f = e.target.files?.[0]
-                              if (f) uploadSvg(f)
+                              if (f) uploadIcon(f)
                               e.target.value = ''
                             }}
                           />
@@ -1514,10 +1541,10 @@ export default function Page() {
                             uploadingLogo ? 'cursor-wait opacity-70' : 'cursor-pointer'
                           }`}
                         >
-                          {uploadingLogo ? 'Uploading…' : '+ Upload logo (color)'}
+                          {uploadingLogo ? 'Uploading…' : '+ Upload color/white logo (.svg or .png only)'}
                           <input
                             type="file"
-                            accept=".svg,.png,.jpg,.jpeg,.webp,image/svg+xml,image/png,image/jpeg,image/webp"
+                            accept=".svg,.png,image/svg+xml,image/png"
                             className="hidden"
                             disabled={uploadingLogo}
                             onChange={(e) => {
@@ -1584,11 +1611,11 @@ export default function Page() {
                           }
                           title={tileSelected ? tileSelected.label : `Tile ${tileIdx + 1}`}
                           className={`flex h-14 w-full items-center justify-center rounded-md border p-1.5 text-foreground-light hover:border-strong ${
-                            tileSelected?.kind === 'logo' ? `border-default ${LOGO_SWATCH_BG}` : 'border-default bg-surface-100'
+                            tileSelected?.url ? `border-default ${LOGO_SWATCH_BG}` : 'border-default bg-surface-100'
                           }`}
                         >
                           {tileSelected ? (
-                            tileSelected.kind === 'logo' && tileSelected.url ? (
+                            tileSelected.url ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
                                 src={tileSelected.url}
@@ -1626,13 +1653,13 @@ export default function Page() {
                                     )
                                     setLogoTilePickerOpen(null)
                                   }}
-                                  title={ic.kind === 'logo' ? `${ic.label} (color logo)` : ic.label}
+                                  title={ic.url ? `${ic.label} (uploaded)` : ic.label}
                                   className={`flex h-12 items-center justify-center rounded-md border p-1 ${pickerSwatchClass(
                                     tileIcon === ic.name,
-                                    ic.kind === 'logo'
+                                    !!ic.url
                                   )}`}
                                 >
-                                  {ic.kind === 'logo' && ic.url ? (
+                                  {ic.url ? (
                                     // eslint-disable-next-line @next/next/no-img-element
                                     <img
                                       src={ic.url}

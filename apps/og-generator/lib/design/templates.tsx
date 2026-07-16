@@ -78,9 +78,9 @@ export interface Template {
 }
 
 // Shared icon "chip" bounding box (Partner logos' tile look, reused by
-// icon-layout) — fixed 160px dark rounded box, sized to hold a 56px icon.
+// icon-layout) — fixed 160px dark rounded box, sized to hold a 64px icon.
 export const ICON_TILE_SIZE_1X = 160
-export const ICON_TILE_ICON_SIZE_1X = 56
+export const ICON_TILE_ICON_SIZE_1X = 64
 const ICON_TILE_RADIUS_1X = 16
 const ICON_TILE_BORDER_WIDTH_1X = 1.5
 const ICON_TILE_BG = '#171717'

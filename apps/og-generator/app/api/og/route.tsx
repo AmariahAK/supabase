@@ -27,7 +27,7 @@ const EYEBROW_PILL_WEIGHT = 500 as const
 // Wordmark display height (1x design px) for the fixed-logo templates.
 const WORDMARK_HEIGHT_1X = 43
 // Per-tile icon size for logo-grid's row of partner-logo tiles (1x design px).
-const LOGO_TILE_ICON_SIZE_1X = 56
+const LOGO_TILE_ICON_SIZE_1X = 64
 
 /** Scale (naturalW, naturalH) to fit within a boxSize square, preserving aspect ratio. */
 function fitBox(naturalW: number, naturalH: number, boxSize: number): { width: number; height: number } {

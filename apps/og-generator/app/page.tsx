@@ -1733,7 +1733,11 @@ export default function Page() {
                         </button>
 
                         {logoTilePickerOpen === tileIdx && (
-                          <div className="absolute bottom-full z-20 mb-1 w-56 rounded-md border border-strong bg-background p-2 shadow-[0_8px_30px_rgba(0,0,0,0.35)] ring-1 ring-black/5">
+                          <div
+                            className={`absolute bottom-full z-20 mb-1 w-56 rounded-md border border-strong bg-background p-2 shadow-[0_8px_30px_rgba(0,0,0,0.35)] ring-1 ring-black/5 ${
+                              tileIdx >= 2 ? 'right-0' : 'left-0'
+                            }`}
+                          >
                             <input
                               type="text"
                               value={logoTilePickerQuery}

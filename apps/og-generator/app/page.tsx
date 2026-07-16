@@ -39,6 +39,17 @@ function randomIconName(icons: SeedIcon[]): string | null {
   return icons[Math.floor(Math.random() * icons.length)].name
 }
 
+/** Matches a search query against an icon's name, label, and tags. */
+function matchesIconQuery(ic: SeedIcon, query: string): boolean {
+  const q = query.trim().toLowerCase()
+  if (!q) return true
+  return (
+    ic.name.toLowerCase().includes(q) ||
+    ic.label.toLowerCase().includes(q) ||
+    ic.tags.some((t) => t.toLowerCase().includes(q))
+  )
+}
+
 type View = 'og' | 'thumb' | 'both'
 
 interface FitInfo {
@@ -473,6 +484,10 @@ export default function Page() {
   // vs. full-color logos — the two are rendered completely differently
   // (stroke-only vs. as-is) so browsing them mixed together was noisy.
   const [iconPickerTab, setIconPickerTab] = useState<'icon' | 'logo'>('icon')
+  // Matches against name/label/tags — tags are the closest thing to a
+  // "description" seed/Lucide icons carry today, so this is effectively a
+  // light contextual search already, not just an exact-name lookup.
+  const [iconPickerQuery, setIconPickerQuery] = useState('')
   const iconPickerRef = useRef<HTMLDivElement>(null)
   // logo-grid: 1-4 partner logo tiles, adjusted via a count stepper — each
   // slot holds its own icon/logo name (or null while unpicked).
@@ -1163,7 +1178,10 @@ export default function Page() {
               <div className="relative" ref={iconPickerRef}>
                 <button
                   type="button"
-                  onClick={() => setIconPickerOpen((o) => !o)}
+                  onClick={() => {
+                    setIconPickerOpen((o) => !o)
+                    setIconPickerQuery('')
+                  }}
                   className="flex w-full items-center gap-2 rounded-md border border-default bg-surface-100 px-3 py-2 text-sm text-foreground outline-none hover:border-strong focus:border-strong"
                 >
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-default bg-background text-foreground-light">
@@ -1202,7 +1220,7 @@ export default function Page() {
 
                 {iconPickerOpen && (
                   <div className="absolute bottom-full z-20 mb-1 w-full rounded-md border border-default bg-background p-2 shadow-lg">
-                    <div className="mb-2">
+                    <div className="mb-2 flex items-center gap-2">
                       <Segmented
                         value={iconPickerTab}
                         onChange={setIconPickerTab}
@@ -1211,25 +1229,35 @@ export default function Page() {
                           { value: 'logo', label: 'Logos' },
                         ]}
                       />
+                      <input
+                        type="text"
+                        value={iconPickerQuery}
+                        onChange={(e) => setIconPickerQuery(e.target.value)}
+                        placeholder="Search…"
+                        className="min-w-0 flex-1 rounded-md border border-default bg-surface-100 px-2 py-1 text-xs text-foreground outline-none focus:border-strong"
+                      />
                     </div>
                     <div className="grid max-h-56 grid-cols-4 gap-2 overflow-y-auto">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIcon(null)
-                          setIconPickerOpen(false)
-                        }}
-                        title="No icon"
-                        className={`flex h-14 items-center justify-center rounded-md border text-xs ${
-                          icon === null
-                            ? 'border-brand bg-brand/10 text-brand'
-                            : 'border-default bg-surface-100 text-foreground-lighter hover:border-strong'
-                        }`}
-                      >
-                        None
-                      </button>
+                      {!iconPickerQuery.trim() && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIcon(null)
+                            setIconPickerOpen(false)
+                          }}
+                          title="No icon"
+                          className={`flex h-14 items-center justify-center rounded-md border text-xs ${
+                            icon === null
+                              ? 'border-brand bg-brand/10 text-brand'
+                              : 'border-default bg-surface-100 text-foreground-lighter hover:border-strong'
+                          }`}
+                        >
+                          None
+                        </button>
+                      )}
                       {allIcons
                         .filter((ic) => (iconPickerTab === 'logo' ? ic.kind === 'logo' : ic.kind !== 'logo'))
+                        .filter((ic) => matchesIconQuery(ic, iconPickerQuery))
                         .map((ic) => (
                           <button
                             key={ic.name}

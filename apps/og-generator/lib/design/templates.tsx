@@ -37,6 +37,8 @@ export interface TemplateParts {
   headlineLineCount?: number
   /** Single icon pre-sized to `ICON_TILE_ICON_SIZE_1X` — icon-layout's icon inside its chip bounding box. */
   boxedIconEl?: ReactNode | null
+  /** Whether to render the Supabase wordmark signature — logo-grid only, toggleable since it already shows partner marks. Defaults to true. */
+  showBrandLogo?: boolean
 }
 
 export interface Template {
@@ -394,7 +396,7 @@ export const TEMPLATES: Template[] = [
               alignItems: 'center',
             }}
           >
-            {p.logoEl}
+            {p.showBrandLogo !== false ? p.logoEl : null}
           </div>
         </div>
       )

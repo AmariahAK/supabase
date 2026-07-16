@@ -173,6 +173,9 @@ export async function GET(req: Request) {
     // e.g. icon-layout/logo-layout/logo-grid) — never changes tile count or
     // any other content, just which sub-layout the template's `build` picks.
     const arrangement = Number(searchParams.get('arrangement') ?? 0) || 0
+    // logo-grid only — hides the Supabase wordmark signature since the tiles
+    // already carry Supabase's own mark (or the user wants partner-only art).
+    const showBrandLogo = searchParams.get('showLogo') !== '0'
 
     const rawHeadline = (searchParams.get('headline') ?? DEFAULT_HEADLINE).slice(0, 200)
     const noEyebrow = template.noEyebrow || (template.noEyebrowForArrangement?.(arrangement) ?? false)
@@ -435,6 +438,7 @@ export async function GET(req: Request) {
       iconEl,
       boxedIconEl,
       hasIcon,
+      showBrandLogo,
     })
 
     return new ImageResponse(root, {

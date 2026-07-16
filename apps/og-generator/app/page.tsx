@@ -511,6 +511,10 @@ export default function Page() {
   const [logoTileIcons, setLogoTileIcons] = useState<(string | null)[]>([null])
   const [logoTilePickerOpen, setLogoTilePickerOpen] = useState<number | null>(null)
   const logoTilePickerRef = useRef<HTMLDivElement>(null)
+  // logo-grid: whether the Supabase wordmark signature (bottom-right) renders
+  // alongside the partner tiles — on by default, toggleable since the tiles
+  // may already carry Supabase's own mark.
+  const [showBrandLogo, setShowBrandLogo] = useState(true)
   // Which element-arrangement variant is active for the current template —
   // grouped templates (icon-layout, logo-layout, logo-grid) each merge
   // several sub-layouts behind one carousel entry; this cycles between them
@@ -859,6 +863,7 @@ export default function Page() {
     if (template === 'logo-grid') {
       const names = logoTileIcons.filter((n): n is string => !!n)
       if (names.length) p.set('icons', names.join(','))
+      if (!showBrandLogo) p.set('showLogo', '0')
     } else if (icon) {
       p.set('icon', icon)
     }
@@ -866,7 +871,7 @@ export default function Page() {
     if (scale === 2) p.set('scale', '2')
     return `/api/og?${p.toString()}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandId, formatId, headline, eyebrow, template, icon, logoTileIcons, arrangement, scale])
+  }, [brandId, formatId, headline, eyebrow, template, icon, logoTileIcons, arrangement, scale, showBrandLogo])
 
   const thumbEndpoint = useMemo(() => {
     const p = new URLSearchParams()
@@ -884,6 +889,7 @@ export default function Page() {
       if (template === 'logo-grid') {
         const names = logoTileIcons.filter((n): n is string => !!n)
         if (names.length) p.set('icons', names.join(','))
+        if (!showBrandLogo) p.set('showLogo', '0')
       } else if (icon) {
         p.set('icon', icon)
       }
@@ -900,7 +906,7 @@ export default function Page() {
     if (scale === 2) p.set('scale', '2')
     return `/api/og?${p.toString()}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandId, formatId, hasSecondary, headline, eyebrow, template, icon, logoTileIcons, arrangement, scale])
+  }, [brandId, formatId, hasSecondary, headline, eyebrow, template, icon, logoTileIcons, arrangement, scale, showBrandLogo])
 
   const og = useRenderedImage(ogEndpoint, showOg)
   const thumb = useRenderedImage(thumbEndpoint, showThumb || wantsThumbForBlogPost)
@@ -1592,6 +1598,18 @@ export default function Page() {
                 )}
               </div>
             </div>
+            )}
+
+            {template === 'logo-grid' && (
+              <label className="flex items-center gap-2 text-sm text-foreground-light">
+                <input
+                  type="checkbox"
+                  checked={showBrandLogo}
+                  onChange={(e) => setShowBrandLogo(e.target.checked)}
+                />
+                Show Supabase logo
+                <Hint text="Toggles the Supabase wordmark signature in the corner — off if the partner tiles already speak for themselves." />
+              </label>
             )}
 
             {template === 'logo-grid' && (

@@ -569,17 +569,23 @@ export default function Page() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template, allLogos])
 
-  // Partner logos' first tile defaults to the Supabase bolt mark — the
-  // layout is built to showcase a partner alongside Supabase, so leading
-  // with our own mark makes more sense than an empty "Pick" slot. The bolt
-  // is a bundled ICON_LIBRARY entry (name 'supabase-bolt'), not a per-brand
-  // uploaded asset, so this default works even on brands with zero uploads.
+  // Partner logos ships with a curated example per arrangement instead of
+  // an empty "Pick" — arrangement 0 (2 tiles) showcases the ChatGPT app
+  // partnership, arrangement 1 (2/2, 4 tiles) showcases the Supabase for
+  // Platforms lineup. Loads whenever the template/arrangement pair is
+  // selected, same as clicking a curated preset.
   useEffect(() => {
-    if (template !== 'logo-grid' || logoTileIcons[0]) return
-    const bolt = allLogos.find((l) => l.name === 'supabase-bolt') ?? allLogos.find((l) => l.tags?.includes('bolt')) ?? null
-    if (bolt) setLogoTileIcons((tiles) => [bolt.name, ...tiles.slice(1)])
+    if (template !== 'logo-grid') return
+    if (arrangement === 0) {
+      setLogoTileIcons(['supabase-bolt', 'openai-logo-ihvv'])
+      setHeadline('Supabase is now an official "[C]hat[GPT] app"')
+      setEyebrow('')
+    } else if (arrangement === 1) {
+      setLogoTileIcons(['lovable-zqj2', 'v0-tado', 'figma-zqyr', 'bolt-zr9w'])
+      setHeadline('Introducing [S]upabase for [P]latforms')
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [template, allLogos])
+  }, [template, arrangement])
 
   // Load the shared asset library (uploaded icons) for the active brand; empty
   // when Supabase is off.

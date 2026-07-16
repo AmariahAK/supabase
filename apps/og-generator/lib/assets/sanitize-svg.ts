@@ -192,6 +192,32 @@ function inlineClassStyles(body: string): string {
   })
 }
 
+/**
+ * SVG's own default fill (opaque black) kicks in whenever an element sets
+ * `stroke` but omits `fill` entirely — a very common Illustrator/Figma
+ * export mistake where a stroke-only outline shape was meant to be
+ * `fill="none"`. Left alone, that shape paints a solid black copy directly
+ * over whatever color shape it's tracing (a duplicate-path outline
+ * technique), which can hide the real color almost entirely. This never
+ * touches a fill that's actually specified — only resolves the ambiguous
+ * "unset" case, so it doesn't count as "changing" the logo's declared
+ * colors.
+ */
+function defaultMissingFillToNone(body: string): string {
+  return body.replace(/<([a-zA-Z][\w:-]*)\b([^>]*)>/g, (tag, tagName: string, rawAttrs: string) => {
+    const hasStrokeColor = /\bstroke\s*=\s*["']/.test(rawAttrs) || /\bstroke\s*:/.test(rawAttrs)
+    if (!hasStrokeColor) return tag
+    const hasFill = /\bfill\s*=\s*["']/.test(rawAttrs) || /\bfill\s*:/.test(rawAttrs)
+    if (hasFill) return tag
+
+    const selfClosing = /\/\s*$/.test(rawAttrs)
+    let attrs = rawAttrs.replace(/\/\s*$/, '')
+    attrs += ' fill="none"'
+    if (selfClosing) attrs += ' /'
+    return `<${tagName}${attrs}>`
+  })
+}
+
 export function sanitizeLogoSvg(input: string): SanitizedSvg | null {
   if (!input || input.length > 300_000) return null
   const s = input.trim()
@@ -259,6 +285,8 @@ export function sanitizeLogoSvg(input: string): SanitizedSvg | null {
   // so this shouldn't normally match anything, but strip stray javascript:
   // schemes if they slipped through in some other attribute.
   body = body.replace(/\bjavascript\s*:/gi, '')
+
+  body = defaultMissingFillToNone(body)
 
   body = body.trim()
   if (!body) return null

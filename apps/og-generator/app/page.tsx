@@ -703,44 +703,56 @@ export default function Page() {
   }
 
   const [assetActionError, setAssetActionError] = useState<string | null>(null)
+  // Inline rename/delete-confirm state — no window.prompt/confirm, which
+  // some embedded/preview browser contexts silently block or auto-dismiss
+  // (the likely cause of "the edit button doesn't do anything").
+  const [renamingAssetName, setRenamingAssetName] = useState<string | null>(null)
+  const [renameDraft, setRenameDraft] = useState('')
+  const [confirmDeleteName, setConfirmDeleteName] = useState<string | null>(null)
 
-  const renameUploadedAsset = async (assetToRename: SeedIcon) => {
-    const nextLabel = window.prompt('Rename', assetToRename.label)?.trim()
-    if (!nextLabel || nextLabel === assetToRename.label) return
+  const startRename = (a: SeedIcon) => {
+    setConfirmDeleteName(null)
+    setRenamingAssetName(a.name)
+    setRenameDraft(a.label)
+  }
+
+  const commitRename = async (a: SeedIcon) => {
+    const nextLabel = renameDraft.trim()
+    setRenamingAssetName(null)
+    if (!nextLabel || nextLabel === a.label) return
     setAssetActionError(null)
     try {
       const res = await fetch('/api/assets', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: assetToRename.name, brand: brandId, label: nextLabel }),
+        body: JSON.stringify({ name: a.name, brand: brandId, label: nextLabel }),
       })
       const data = await res.json()
       if (!res.ok) {
         setAssetActionError(data.error ?? 'Rename failed')
         return
       }
-      setUploadedIcons((prev) => prev.map((a) => (a.name === assetToRename.name ? (data.asset as SeedIcon) : a)))
+      setUploadedIcons((prev) => prev.map((x) => (x.name === a.name ? (data.asset as SeedIcon) : x)))
     } catch {
       setAssetActionError('Rename failed — please try again.')
     }
   }
 
-  const deleteUploadedAsset = async (assetToDelete: SeedIcon) => {
-    if (!window.confirm(`Delete "${assetToDelete.label}"? This can't be undone.`)) return
+  const confirmDelete = async (a: SeedIcon) => {
+    setConfirmDeleteName(null)
     setAssetActionError(null)
     try {
-      const res = await fetch(
-        `/api/assets?name=${encodeURIComponent(assetToDelete.name)}&brand=${encodeURIComponent(brandId)}`,
-        { method: 'DELETE' }
-      )
+      const res = await fetch(`/api/assets?name=${encodeURIComponent(a.name)}&brand=${encodeURIComponent(brandId)}`, {
+        method: 'DELETE',
+      })
       const data = await res.json()
       if (!res.ok) {
         setAssetActionError(data.error ?? 'Delete failed')
         return
       }
-      setUploadedIcons((prev) => prev.filter((a) => a.name !== assetToDelete.name))
-      if (icon === assetToDelete.name) setIcon(null)
-      setLogoTileIcons((tiles) => tiles.map((t) => (t === assetToDelete.name ? null : t)))
+      setUploadedIcons((prev) => prev.filter((x) => x.name !== a.name))
+      if (icon === a.name) setIcon(null)
+      setLogoTileIcons((tiles) => tiles.map((t) => (t === a.name ? null : t)))
     } catch {
       setAssetActionError('Delete failed — please try again.')
     }
@@ -1297,7 +1309,11 @@ export default function Page() {
                         className="min-w-0 flex-1 rounded-md border border-default bg-surface-100 px-2 py-1 text-xs text-foreground outline-none focus:border-strong"
                       />
                     </div>
-                    <div className="grid max-h-56 grid-cols-4 gap-2 overflow-y-auto">
+                    <div
+                      className={`grid max-h-72 gap-2 overflow-y-auto ${
+                        iconPickerTab === 'logo' ? 'grid-cols-2' : 'grid-cols-4'
+                      }`}
+                    >
                       {!iconPickerQuery.trim() && (
                         <button
                           type="button"
@@ -1306,7 +1322,9 @@ export default function Page() {
                             setIconPickerOpen(false)
                           }}
                           title="No icon"
-                          className={`flex h-14 items-center justify-center rounded-md border text-xs ${
+                          className={`flex items-center justify-center rounded-md border text-xs ${
+                            iconPickerTab === 'logo' ? 'h-20' : 'h-14'
+                          } ${
                             icon === null
                               ? 'border-brand bg-brand/10 text-brand'
                               : 'border-default bg-surface-100 text-foreground-lighter hover:border-strong'
@@ -1320,6 +1338,89 @@ export default function Page() {
                         .filter((ic) => matchesIconQuery(ic, iconPickerQuery))
                         .map((ic) => {
                           const isUploaded = uploadedIcons.some((u) => u.name === ic.name)
+                          const isLogoTab = iconPickerTab === 'logo'
+
+                          if (renamingAssetName === ic.name) {
+                            return (
+                              <div
+                                key={ic.name}
+                                className={`col-span-1 flex flex-col justify-center gap-1 rounded-md border border-brand bg-brand/5 p-1.5 ${
+                                  isLogoTab ? 'h-20' : 'h-14'
+                                }`}
+                              >
+                                <input
+                                  autoFocus
+                                  type="text"
+                                  value={renameDraft}
+                                  onChange={(e) => setRenameDraft(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') commitRename(ic)
+                                    if (e.key === 'Escape') setRenamingAssetName(null)
+                                  }}
+                                  className="w-full rounded border border-default bg-background px-1.5 py-1 text-xs text-foreground outline-none focus:border-strong"
+                                />
+                                <div className="flex gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      commitRename(ic)
+                                    }}
+                                    className="flex-1 rounded bg-brand py-1 text-[11px] font-medium text-background hover:bg-brand/90"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setRenamingAssetName(null)
+                                    }}
+                                    className="flex-1 rounded border border-default text-[11px] text-foreground-light hover:border-strong"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          }
+
+                          if (confirmDeleteName === ic.name) {
+                            return (
+                              <div
+                                key={ic.name}
+                                className={`col-span-1 flex flex-col items-center justify-center gap-1.5 rounded-md border border-destructive-500 bg-destructive-200/40 p-1.5 ${
+                                  isLogoTab ? 'h-20' : 'h-14'
+                                }`}
+                              >
+                                <span className="text-center text-[11px] leading-tight text-foreground">Delete?</span>
+                                <div className="flex w-full gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      confirmDelete(ic)
+                                    }}
+                                    className="flex-1 rounded bg-destructive-600 py-1 text-[11px] font-medium text-white hover:bg-destructive-700"
+                                  >
+                                    Delete
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setConfirmDeleteName(null)
+                                    }}
+                                    className="flex-1 rounded border border-default text-[11px] text-foreground-light hover:border-strong"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          }
+
                           return (
                             <div key={ic.name} className="group relative">
                               <button
@@ -1329,10 +1430,9 @@ export default function Page() {
                                   setIconPickerOpen(false)
                                 }}
                                 title={ic.kind === 'logo' ? `${ic.label} (color logo)` : ic.label}
-                                className={`flex h-14 w-full items-center justify-center rounded-md border p-1.5 ${pickerSwatchClass(
-                                  icon === ic.name,
-                                  ic.kind === 'logo'
-                                )}`}
+                                className={`flex w-full items-center justify-center rounded-md border p-1.5 ${
+                                  isLogoTab ? 'h-20' : 'h-14'
+                                } ${pickerSwatchClass(icon === ic.name, ic.kind === 'logo')}`}
                               >
                                 {ic.kind === 'logo' && ic.url ? (
                                   // eslint-disable-next-line @next/next/no-img-element
@@ -1352,17 +1452,17 @@ export default function Page() {
                                 )}
                               </button>
                               {isUploaded && (
-                                <div className="absolute right-0.5 top-0.5 hidden gap-0.5 group-hover:flex">
+                                <div className="absolute right-1 top-1 hidden gap-1 group-hover:flex">
                                   <button
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      renameUploadedAsset(ic)
+                                      startRename(ic)
                                     }}
                                     title="Rename"
-                                    className="flex h-4 w-4 items-center justify-center rounded bg-background/90 text-foreground-lighter hover:text-foreground"
+                                    className="flex h-6 w-6 items-center justify-center rounded bg-background text-foreground-light shadow hover:text-foreground"
                                   >
-                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                                       <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
                                   </button>
@@ -1370,12 +1470,13 @@ export default function Page() {
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      deleteUploadedAsset(ic)
+                                      setRenamingAssetName(null)
+                                      setConfirmDeleteName(ic.name)
                                     }}
                                     title="Delete"
-                                    className="flex h-4 w-4 items-center justify-center rounded bg-background/90 text-foreground-lighter hover:text-destructive-600"
+                                    className="flex h-6 w-6 items-center justify-center rounded bg-background text-foreground-light shadow hover:text-destructive-600"
                                   >
-                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                                       <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0-.8 13.6a2 2 0 0 1-2 1.9H7.8a2 2 0 0 1-2-1.9L5 6" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
                                   </button>

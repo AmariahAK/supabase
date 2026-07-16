@@ -12,7 +12,12 @@ import Image from 'next/image'
 import { useContext, useMemo } from 'react'
 import { cn } from 'ui'
 
-import { INTEGRATIONS, Loading, type IntegrationDefinition } from './Integrations.constants'
+import {
+  INTEGRATION_FLAGS,
+  INTEGRATIONS,
+  Loading,
+  type IntegrationDefinition,
+} from './Integrations.constants'
 import { useIsMarketplaceEnabled } from '@/components/interfaces/App/FeaturePreview/FeaturePreviewContext'
 import {
   useMarketplaceIntegrationsQuery,
@@ -45,10 +50,13 @@ function isForeignDataWrapper(integration: MarketplaceIntegration) {
 }
 
 /**
- * Use per-listing feature flags with a templated naming convention in order to independently
- * enable/disable previews for users where the global `previewMarketplaceListingsEnabled` flag is not set.
+ * Reads a per-listing feature flag using the templated naming convention
+ * (`<slug>DashboardIntegrationEnabled`), defaulting to `false` when absent. Used to gate
+ * marketplace "preview" listings (for users where the global `previewMarketplaceListingsEnabled`
+ * flag is not set) and, via the INTEGRATION_FLAGS guard, to hard-disable specific integrations
+ * anywhere in the marketplace UI (listing, filters, featured grid) regardless of review_status.
  */
-const isPreviewEnabled = (featureFlags: FeatureFlagContextType, listingSlug: string) => {
+export const isPreviewEnabled = (featureFlags: FeatureFlagContextType, listingSlug: string) => {
   const flagName = `${listingSlug}DashboardIntegrationEnabled`
   return (featureFlags.configcat[flagName] ?? false) as boolean
 }
@@ -92,6 +100,7 @@ const useMarketplaceListings = () => {
  */
 export const useAvailableIntegrations = () => {
   const { integrationsWrappers } = useIsFeatureEnabled(['integrations:wrappers'])
+  const featureFlags = useFeatureFlags()
 
   const { data: cliData } = useCLIReleaseVersionQuery()
   const isCLI = !!cliData?.current
@@ -269,10 +278,13 @@ export const useAvailableIntegrations = () => {
   }, [integrationsWrappers, isCLI, marketplaceWrappers])
 
   const dataWithMarketplace = useMemo(() => {
-    return [...marketplaceIntegrations, ...allIntegrations].sort((a, b) =>
-      a.name.localeCompare(b.name)
-    )
-  }, [marketplaceIntegrations, allIntegrations])
+    return [...marketplaceIntegrations, ...allIntegrations]
+      .filter(
+        (integration) =>
+          !INTEGRATION_FLAGS[integration.id] || isPreviewEnabled(featureFlags, integration.id)
+      )
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [marketplaceIntegrations, allIntegrations, featureFlags])
 
   return {
     data: dataWithMarketplace,

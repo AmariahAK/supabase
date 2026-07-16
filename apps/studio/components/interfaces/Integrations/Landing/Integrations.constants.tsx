@@ -671,6 +671,14 @@ const INTEGRATIONS_WITH_CATEGORIES = [
 
 export const INTEGRATIONS: Array<IntegrationDefinition> = INTEGRATIONS_WITH_CATEGORIES
 
+// Integrations gated behind a per-listing ConfigCat flag, keyed by integration id.
+export const INTEGRATION_FLAGS: Record<string, string> = {
+  grafana: 'grafanaDashboardIntegrationEnabled',
+  resend: 'resendDashboardIntegrationEnabled',
+  aikido: 'aikidoDashboardIntegrationEnabled',
+  doppler: 'dopplerDashboardIntegrationEnabled',
+}
+
 export const Loading = () => (
   <div className="p-10">
     <GenericSkeletonLoader />

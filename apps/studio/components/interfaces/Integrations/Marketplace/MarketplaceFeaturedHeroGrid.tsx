@@ -56,8 +56,8 @@ export const MarketplaceFeaturedHeroGrid = ({
       <div className="mb-2">
         <h2 className="text-sm">Featured integrations</h2>
       </div>
-      <div className="grid grid-cols-1 @lg:grid-cols-2 @3xl:grid-cols-4 gap-3 items-stretch">
-        <div className="col-span-1 @lg:col-span-2">
+      <div className="grid grid-cols-1 @xl:grid-cols-2 @3xl:grid-cols-4 gap-3 items-stretch">
+        <div className="col-span-1 @xl:col-span-2">
           <Link
             href={`/project/${ref}/integrations/${primaryIntegration.id}/overview`}
             className="block h-full rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-lighter focus-visible:ring-offset-1 focus-visible:ring-offset-background"
@@ -68,7 +68,7 @@ export const MarketplaceFeaturedHeroGrid = ({
                   <IntegrationLogo integration={primaryIntegration} />
                   {primaryInstalled && <Badge variant="success">Installed</Badge>}
                 </div>
-                <div className="@lg:max-w-2/3">
+                <div className="@xl:max-w-2/3">
                   <div className="mb-1 text-sm font-medium text-pretty">
                     {primaryIntegration.name}
                   </div>
@@ -92,20 +92,21 @@ export const MarketplaceFeaturedHeroGrid = ({
                   </div>
                 </div>
               </div>
-              <div className="absolute inset-0 left-auto w-2/5 @lg:w-3/5 shrink-0 bg-surface-400">
+              <div className="absolute inset-0 left-auto w-2/5 @xl:w-3/5 shrink-0 bg-surface-400">
                 {primaryImage ? (
                   <Image
                     fill
                     src={primaryImage}
                     alt={`${primaryIntegration.name} integration`}
-                    className="object-cover"
+                    className="object-cover invert-100 dark:invert-0"
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center">
                     {primaryIntegration.icon({ className: 'w-10 h-10 text-foreground' })}
                   </div>
                 )}
-                <div className="absolute inset-0 bg-linear-to-r from-surface-100 to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-r from-surface-100 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-radial-[ellipse_50%_100%_at_top_left] from-surface-100 to-transparent" />
               </div>
             </Card>
           </Link>
@@ -123,7 +124,7 @@ export const MarketplaceFeaturedHeroGrid = ({
                 className="block h-full rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-lighter focus-visible:ring-offset-1 focus-visible:ring-offset-background"
               >
                 <Card className="flex flex-col overflow-hidden h-full hover:border-stronger">
-                  <div className="hidden @lg:block relative w-full h-28 bg-alternative shrink-0">
+                  <div className="hidden @xl:block relative w-full h-28 bg-black/90 dark:bg-black/50 shrink-0">
                     {image ? (
                       <Image
                         fill
@@ -133,7 +134,7 @@ export const MarketplaceFeaturedHeroGrid = ({
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center">
-                        {integration.icon({ className: 'w-8 h-8 text-foreground' })}
+                        {integration.icon({ className: 'w-8 h-8 text-white' })}
                       </div>
                     )}
                   </div>

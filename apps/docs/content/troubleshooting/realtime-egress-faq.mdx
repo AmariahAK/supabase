@@ -16,7 +16,7 @@ It does **not** include internal traffic between the Realtime server and your Po
 
 Only data the server sends to the WebSocket, and any HTTP Broadcast request. DB → Realtime logical replication traffic (the connection Realtime uses internally to read changes for Broadcast from Database or Postgres Changes) is not counted — it never leaves the Realtime service to reach a client, so it isn't part of Egress.
 
-## Does it include replication slot initialization/reinitialization or Broadcast cold-start traffic?
+## Does it include replication slot initialization/reinitialization or Broadcast from Database cold-start traffic?
 
 No. Replication slot creation, checks, and reconnection attempts to your database are internal to the Realtime service and Postgres. Even if your tenant is frequently idling out and reinitializing (for example, logs showing `Stop tenant ... because of no connected users` followed by slot recreation), that activity is not what's reflected in your billed Realtime Egress.
 
@@ -43,9 +43,9 @@ This is the most common source of confusion, and almost always comes down to **c
 1. **Delivered events ≠ database writes.** If you're using Postgres Changes or Broadcast from Database, the number of rows you insert/update is not the number of events sent over the wire. Every insert/update/delete can generate a delivery to **every subscribed client**, not one event total.
 2. **Multiply by concurrent subscribers.** If 20 clients are subscribed to the same channel, a single database change can result in 20 separate deliveries. Always multiply your per-change payload size by your peak concurrent connection count to estimate real egress, not your raw write rate.
 3. **Multiple subscriptions per channel compound this further.** If a channel subscribes to the same table with more than one filter (for example, separate `INSERT`, `UPDATE`, and `DELETE` subscriptions, or multiple overlapping `postgres_changes` filters), the same underlying row change can be delivered multiple times to the same client.
-4. **Postgres Changes payloads are often bigger than you expect.** Unlike a hand-crafted Broadcast payload, a Postgres Changes event includes the full row (or full old + new row under `REPLICA IDENTITY FULL`), which can be several kilobytes even for a small logical change — especially with wide tables or TOASTed columns.
+4. **Postgres Changes payloads are often bigger than you expect.** Unlike a hand-crafted Broadcast payload, a Postgres Changes event includes the full row (or full old + new row under `REPLICA IDENTITY FULL`), which can be several kilobytes even for a small logical change — especially with wide tables or TOASTed columns. You can reduce this by [filtering which changes are sent](/docs/guides/realtime/postgres-changes?queryGroups=language&language=js&queryGroups=realtime-js-filter&realtime-js-filter=string#available-filters) so irrelevant rows are never delivered, and by [selecting specific columns](/docs/guides/realtime/postgres-changes?queryGroups=language&language=js&queryGroups=realtime-js-filter&realtime-js-filter=string#selecting-specific-columns) to shrink the payload of the rows that are.
 
-Before escalating a gap between measured payload and billed egress, re-derive your estimate using **delivered events**, not writes: `(events per day) × (average delivered payload size) × (average concurrent subscribers)`. This calculation frequently accounts for a gap that initially looks inexplicable.
+Before escalating a gap between measured payload and billed egress, re-derive your estimate using **delivered events**, not writes: `(events per day) × (average delivered payload size) × (average concurrent subscribers)`. This calculation frequently accounts for a gap that initially looks inexplicable. The [Realtime observability report](/dashboard/project/_/observability/realtime) can help here — it shows number of connected clients, payload size, and rate of joins for your project.
 
 ## What should be checked before contacting Supabase support about a Realtime Egress discrepancy?
 

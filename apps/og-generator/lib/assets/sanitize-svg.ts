@@ -127,6 +127,48 @@ function sanitizeStyleValue(raw: string): string | null {
   return kept.length ? kept.join(';') : null
 }
 
+/**
+ * Illustrator/Figma-style exports often define colors via a `<defs><style>`
+ * block of `.st0 { fill: #fff; }` class rules rather than inline attributes.
+ * The dangerous-block strip below removes `<style>` entirely (it's active
+ * content, not drawing data) — without this step that silently drops the
+ * logo's actual color, since the surviving `class="st0"` attribute no longer
+ * refers to anything and SVG paths default to black fill. Resolves simple
+ * class selectors into inline `style="..."` attributes first, through the
+ * same safe-property allowlist as any other style value.
+ */
+function inlineClassStyles(body: string): string {
+  const styleMatch = body.match(/<style[^>]*>([\s\S]*?)<\/style>/i)
+  if (!styleMatch) return body
+
+  const rules = new Map<string, string>()
+  const ruleRe = /\.([\w-]+)\s*\{([^}]*)\}/g
+  let m: RegExpExecArray | null
+  while ((m = ruleRe.exec(styleMatch[1]))) {
+    const safe = sanitizeStyleValue(m[2])
+    if (safe) rules.set(m[1], safe)
+  }
+  if (!rules.size) return body
+
+  const resolveClassAttr = (classList: string) =>
+    classList
+      .trim()
+      .split(/\s+/)
+      .map((c) => rules.get(c))
+      .filter((v): v is string => !!v)
+      .join(';')
+
+  return body
+    .replace(/\sclass\s*=\s*"([^"]*)"/gi, (full, classList: string) => {
+      const merged = resolveClassAttr(classList)
+      return merged ? ` style="${merged}"` : ''
+    })
+    .replace(/\sclass\s*=\s*'([^']*)'/gi, (full, classList: string) => {
+      const merged = resolveClassAttr(classList)
+      return merged ? ` style='${merged}'` : ''
+    })
+}
+
 export function sanitizeLogoSvg(input: string): SanitizedSvg | null {
   if (!input || input.length > 300_000) return null
   const s = input.trim()
@@ -150,6 +192,7 @@ export function sanitizeLogoSvg(input: string): SanitizedSvg | null {
   if (!/^[-\d.\s]+$/.test(viewBox)) viewBox = '0 0 300 300'
 
   body = body.replace(/<!--[\s\S]*?-->/g, '')
+  body = inlineClassStyles(body)
   body = body.replace(DANGEROUS_LOGO_BLOCKS, '')
   body = body.replace(DANGEROUS_LOGO_SELFCLOSE, '')
 

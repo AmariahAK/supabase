@@ -242,10 +242,10 @@ describe('DestinationForm.utils DuckLake', () => {
     expect(issues).toEqual([
       { path: 'ducklakeCatalogUrl', message: 'Catalog URL is required' },
       { path: 'ducklakeDataPath', message: 'Data path is required' },
-      { path: 'ducklakeS3AccessKeyId', message: 'S3 Access Key ID is required' },
-      { path: 'ducklakeS3SecretAccessKey', message: 'S3 Secret Access Key is required' },
-      { path: 'ducklakeS3Region', message: 'S3 Region is required' },
-      { path: 'ducklakeS3Endpoint', message: 'S3 Endpoint is required' },
+      { path: 'ducklakeS3AccessKeyId', message: 'S3 access key ID is required' },
+      { path: 'ducklakeS3SecretAccessKey', message: 'S3 secret access key is required' },
+      { path: 'ducklakeS3Region', message: 'S3 region is required' },
+      { path: 'ducklakeS3Endpoint', message: 'S3 endpoint is required' },
     ])
   })
 
@@ -281,7 +281,7 @@ describe('DestinationForm.utils DuckLake', () => {
     )
 
     expect(issues).toEqual([
-      { path: 'ducklakeS3SecretAccessKey', message: 'S3 Secret Access Key is required' },
+      { path: 'ducklakeS3SecretAccessKey', message: 'S3 secret access key is required' },
     ])
   })
 
@@ -299,10 +299,10 @@ describe('DestinationForm.utils DuckLake', () => {
     expect(issues).toEqual([
       { path: 'ducklakeCatalogUrl', message: 'Catalog URL is required' },
       { path: 'ducklakeDataPath', message: 'Data path is required' },
-      { path: 'ducklakeS3AccessKeyId', message: 'S3 Access Key ID is required' },
-      { path: 'ducklakeS3SecretAccessKey', message: 'S3 Secret Access Key is required' },
-      { path: 'ducklakeS3Region', message: 'S3 Region is required' },
-      { path: 'ducklakeS3Endpoint', message: 'S3 Endpoint is required' },
+      { path: 'ducklakeS3AccessKeyId', message: 'S3 access key ID is required' },
+      { path: 'ducklakeS3SecretAccessKey', message: 'S3 secret access key is required' },
+      { path: 'ducklakeS3Region', message: 'S3 region is required' },
+      { path: 'ducklakeS3Endpoint', message: 'S3 endpoint is required' },
     ])
   })
 
@@ -328,7 +328,7 @@ describe('DestinationForm.utils DuckLake', () => {
       },
       {
         path: 'ducklakeS3Endpoint',
-        message: 'S3 endpoint should not contain the protocol scheme',
+        message: 'S3 endpoint must not contain the protocol scheme',
       },
       {
         path: 'ducklakeMetadataSchema',
@@ -543,7 +543,7 @@ describe('DestinationForm.utils BigQuery', () => {
     expect(issues).toEqual([
       { path: 'projectId', message: 'Project ID is required' },
       { path: 'datasetId', message: 'Dataset ID is required' },
-      { path: 'serviceAccountKey', message: 'Service Account Key is required' },
+      { path: 'serviceAccountKey', message: 'Service account key is required' },
     ])
   })
 
@@ -557,7 +557,7 @@ describe('DestinationForm.utils BigQuery', () => {
     expect(issues).toEqual([
       { path: 'projectId', message: 'Project ID is required' },
       { path: 'datasetId', message: 'Dataset ID is required' },
-      { path: 'serviceAccountKey', message: 'Service Account Key is required' },
+      { path: 'serviceAccountKey', message: 'Service account key is required' },
     ])
   })
 
@@ -598,10 +598,10 @@ describe('DestinationForm.utils Analytics Bucket', () => {
 
     expect(issues).toEqual([
       { path: 'warehouseName', message: 'Bucket is required' },
-      { path: 's3Region', message: 'S3 Region is required' },
-      { path: 's3AccessKeyId', message: 'S3 Access Key ID is required' },
+      { path: 's3Region', message: 'S3 region is required' },
+      { path: 's3AccessKeyId', message: 'S3 access key ID is required' },
       { path: 'namespace', message: 'Namespace is required' },
-      { path: 's3SecretAccessKey', message: 'S3 Secret Access Key is required' },
+      { path: 's3SecretAccessKey', message: 'S3 secret access key is required' },
     ])
   })
 
@@ -617,10 +617,10 @@ describe('DestinationForm.utils Analytics Bucket', () => {
 
     expect(issues).toEqual([
       { path: 'warehouseName', message: 'Bucket is required' },
-      { path: 's3Region', message: 'S3 Region is required' },
-      { path: 's3AccessKeyId', message: 'S3 Access Key ID is required' },
+      { path: 's3Region', message: 'S3 region is required' },
+      { path: 's3AccessKeyId', message: 'S3 access key ID is required' },
       { path: 'namespace', message: 'Namespace is required' },
-      { path: 's3SecretAccessKey', message: 'S3 Secret Access Key is required' },
+      { path: 's3SecretAccessKey', message: 'S3 secret access key is required' },
     ])
   })
 
@@ -696,7 +696,7 @@ describe('DestinationForm.utils Analytics Bucket', () => {
     )
 
     expect(issues).toEqual([
-      { path: 's3SecretAccessKey', message: 'S3 Secret Access Key is required' },
+      { path: 's3SecretAccessKey', message: 'S3 secret access key is required' },
     ])
   })
 

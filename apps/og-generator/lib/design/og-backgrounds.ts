@@ -1,8 +1,9 @@
 /**
  * Full-canvas background textures selectable per-template (starting with
  * Headline + icon) — distinct from lib/design/patterns.ts's grid/dots/hlines
- * axis system, which stayed unwired. These are three fixed, named looks
- * rendered as a single tileable/positioned SVG behind the headline/icon.
+ * axis system, which stayed unwired. These are three fixed, named looks,
+ * each a single non-repeating motif anchored to the right edge and
+ * vertically centered (not tiled across the whole canvas).
  */
 
 export type BackgroundId = 'none' | 'grid-background' | 'graph-paper' | 'concentric-circles'
@@ -25,67 +26,75 @@ interface BackgroundRenderOptions {
 
 // Faint, low-contrast strokes — texture, not foreground (matches the
 // opacity philosophy in patterns.ts).
-const STROKE = 'rgba(255,255,255,0.08)'
-const STROKE_STRONG = 'rgba(255,255,255,0.14)'
-const DOT = 'rgba(255,255,255,0.18)'
+const STROKE = 'rgba(255,255,255,0.10)'
+const STROKE_STRONG = 'rgba(255,255,255,0.16)'
+const DOT = 'rgba(255,255,255,0.2)'
 
-/** Diagonal square grid: one corner-to-corner line per cell, dot at each vertex. */
+// Shared motif box (1x design px) — right-aligned, vertically centered.
+// Fixed size rather than canvas-proportional so the motif reads the same
+// regardless of format.
+const MOTIF_W_1X = 620
+const MOTIF_H_1X = 520
+
+function motifBox(o: BackgroundRenderOptions) {
+  const w = MOTIF_W_1X * o.scaleFactor
+  const h = MOTIF_H_1X * o.scaleFactor
+  const x = o.width - w
+  const y = (o.height - h) / 2
+  return { x, y, w, h }
+}
+
+/** Diagonal square grid: one corner-to-corner line per cell, dot at each vertex — a single non-repeating patch, not tiled past the motif box. */
 function gridBackgroundSvg(o: BackgroundRenderOptions): string {
   const g = 120 * o.scaleFactor
   const dotR = 1.5 * o.scaleFactor
+  const { x, y, w, h } = motifBox(o)
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${o.width}" height="${o.height}" viewBox="0 0 ${o.width} ${o.height}">` +
-    `<defs><pattern id="p" width="${g}" height="${g}" patternUnits="userSpaceOnUse">` +
+    `<defs><pattern id="p" x="${x}" y="${y}" width="${g}" height="${g}" patternUnits="userSpaceOnUse">` +
     `<path d="M0 0 H${g} M0 0 V${g} M0 0 L${g} ${g}" stroke="${STROKE}" stroke-width="1" fill="none"/>` +
     `<circle cx="0" cy="0" r="${dotR}" fill="${DOT}"/>` +
     `</pattern></defs>` +
-    `<rect width="100%" height="100%" fill="url(#p)"/>` +
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#p)"/>` +
     `</svg>`
   )
 }
 
-/** Fine graph-paper grid: dense minor lines, stronger major lines every 5 cells with a small crosshair. */
+/** Fine graph-paper grid: dense minor lines, stronger major lines every 5 cells with a small crosshair — confined to the motif box, not tiled across the canvas. */
 function graphPaperSvg(o: BackgroundRenderOptions): string {
   const minor = 12 * o.scaleFactor
   const major = minor * 5
   const tick = 4 * o.scaleFactor
+  const { x, y, w, h } = motifBox(o)
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${o.width}" height="${o.height}" viewBox="0 0 ${o.width} ${o.height}">` +
     `<defs>` +
-    `<pattern id="minor" width="${minor}" height="${minor}" patternUnits="userSpaceOnUse">` +
+    `<pattern id="minor" x="${x}" y="${y}" width="${minor}" height="${minor}" patternUnits="userSpaceOnUse">` +
     `<path d="M${minor} 0 H0 V${minor}" stroke="${STROKE}" stroke-width="0.5" fill="none"/>` +
     `</pattern>` +
-    `<pattern id="major" width="${major}" height="${major}" patternUnits="userSpaceOnUse">` +
+    `<pattern id="major" x="${x}" y="${y}" width="${major}" height="${major}" patternUnits="userSpaceOnUse">` +
     `<rect width="${major}" height="${major}" fill="url(#minor)"/>` +
     `<path d="M${major} 0 H0 V${major}" stroke="${STROKE_STRONG}" stroke-width="1" fill="none"/>` +
     `<path d="M0 0 h${tick} M0 ${-tick / 2} v${tick}" stroke="${STROKE_STRONG}" stroke-width="1"/>` +
     `</pattern>` +
     `</defs>` +
-    `<rect width="100%" height="100%" fill="url(#major)"/>` +
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#major)"/>` +
     `</svg>`
   )
 }
 
-/** Overlapping concentric circles motif, anchored bottom-left of the canvas. */
+/** Overlapping concentric circles, centered in the motif box (right-aligned, vertically centered) — a single motif, not repeated. */
 function concentricCirclesSvg(o: BackgroundRenderOptions): string {
-  const cx = o.width * 0.18
-  const cy = o.height * 1.05
-  const radii = [1, 1.6, 2.2, 2.8, 3.4, 4.0, 4.6].map((m) => m * 140 * o.scaleFactor)
+  const { x, y, w, h } = motifBox(o)
+  const cx = x + w / 2
+  const cy = y + h / 2
+  const radii = [0.5, 0.8, 1.1, 1.4, 1.7, 2.0].map((m) => m * 110 * o.scaleFactor)
   const circles = radii
     .map((r) => `<circle cx="${cx}" cy="${cy}" r="${r}" stroke="${STROKE}" stroke-width="1" fill="none"/>`)
-    .join('')
-  // A second cluster offset to the right so the circles interleave, matching
-  // the reference's overlapping-petal look.
-  const cx2 = o.width * 0.42
-  const cy2 = o.height * 0.55
-  const circles2 = radii
-    .slice(0, 5)
-    .map((r) => `<circle cx="${cx2}" cy="${cy2}" r="${r * 0.6}" stroke="${STROKE}" stroke-width="1" fill="none"/>`)
     .join('')
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${o.width}" height="${o.height}" viewBox="0 0 ${o.width} ${o.height}">` +
     circles +
-    circles2 +
     `</svg>`
   )
 }

@@ -22,6 +22,7 @@ export * from './src/components/Loading'
 export * from './src/components/LogoLoader'
 export * from './src/components/AnimatedCounter'
 export * from './src/lib/utils'
+export { focusRing, focusRingInset } from './src/lib/commonCva'
 
 // DATA ENTRY
 export * from './src/components/ExpandingTextArea'

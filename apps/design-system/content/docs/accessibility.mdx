@@ -25,9 +25,43 @@ All interactive page elements should be reachable by keyboard. Given the below i
 
 Chromium-based browsers and Firefox handle this automatically via the Tab key. Safari, by default, requires the Option key to also be held down. Enabling _Keyboard navigation_ on macOS Settings [removes this requirement](https://mayank.co/blog/safari-focus/#keyboard-navigation) but makes links non-tabbable as a result.
 
-Interactive page elements should also provide visual feedback upon selection via a `focus-visible` state. We use consistent focus styles such as `inset-focus` so users recognize this state instantly.
+Interactive page elements should also provide visual feedback upon selection via a `focus-visible` state. We use one shared focus ring so users recognize this state instantly.
 
-[Button](components/button) has all of the above built-in. The same explicit `tabIndex` default is also baked into Checkbox, Switch, Select Trigger, Toggle, Accordion Trigger, Collapsible Trigger, Dropdown Menu Trigger, Popover Trigger, Dialog Trigger, Sheet Trigger, Alert Dialog Trigger, and the Sidebar Menu and action buttons. Bespoke interactive elements however, such as the below interactive [Table Row](components/table#examples), require these props to be added manually:
+### Focus ring recipe
+
+Use Tailwind `ring`, not `outline`. Import the shared constants from `ui` instead of inventing local styles:
+
+```tsx
+import { focusRing, focusRingInset } from 'ui'
+```
+
+**Default** (`focusRing`) — buttons, inputs, and most controls:
+
+```txt
+focus-visible:outline-hidden
+focus-visible:ring-2
+focus-visible:ring-ring
+focus-visible:ring-offset-2
+focus-visible:ring-offset-background
+```
+
+**Inset** (`focusRingInset`) — dense or flush surfaces such as interactive table rows (Studio also exposes this as the `.inset-focus` utility class):
+
+```txt
+focus-visible:outline-hidden
+focus-visible:ring-2
+focus-visible:ring-ring
+focus-visible:ring-inset
+```
+
+Rules:
+
+- Prefer `:focus-visible` over `:focus` so click/tap does not show a ring
+- Never use `outline-none` / `outline-hidden` without a ring (or equivalent) replacement
+- Always use `ring-ring` — variants (primary, danger, warning) do not change focus ring colour
+- Do not animate the focus ring; keyboard navigation is high-frequency UI
+
+[Button](components/button) has focus, `tabIndex`, and the shared ring built-in. The same explicit `tabIndex` default is also baked into Checkbox, Switch, Select Trigger, Toggle, Accordion Trigger, Collapsible Trigger, Dropdown Menu Trigger, Popover Trigger, Dialog Trigger, Sheet Trigger, Alert Dialog Trigger, and the Sidebar Menu and action buttons. Bespoke interactive elements however, such as the below interactive [Table Row](components/table#examples), require these props to be added manually:
 
 ```tsx showLineNumbers {4-14}
 <TableRow

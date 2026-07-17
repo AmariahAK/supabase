@@ -227,10 +227,6 @@ export const AdvisorPanel = () => {
     })
   }
 
-  const handleUpdateNotificationStatus = (id: string, status: 'archived' | 'seen') => {
-    updateNotifications({ ids: [id], status })
-  }
-
   const handleArchiveNotification = (item: AdvisorItem) => {
     if (item.source !== 'notification') return
     const notification = item.original as Notification
@@ -254,13 +250,13 @@ export const AdvisorPanel = () => {
             selectedItem={selectedItem}
             onBack={handleBackToList}
             onClose={handleClose}
+            onArchive={handleArchiveNotification}
           />
           <div className="flex-1 overflow-y-auto">
             {selectedItem ? (
               <AdvisorDetail
                 item={selectedItem}
                 projectRef={project?.ref ?? ''}
-                onUpdateNotificationStatus={handleUpdateNotificationStatus}
                 onAfterLintAction={handleBackToList}
               />
             ) : (

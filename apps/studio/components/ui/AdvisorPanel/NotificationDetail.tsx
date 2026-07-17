@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestoreIcon, ExternalLink } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from 'ui'
 
@@ -9,10 +9,9 @@ import { useProjectDetailQuery } from '@/data/projects/project-detail-query'
 
 interface NotificationDetailProps {
   notification: Notification
-  onUpdateStatus: (id: string, status: 'archived' | 'seen') => void
 }
 
-export const NotificationDetail = ({ notification, onUpdateStatus }: NotificationDetailProps) => {
+export const NotificationDetail = ({ notification }: NotificationDetailProps) => {
   const data = notification.data as NotificationData
 
   const { data: project } = useProjectDetailQuery({ ref: data.project_ref })
@@ -68,55 +67,47 @@ export const NotificationDetail = ({ notification, onUpdateStatus }: Notificatio
         </>
       )}
 
-      <h3 className="text-sm mb-2">Actions</h3>
-      <div className="flex items-center gap-2">
-        {(data.actions ?? []).map((action, idx) => {
-          const key = `${notification.id}-action-${idx}`
-          if (action.url !== undefined) {
-            const url = action.url.includes('[ref]')
-              ? action.url.replace('[ref]', project?.ref ?? data.project_ref ?? '_')
-              : action.url.includes('[slug]')
-                ? action.url.replace('[slug]', organization?.slug ?? data.org_slug ?? '_')
-                : action.url
-            return (
-              <Button key={key} variant="default" icon={<ExternalLink strokeWidth={1.5} />} asChild>
-                <Link href={url} target="_blank" rel="noreferrer">
-                  {action.label}
-                </Link>
-              </Button>
-            )
-          } else if (action.action_type !== undefined) {
-            return (
-              <Button
-                key={key}
-                variant="default"
-                onClick={() => onButtonAction(action.action_type)}
-              >
-                {action.label}
-              </Button>
-            )
-          } else {
-            return null
-          }
-        })}
-        {notification.status === 'archived' ? (
-          <Button
-            variant="default"
-            icon={<ArchiveRestoreIcon size={14} strokeWidth={1.5} />}
-            onClick={() => onUpdateStatus(notification.id, 'seen')}
-          >
-            Unarchive
-          </Button>
-        ) : (
-          <Button
-            variant="default"
-            icon={<Archive size={14} strokeWidth={1.5} />}
-            onClick={() => onUpdateStatus(notification.id, 'archived')}
-          >
-            Archive
-          </Button>
-        )}
-      </div>
+      {(data.actions ?? []).length > 0 && (
+        <>
+          <h3 className="text-sm mb-2">Actions</h3>
+          <div className="flex items-center gap-2">
+            {(data.actions ?? []).map((action, idx) => {
+              const key = `${notification.id}-action-${idx}`
+              if (action.url !== undefined) {
+                const url = action.url.includes('[ref]')
+                  ? action.url.replace('[ref]', project?.ref ?? data.project_ref ?? '_')
+                  : action.url.includes('[slug]')
+                    ? action.url.replace('[slug]', organization?.slug ?? data.org_slug ?? '_')
+                    : action.url
+                return (
+                  <Button
+                    key={key}
+                    variant="default"
+                    icon={<ExternalLink strokeWidth={1.5} />}
+                    asChild
+                  >
+                    <Link href={url} target="_blank" rel="noreferrer">
+                      {action.label}
+                    </Link>
+                  </Button>
+                )
+              } else if (action.action_type !== undefined) {
+                return (
+                  <Button
+                    key={key}
+                    variant="default"
+                    onClick={() => onButtonAction(action.action_type)}
+                  >
+                    {action.label}
+                  </Button>
+                )
+              } else {
+                return null
+              }
+            })}
+          </div>
+        </>
+      )}
     </div>
   )
 }

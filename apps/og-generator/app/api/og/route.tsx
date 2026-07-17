@@ -272,6 +272,12 @@ export async function GET(req: Request) {
     const eyebrowSize = EYEBROW.size * s
     const eyebrowLetterSpacing = EYEBROW.letterSpacing * eyebrowSize
     const eyebrowGap = 16 * s
+    const eyebrowPillPadding = 8 * s
+    // Pill height (text line-height + top/bottom padding) plus its gap above
+    // the headline — 0 when there's no eyebrow.
+    const eyebrowBlockHeight = eyebrow
+      ? Math.round(eyebrowSize * EYEBROW.lineHeight + eyebrowPillPadding * 2 + eyebrowGap)
+      : 0
 
     const fonts = await satoriFonts([...new Set([HEADLINE.weight, EYEBROW_PILL_WEIGHT])])
 
@@ -301,7 +307,7 @@ export async function GET(req: Request) {
               textTransform: 'uppercase',
               backgroundColor: '#FFFFFF',
               borderRadius: 999,
-              padding: `${8 * s}px ${18 * s}px`,
+              padding: `${eyebrowPillPadding}px ${18 * s}px`,
             }}
           >
             {eyebrow}
@@ -463,6 +469,7 @@ export async function GET(req: Request) {
       boxedIconEl,
       hasIcon,
       showBrandLogo,
+      eyebrowBlockHeight,
     })
 
     return new ImageResponse(root, {

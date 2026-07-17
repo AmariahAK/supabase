@@ -37,6 +37,8 @@ export interface TemplateParts {
   boxedIconEl?: ReactNode | null
   /** Whether to render the Supabase wordmark signature — logo-grid only, toggleable since it already shows partner marks. Defaults to true. */
   showBrandLogo?: boolean
+  /** Rendered height (px, pre-scaled) of the eyebrow pill + its gap above the headline, or 0 if no eyebrow — Announcement uses this to keep the headline from drifting too far down when an eyebrow is present. */
+  eyebrowBlockHeight?: number
 }
 
 export interface Template {
@@ -444,14 +446,28 @@ export const TEMPLATES: Template[] = [
           style={{
             display: 'flex',
             position: 'absolute',
+            top: 0,
             left: 0,
             right: 0,
-            top: '50%',
-            transform: 'translateY(-50%)',
+            bottom: 0,
+            flexDirection: 'column',
+            alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          {p.textBlock}
+          <div
+            style={{
+              display: 'flex',
+              // Centering the full eyebrow+headline block would push the
+              // headline down by the eyebrow's whole height when one's
+              // present — shift back up by half of that (plain px, not a
+              // percentage — satori's transform/calc doesn't support mixing
+              // the two) so the headline only drifts down half as far.
+              marginTop: -((p.eyebrowBlockHeight ?? 0) / 2),
+            }}
+          >
+            {p.textBlock}
+          </div>
         </div>
         {p.halfThumbLogoEl && (
           <div

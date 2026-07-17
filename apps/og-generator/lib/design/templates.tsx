@@ -252,6 +252,11 @@ export const TEMPLATES: Template[] = [
       // Icon renders inside the same dark chip bounding box Partner logos
       // uses, not bare — consistent icon treatment across both templates.
       const icon = p.hasIcon ? iconTile(p, p.boxedIconEl) : null
+      // The background panel is anchored to the right edge, which only
+      // lines up with where the icon actually sits in 0 (top-right) and 1
+      // (center-right) — arrangement 2 (centered) and 3 (icon bottom-left)
+      // would have it cut through unrelated content, so they skip it.
+      const showBackgroundPanel = arrangement === 0 || arrangement === 1
       if (arrangement === 1) {
         // Headline left, icon right.
         return (
@@ -264,7 +269,7 @@ export const TEMPLATES: Template[] = [
               gap: 56 * p.scaleFactor,
             }}
           >
-            {backgroundPanel(p)}
+            {showBackgroundPanel && backgroundPanel(p)}
             {p.textBlock}
             {icon}
           </div>
@@ -282,7 +287,6 @@ export const TEMPLATES: Template[] = [
               textAlign: 'center',
             }}
           >
-            {backgroundPanel(p)}
             {icon ? <div style={{ display: 'flex', marginBottom: 36 * p.scaleFactor }}>{icon}</div> : null}
             {p.textBlock}
           </div>
@@ -299,7 +303,6 @@ export const TEMPLATES: Template[] = [
               alignItems: 'flex-start',
             }}
           >
-            {backgroundPanel(p)}
             {p.textBlock}
             {icon}
           </div>
@@ -315,7 +318,7 @@ export const TEMPLATES: Template[] = [
             alignItems: 'flex-start',
           }}
         >
-          {backgroundPanel(p)}
+          {showBackgroundPanel && backgroundPanel(p)}
           {icon ? (
             <div style={{ display: 'flex', width: p.W - p.padX * 2, justifyContent: 'flex-end' }}>{icon}</div>
           ) : null}

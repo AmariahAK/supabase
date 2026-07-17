@@ -39,6 +39,8 @@ export interface TemplateParts {
   showBrandLogo?: boolean
   /** Rendered height (px, pre-scaled) of the eyebrow pill + its gap above the headline, or 0 if no eyebrow — Announcement uses this to keep the headline from drifting too far down when an eyebrow is present. */
   eyebrowBlockHeight?: number
+  /** Full-canvas background texture data URI (lib/design/og-backgrounds.ts), or null for a flat `bg` color — applied by rootBase() so any template can opt in. */
+  backgroundImageUri?: string | null
 }
 
 export interface Template {
@@ -182,6 +184,9 @@ function rootBase(p: TemplateParts): CSSProperties {
     display: 'flex',
     padding: `${p.padY}px ${p.padX}px`,
     backgroundColor: p.bg,
+    ...(p.backgroundImageUri
+      ? { backgroundImage: `url(${p.backgroundImageUri})`, backgroundSize: '100% 100%' }
+      : {}),
     fontFamily: 'Manrope',
   }
 }

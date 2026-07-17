@@ -485,6 +485,7 @@ allow_list = [
     "stdout",
     "[Ss]ubnet(s)?",
     "[Ss]ubpage",
+    "[Ss]ubstring",
     "supabase-auth-ui",
     "supabase-csharp",
     "supabase-community",

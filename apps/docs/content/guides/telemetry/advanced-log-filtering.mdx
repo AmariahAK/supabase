@@ -79,9 +79,9 @@ The Logs Explorer has a maximum of 1000 rows per run. Use `LIMIT` to reduce the 
 
 ## Best practices
 
-1. **Include a filter over the timestamp.**
+1. **Use a narrow time range.**
 
-Querying your entire log history might seem appealing. For Enterprise customers with a large retention range, you run the risk of timeouts because of the additional time required to scan the larger dataset.
+The Logs Explorer applies the time range you select, so keep it tight. Querying a very large range risks timeouts, especially for Enterprise customers with long retention, because of the extra data scanned.
 
 2. **Select only the fields you need.**
 
@@ -196,19 +196,19 @@ event_message ilike '%connection%'
 
 ### Wildcards
 
-`.` can represent any string of characters
+`.` matches any single character, and `.*` matches any sequence of characters
 
 ```sql
 -- find event_messages like "hello<anything>world"
-match(event_message, 'hello.world')
+match(event_message, 'hello.*world')
 ```
 
 ### Alphanumeric ranges
 
-`[1-9a-zA-Z]` finds any strings with only numbers and letters
+`[0-9a-zA-Z]` matches a single alphanumeric character. Anchor it with `^[0-9a-zA-Z]+$` to match a value that is entirely alphanumeric.
 
 ```sql
--- find event_messages that contain a number between 1 and 5 (inclusive)
+-- find event_messages that contain a digit between 1 and 5 (inclusive)
 match(event_message, '[1-5]')
 ```
 
@@ -240,7 +240,7 @@ match(event_message, 'hello world\.')
 
 ```sql
 -- find event_messages that have the word 'started' followed by either "host" or "authenticated"
-match(event_message, 'started host|authenticated')
+match(event_message, 'started (host|authenticated)')
 ```
 
 ### `and`/`or`/`not` statements in SQL

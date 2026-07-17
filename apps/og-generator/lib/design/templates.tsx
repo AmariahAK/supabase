@@ -188,11 +188,11 @@ function rootBase(p: TemplateParts): CSSProperties {
       ? {
           backgroundImage: `url(${p.backgroundImageUri})`,
           backgroundRepeat: 'no-repeat',
+          // Fill the whole canvas (cropping whichever axis overflows)
+          // instead of a small right-side strip, anchored so the crop
+          // window sits at the image's right edge, vertically centered.
           backgroundPosition: 'right center',
-          // Fit to the canvas height, preserving the source image's aspect
-          // ratio — the source PNGs are used exactly as provided, not
-          // stretched or regenerated.
-          backgroundSize: `auto ${p.H}px`,
+          backgroundSize: 'cover',
         }
       : {}),
     fontFamily: 'Manrope',

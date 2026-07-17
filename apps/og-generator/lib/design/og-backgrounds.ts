@@ -83,18 +83,36 @@ function graphPaperSvg(o: BackgroundRenderOptions): string {
   )
 }
 
-/** Overlapping concentric circles, centered in the motif box (right-aligned, vertically centered) — a single motif, not repeated. */
+/**
+ * Flower-of-life style overlapping-circle cluster — equal-radius circles on
+ * a triangular lattice (each circle's edge passes near its neighbors'
+ * centers). A single bounded motif (not tiled across the whole canvas):
+ * sized to fit the canvas height, flush against the right edge, extending
+ * left only as far as the motif box — same footprint as the other two
+ * backgrounds, just filled with circles instead of a grid.
+ */
 function concentricCirclesSvg(o: BackgroundRenderOptions): string {
-  const { x, y, w, h } = motifBox(o)
-  const cx = x + w / 2
-  const cy = y + h / 2
-  const radii = [0.5, 0.8, 1.1, 1.4, 1.7, 2.0].map((m) => m * 110 * o.scaleFactor)
-  const circles = radii
-    .map((r) => `<circle cx="${cx}" cy="${cy}" r="${r}" stroke="${STROKE}" stroke-width="1" fill="none"/>`)
-    .join('')
+  const rows = 5
+  const r = o.height / (rows + 1)
+  const colGap = r
+  const motifW = MOTIF_W_1X * o.scaleFactor
+  const cols = Math.ceil(motifW / colGap) + 1
+  const circles: string[] = []
+  for (let row = 0; row < rows; row++) {
+    const cy = r + row * colGap
+    const xOffset = row % 2 === 1 ? colGap / 2 : 0
+    for (let col = 0; col < cols; col++) {
+      // Anchor the rightmost column to the canvas's right edge, then step
+      // leftward, bleeding off the right edge and stopping at the motif's
+      // left bound instead of continuing across the whole canvas.
+      const cx = o.width - xOffset - col * colGap
+      circles.push(`<circle cx="${cx}" cy="${cy}" r="${r}" stroke="${STROKE}" stroke-width="1" fill="none"/>`)
+    }
+  }
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${o.width}" height="${o.height}" viewBox="0 0 ${o.width} ${o.height}">` +
-    circles +
+    `<clipPath id="c"><rect x="${o.width - motifW}" y="0" width="${motifW}" height="${o.height}"/></clipPath>` +
+    `<g clip-path="url(#c)">${circles.join('')}</g>` +
     `</svg>`
   )
 }

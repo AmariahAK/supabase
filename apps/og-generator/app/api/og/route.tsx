@@ -459,7 +459,6 @@ export async function GET(req: Request) {
       logoTiles,
       arrangement,
       halfThumbLogoEl,
-      headlineLineCount: fit.lineCount,
       iconEl,
       boxedIconEl,
       hasIcon,

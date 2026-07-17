@@ -33,8 +33,6 @@ export interface TemplateParts {
   arrangement?: number
   /** Single icon/logo pre-sized to 50% of `thumbBox` — Announcement's OG logo. */
   halfThumbLogoEl?: ReactNode | null
-  /** Resolved line count of the fitted headline — Announcement positions differently at 1 vs. 2 lines. */
-  headlineLineCount?: number
   /** Single icon pre-sized to `ICON_TILE_ICON_SIZE_1X` — icon-layout's icon inside its chip bounding box. */
   boxedIconEl?: ReactNode | null
   /** Whether to render the Supabase wordmark signature — logo-grid only, toggleable since it already shows partner marks. Defaults to true. */
@@ -164,22 +162,15 @@ const LOGO_CENTER_LIFT_1X = 40
 // of the centered logo — a fixed brand guideline, not tied to headlineInset.
 const ANNOUNCEMENT_LOGO_BOTTOM_1X = 80
 
-// Announcement headline: fixed max box width (brand guideline) and its
-// absolute top offset from the canvas top (both 1x design px) — offset
-// differs between a 1-line and a 2-line headline (both fixed guideline
-// values, not derived from one another). This box width only feeds the
-// wrap-fit decision (satori still renders each line at its own natural
-// width, centered) — 1100 is the smallest round number past the ~1067px
-// needed for the default "Hydra joins Supabase" example to pass the
-// single-line-max-fraction check (fit-headline.ts) and render on one line
-// at 72px instead of force-wrapping to two.
+// Announcement headline: fixed max box width (brand guideline). This box
+// width only feeds the wrap-fit decision (satori still renders each line at
+// its own natural width, centered) — 1100 is the smallest round number past
+// the ~1067px needed for the default "Hydra joins Supabase" example to pass
+// the single-line-max-fraction check (fit-headline.ts) and render on one
+// line at 72px instead of force-wrapping to two. The headline itself is
+// vertically centered on the canvas (see build()), so 1-line and 2-line
+// headlines don't need separate offsets.
 const ANNOUNCEMENT_HEADLINE_MAX_WIDTH_1X = 1100
-// `top` positions the box top, not the text baseline — 175 puts a 1-line
-// headline's baseline at ~242px (measured empirically off the rendered
-// glyphs at 72px), which is the balanced-composition target relative to
-// the logo mark below.
-const ANNOUNCEMENT_HEADLINE_TOP_1X = 175
-const ANNOUNCEMENT_HEADLINE_TOP_2LINE_1X = 176
 
 function rootBase(p: TemplateParts): CSSProperties {
   return {
@@ -455,13 +446,9 @@ export const TEMPLATES: Template[] = [
             position: 'absolute',
             left: 0,
             right: 0,
+            top: '50%',
+            transform: 'translateY(-50%)',
             justifyContent: 'center',
-            // 2-line headlines sit higher (176px) than 1-line ones (242px) —
-            // both fixed brand guideline offsets, not derived from each other.
-            top:
-              (p.headlineLineCount && p.headlineLineCount >= 2
-                ? ANNOUNCEMENT_HEADLINE_TOP_2LINE_1X
-                : ANNOUNCEMENT_HEADLINE_TOP_1X) * p.scaleFactor,
           }}
         >
           {p.textBlock}

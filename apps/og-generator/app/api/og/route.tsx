@@ -271,7 +271,7 @@ export async function GET(req: Request) {
     const headlineLetterSpacing = HEADLINE.letterSpacing * headlineSize
     const eyebrowSize = EYEBROW.size * s
     const eyebrowLetterSpacing = EYEBROW.letterSpacing * eyebrowSize
-    const eyebrowGap = 16 * s
+    const eyebrowGap = 24 * s
     const eyebrowPillPadding = 8 * s
     // Pill height (text line-height + top/bottom padding) plus its gap above
     // the headline — 0 when there's no eyebrow.

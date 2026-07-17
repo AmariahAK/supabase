@@ -184,21 +184,42 @@ function rootBase(p: TemplateParts): CSSProperties {
     display: 'flex',
     padding: `${p.padY}px ${p.padX}px`,
     backgroundColor: p.bg,
-    ...(p.backgroundImageUri
-      ? {
-          backgroundImage: `url(${p.backgroundImageUri})`,
-          backgroundRepeat: 'no-repeat',
-          // Fit the image's height exactly to the canvas (its own aspect
-          // ratio decides the width) instead of cropping via `cover` —
-          // right-aligned, vertically centered; the left portion of the
-          // canvas is left without any background image if the scaled
-          // image doesn't reach that far.
-          backgroundPosition: 'right center',
-          backgroundSize: `auto ${p.H}px`,
-        }
-      : {}),
     fontFamily: 'Manrope',
   }
+}
+
+// Width (1x design px) of the background-texture panel on the right — a
+// fixed box (not the full canvas), matching where the icon column sits.
+const BACKGROUND_PANEL_WIDTH_1X = 620
+
+/**
+ * Background-texture panel — a full-height box along the right edge (not
+ * the whole canvas), so the pattern reads as a distinct panel behind the
+ * icon rather than a full-bleed canvas texture. Render first (behind other
+ * content) in any template that opts in via `backgroundImageUri`.
+ */
+function backgroundPanel(p: TemplateParts): ReactNode {
+  if (!p.backgroundImageUri) return null
+  const w = BACKGROUND_PANEL_WIDTH_1X * p.scaleFactor
+  return (
+    <div
+      style={{
+        display: 'flex',
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: w,
+        backgroundImage: `url(${p.backgroundImageUri})`,
+        backgroundRepeat: 'no-repeat',
+        // Fit the source image's height to the panel's height (its own
+        // aspect ratio decides the width) — right-aligned, so only the
+        // rightmost slice of the image shows if it's wider than the panel.
+        backgroundPosition: 'right center',
+        backgroundSize: `auto ${p.H}px`,
+      }}
+    />
+  )
 }
 
 export const TEMPLATES: Template[] = [
@@ -243,6 +264,7 @@ export const TEMPLATES: Template[] = [
               gap: 56 * p.scaleFactor,
             }}
           >
+            {backgroundPanel(p)}
             {p.textBlock}
             {icon}
           </div>
@@ -260,6 +282,7 @@ export const TEMPLATES: Template[] = [
               textAlign: 'center',
             }}
           >
+            {backgroundPanel(p)}
             {icon ? <div style={{ display: 'flex', marginBottom: 36 * p.scaleFactor }}>{icon}</div> : null}
             {p.textBlock}
           </div>
@@ -276,6 +299,7 @@ export const TEMPLATES: Template[] = [
               alignItems: 'flex-start',
             }}
           >
+            {backgroundPanel(p)}
             {p.textBlock}
             {icon}
           </div>
@@ -291,6 +315,7 @@ export const TEMPLATES: Template[] = [
             alignItems: 'flex-start',
           }}
         >
+          {backgroundPanel(p)}
           {icon ? (
             <div style={{ display: 'flex', width: p.W - p.padX * 2, justifyContent: 'flex-end' }}>{icon}</div>
           ) : null}

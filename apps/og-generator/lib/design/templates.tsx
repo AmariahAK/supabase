@@ -206,9 +206,15 @@ function backgroundPanel(p: TemplateParts): ReactNode {
       style={{
         display: 'flex',
         position: 'absolute',
-        top: 0,
-        right: 0,
-        bottom: 0,
+        // The root container has padY/padX padding, and `top`/`right`/`bottom`
+        // on an absolutely-positioned child resolve against its *padding*
+        // box — so 0 here would inset the panel from the true canvas edges
+        // by that padding instead of reaching them. Negative-offset by the
+        // same amount to escape the padding and span the full canvas height,
+        // flush to the real right edge.
+        top: -p.padY,
+        right: -p.padX,
+        bottom: -p.padY,
         width: w,
         backgroundImage: `url(${p.backgroundImageUri})`,
         backgroundRepeat: 'no-repeat',

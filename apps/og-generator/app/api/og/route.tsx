@@ -8,11 +8,8 @@ import { satoriFonts, measurementFont } from '@/lib/design/fonts'
 import { getFormat } from '@/lib/design/formats'
 import { iconDataUri } from '@/lib/design/icons'
 import { SUPABASE_WORDMARK_ASPECT, SUPABASE_WORDMARK_DATA_URI } from '@/lib/design/logo'
-import {
-  backgroundDataUri,
-  DEFAULT_BACKGROUND_ID,
-  type BackgroundId,
-} from '@/lib/design/og-backgrounds'
+import { DEFAULT_BACKGROUND_ID, type BackgroundId } from '@/lib/design/og-backgrounds'
+import { backgroundDataUri } from '@/lib/design/og-backgrounds.server'
 import { DEFAULT_TEMPLATE_ID, TEMPLATE_MAP, logoTilesRow } from '@/lib/design/templates'
 import { typography } from '@/lib/design/tokens'
 import { fitHeadline, measureLineWidth } from '@/lib/text/fit-headline'
@@ -461,7 +458,7 @@ export async function GET(req: Request) {
     // every other template stays a flat color unless a future template sets
     // its own default or the caller passes `background` explicitly.
     const backgroundId = (searchParams.get('background') as BackgroundId | null) ?? (template.id === 'icon-layout' ? DEFAULT_BACKGROUND_ID : 'none')
-    const backgroundImageUri = backgroundDataUri(backgroundId, { width: W, height: H, scaleFactor: s })
+    const backgroundImageUri = backgroundDataUri(backgroundId)
 
     const root = template.build({
       W,

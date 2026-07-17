@@ -185,7 +185,15 @@ function rootBase(p: TemplateParts): CSSProperties {
     padding: `${p.padY}px ${p.padX}px`,
     backgroundColor: p.bg,
     ...(p.backgroundImageUri
-      ? { backgroundImage: `url(${p.backgroundImageUri})`, backgroundSize: '100% 100%' }
+      ? {
+          backgroundImage: `url(${p.backgroundImageUri})`,
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'right center',
+          // Fit to the canvas height, preserving the source image's aspect
+          // ratio — the source PNGs are used exactly as provided, not
+          // stretched or regenerated.
+          backgroundSize: `auto ${p.H}px`,
+        }
       : {}),
     fontFamily: 'Manrope',
   }

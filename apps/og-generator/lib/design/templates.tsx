@@ -174,7 +174,11 @@ const ANNOUNCEMENT_LOGO_BOTTOM_1X = 80
 // single-line-max-fraction check (fit-headline.ts) and render on one line
 // at 72px instead of force-wrapping to two.
 const ANNOUNCEMENT_HEADLINE_MAX_WIDTH_1X = 1100
-const ANNOUNCEMENT_HEADLINE_TOP_1X = 242
+// `top` positions the box top, not the text baseline — 175 puts a 1-line
+// headline's baseline at ~242px (measured empirically off the rendered
+// glyphs at 72px), which is the balanced-composition target relative to
+// the logo mark below.
+const ANNOUNCEMENT_HEADLINE_TOP_1X = 175
 const ANNOUNCEMENT_HEADLINE_TOP_2LINE_1X = 176
 
 function rootBase(p: TemplateParts): CSSProperties {

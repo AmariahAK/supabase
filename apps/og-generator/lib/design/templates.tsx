@@ -460,10 +460,12 @@ export const TEMPLATES: Template[] = [
               display: 'flex',
               // Centering the full eyebrow+headline block would push the
               // headline down by the eyebrow's whole height when one's
-              // present — shift back up by half of that (plain px, not a
-              // percentage — satori's transform/calc doesn't support mixing
-              // the two) so the headline only drifts down half as far.
-              marginTop: -((p.eyebrowBlockHeight ?? 0) / 2),
+              // present — shift back up by that full amount (plain px, not
+              // a percentage — satori's transform/calc doesn't support
+              // mixing the two) so the headline's position is unaffected by
+              // whether an eyebrow is showing; the eyebrow just extends the
+              // composition upward instead.
+              marginTop: -(p.eyebrowBlockHeight ?? 0),
             }}
           >
             {p.textBlock}

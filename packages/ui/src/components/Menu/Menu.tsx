@@ -45,7 +45,7 @@ interface ItemProps {
 
 export const menuItemVariants = cva(
   cn(
-    'cursor-pointer flex space-x-3 items-center outline-hidden focus-visible:ring-1 ring-foreground-muted focus-visible:z-10 group'
+    'cursor-pointer flex space-x-3 items-center outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:z-10 group'
   ),
   {
     variants: {

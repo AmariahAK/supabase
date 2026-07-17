@@ -189,7 +189,7 @@ function CommandMenuTriggerInput({
           'flex items-center justify-between',
           'bg-surface-100/75 text-foreground-lighter border',
           'hover:bg-surface-100/100  hover:border-stronger',
-          'focus-visible:outline-hidden focus-visible:ring-4 focus-visible:ring-border-strong focus-visible:ring-offset-1 focus-visible:ring-offset-background',
+          'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           'transition',
           className
         )}

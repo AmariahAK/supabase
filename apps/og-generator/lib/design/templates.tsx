@@ -167,8 +167,13 @@ const ANNOUNCEMENT_LOGO_BOTTOM_1X = 80
 // Announcement headline: fixed max box width (brand guideline) and its
 // absolute top offset from the canvas top (both 1x design px) — offset
 // differs between a 1-line and a 2-line headline (both fixed guideline
-// values, not derived from one another).
-const ANNOUNCEMENT_HEADLINE_MAX_WIDTH_1X = 704
+// values, not derived from one another). This box width only feeds the
+// wrap-fit decision (satori still renders each line at its own natural
+// width, centered) — 1100 is the smallest round number past the ~1067px
+// needed for the default "Hydra joins Supabase" example to pass the
+// single-line-max-fraction check (fit-headline.ts) and render on one line
+// at 72px instead of force-wrapping to two.
+const ANNOUNCEMENT_HEADLINE_MAX_WIDTH_1X = 1100
 const ANNOUNCEMENT_HEADLINE_TOP_1X = 242
 const ANNOUNCEMENT_HEADLINE_TOP_2LINE_1X = 176
 

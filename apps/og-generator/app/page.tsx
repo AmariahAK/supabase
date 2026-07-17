@@ -221,7 +221,7 @@ const CAROUSEL_DEMO_PARAMS: Record<string, Record<string, string>> = {
     headline: 'Supabase is now an "official [C]hat[GPT] app"',
     icons: 'supabase-bolt,openai-mark-ibnt',
   },
-  announcement: { headline: 'Acme joins Supabase', icon: 'database' },
+  announcement: { headline: '[H]ydra joins [S]upabase', icon: 'hydra-8cp3' },
 }
 
 /** Real rendered preview for carousel tiles listed in `CAROUSEL_DEMO_PARAMS`, instead of an abstract diagram. */
@@ -561,16 +561,16 @@ export default function Page() {
   }, [template])
 
   // Announcement is a partner/acquisition brand-mark composition — it wants
-  // a full-color Logo, not a bundled line-art Icon. Switch the picker to the
-  // Logos tab and swap out whatever Icon-kind selection carried over from
-  // another template (e.g. icon-layout's 'database' default) for the first
-  // available uploaded Logo.
+  // a full-color Logo, not a bundled line-art Icon. Ships with a curated
+  // example (Hydra partnership) instead of an empty "Pick", same as Partner
+  // logos' curated defaults — loads whenever the template is selected.
   useEffect(() => {
     if (template !== 'announcement') return
     setIconPickerTab('logo')
-    if (!icon || selectedIcon?.kind !== 'logo') setIcon(allLogos[0]?.name ?? null)
+    setIcon('hydra-8cp3')
+    setHeadline('[H]ydra joins [S]upabase')
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [template, allLogos])
+  }, [template])
 
   // Partner logos ships with a curated example per arrangement instead of
   // an empty "Pick" — arrangements 0/1 (2 tiles) showcase the ChatGPT app

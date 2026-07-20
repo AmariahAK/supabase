@@ -70,20 +70,17 @@ export const Admonition = forwardRef<
                 'text-foreground-light',
                 '[&_p]:!mt-0 [&_p]:!mb-1.5 [&_p:last-child]:!mb-0',
                 '[&_ul]:!my-1.5 [&_ol]:!my-1.5 [&_li]:!my-0.5',
-                !title && '[&>p:first-of-type]:inline',
                 childProps?.description?.className
               )}
             >
-              {title ? (
+              {title && (
                 <div
                   {...childProps?.title}
                   className={cn('mb-0.5 font-medium text-foreground', childProps?.title?.className)}
                 >
-                  <strong>{label}:</strong> {title}
+                  {title}
                 </div>
-              ) : (
-                <strong>{label}:</strong>
-              )}{' '}
+              )}
               {description}
               {children}
             </div>

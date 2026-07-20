@@ -17,17 +17,15 @@ void stringDescriptionProps
 void invalidLabelProps
 
 describe('Admonition', () => {
-  it('renders a bold type label for description-only content', () => {
+  it('renders description-only content without a visible type label', () => {
     render(<Admonition type="default" description="Changes can take a few minutes to apply." />)
 
     const note = screen.getByRole('note', { name: 'Note' })
-    const label = within(note).getByText('Note:')
-    expect(label.tagName).toBe('STRONG')
-    expect(label).toBeVisible()
-    expect(note).toHaveTextContent('Note: Changes can take a few minutes to apply.')
+    expect(within(note).queryByText('Note:')).not.toBeInTheDocument()
+    expect(note).toHaveTextContent('Changes can take a few minutes to apply.')
   })
 
-  it('renders children-only rich MDX-like content with a Note label', () => {
+  it('renders children-only rich MDX-like content', () => {
     render(
       <Admonition type="note">
         <p>
@@ -40,8 +38,8 @@ describe('Admonition', () => {
       </Admonition>
     )
 
-    const note = screen.getByRole('note')
-    expect(within(note).getByText('Note:').tagName).toBe('STRONG')
+    const note = screen.getByRole('note', { name: 'Note' })
+    expect(within(note).queryByText('Note:')).not.toBeInTheDocument()
     expect(within(note).getByText('SECURITY DEFINER')).toHaveAttribute(
       'href',
       '/docs/guides/database/postgres/row-level-security'
@@ -49,7 +47,7 @@ describe('Admonition', () => {
     expect(within(note).getByText('Keep privileges scoped.')).toBeVisible()
   })
 
-  it('renders a Warning label with title and description', () => {
+  it('renders a title and description without a type label', () => {
     render(
       <Admonition
         type="warning"
@@ -58,29 +56,28 @@ describe('Admonition', () => {
       />
     )
 
-    const note = screen.getByRole('note')
-    const label = within(note).getByText('Warning:')
-    expect(label.tagName).toBe('STRONG')
-    expect(label.parentElement).toHaveTextContent('Warning: Manual approval required')
+    const note = screen.getByRole('note', { name: 'Warning' })
+    expect(within(note).queryByText('Warning:')).not.toBeInTheDocument()
+    expect(note).toHaveTextContent('Manual approval required')
     expect(note.querySelector('h1, h2, h3, h4, h5, h6')).not.toBeInTheDocument()
     expect(note).toHaveTextContent('Review the pending changes before continuing.')
   })
 
-  it('renders a Caution label with title and children', () => {
+  it('renders a title with children', () => {
     render(
       <Admonition type="caution" title="Security definer function">
         <p>Review ownership before exposing this function.</p>
       </Admonition>
     )
 
-    const note = screen.getByRole('note')
-    expect(within(note).getByText('Caution:').tagName).toBe('STRONG')
-    expect(note).toHaveTextContent('Caution: Security definer function')
+    const note = screen.getByRole('note', { name: 'Caution' })
+    expect(within(note).queryByText('Caution:')).not.toBeInTheDocument()
+    expect(note).toHaveTextContent('Security definer function')
     expect(note.querySelector('h1, h2, h3, h4, h5, h6')).not.toBeInTheDocument()
     expect(note).toHaveTextContent('Review ownership before exposing this function.')
   })
 
-  it('renders a Success label with success styling', () => {
+  it('renders success styling', () => {
     render(
       <Admonition
         type="success"
@@ -89,16 +86,15 @@ describe('Admonition', () => {
       />
     )
 
-    const note = screen.getByRole('note')
-    expect(within(note).getByText('Success:').tagName).toBe('STRONG')
-    expect(note).toHaveTextContent('Success: Connection confirmed')
+    const note = screen.getByRole('note', { name: 'Success' })
+    expect(note).toHaveTextContent('Connection confirmed')
     expect(note).toHaveTextContent('You can now close this tab.')
     expect(note).toHaveClass('bg-brand-400/15')
     expect(note).toHaveClass('border-brand-400')
     expect(note.querySelector('svg path')?.getAttribute('d')).toContain('M10.5 19.5')
   })
 
-  it('renders a Danger label and omits the icon when showIcon is false', () => {
+  it('omits the icon when showIcon is false', () => {
     render(
       <Admonition
         type="destructive"
@@ -108,22 +104,19 @@ describe('Admonition', () => {
       />
     )
 
-    const note = screen.getByRole('note')
-    expect(within(note).getByText('Danger:').tagName).toBe('STRONG')
-    expect(note).toHaveTextContent('Danger: Deletion blocked')
+    const note = screen.getByRole('note', { name: 'Danger' })
+    expect(note).toHaveTextContent('Deletion blocked')
     expect(note.querySelector('svg')).not.toBeInTheDocument()
   })
 
   it.each([
-    ['tip', 'Tip', 'Tip:'],
-    ['danger', 'Danger', 'Danger:'],
-    ['deprecation', 'Deprecated', 'Deprecated:'],
-  ] as const)('renders the %s type label as %s', (type, name, visibleLabel) => {
+    ['tip', 'Tip'],
+    ['danger', 'Danger'],
+    ['deprecation', 'Deprecated'],
+  ] as const)('exposes %s via aria-label as %s', (type, name) => {
     render(<Admonition type={type} description="Body copy." />)
 
-    const note = screen.getByRole('note', { name })
-    const labelEl = within(note).getByText(visibleLabel)
-    expect(labelEl.tagName).toBe('STRONG')
-    expect(labelEl).toBeVisible()
+    expect(screen.getByRole('note', { name })).toBeVisible()
+    expect(within(screen.getByRole('note')).queryByText(`${name}:`)).not.toBeInTheDocument()
   })
 })

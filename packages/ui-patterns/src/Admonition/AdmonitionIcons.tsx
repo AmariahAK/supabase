@@ -15,6 +15,7 @@ function AdmonitionIcon({ className, viewBox, children, ...props }: AdmonitionIc
       viewBox={viewBox}
       className={cn('w-6 h-6', className)}
       fill="currentColor"
+      aria-hidden="true"
       {...props}
     >
       {children}

@@ -35,6 +35,7 @@ export const Admonition = forwardRef<
         ref={ref}
         {...props}
         role="note"
+        aria-label={label}
         variant={TYPE_TO_VARIANT[type]}
         className={cn(
           // Isolate from parent MDX `.prose` (docs applies `text-base leading-7` to `p`)

@@ -20,7 +20,7 @@ describe('Admonition', () => {
   it('renders a bold type label for description-only content', () => {
     render(<Admonition type="default" description="Changes can take a few minutes to apply." />)
 
-    const note = screen.getByRole('note')
+    const note = screen.getByRole('note', { name: 'Note' })
     const label = within(note).getByText('Note:')
     expect(label.tagName).toBe('STRONG')
     expect(label).toBeVisible()
@@ -115,13 +115,14 @@ describe('Admonition', () => {
   })
 
   it.each([
-    ['tip', 'Tip:'],
-    ['danger', 'Danger:'],
-    ['deprecation', 'Deprecated:'],
-  ] as const)('renders the %s type label as %s', (type, label) => {
+    ['tip', 'Tip', 'Tip:'],
+    ['danger', 'Danger', 'Danger:'],
+    ['deprecation', 'Deprecated', 'Deprecated:'],
+  ] as const)('renders the %s type label as %s', (type, name, visibleLabel) => {
     render(<Admonition type={type} description="Body copy." />)
 
-    const labelEl = within(screen.getByRole('note')).getByText(label)
+    const note = screen.getByRole('note', { name })
+    const labelEl = within(note).getByText(visibleLabel)
     expect(labelEl.tagName).toBe('STRONG')
     expect(labelEl).toBeVisible()
   })

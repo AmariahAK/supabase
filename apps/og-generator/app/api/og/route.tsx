@@ -31,6 +31,9 @@ const EYEBROW_PILL_WEIGHT = 500 as const
 const WORDMARK_HEIGHT_1X = 43
 // Per-tile icon size for logo-grid's row of partner-logo tiles (1x design px).
 const LOGO_TILE_ICON_SIZE_1X = 64
+// icon-layout arrangement 0's own icon glyph size (bigger than the shared
+// LOGO_TILE_ICON_SIZE_1X, to fill its larger 244.07px chip).
+const GRID_ARRANGEMENT_ICON_GLYPH_SIZE_1X = 120
 
 /** Scale (naturalW, naturalH) to fit within a boxSize square, preserving aspect ratio. */
 function fitBox(naturalW: number, naturalH: number, boxSize: number): { width: number; height: number } {
@@ -413,6 +416,25 @@ export async function GET(req: Request) {
         />
       ) : null
 
+    // icon-layout arrangement 0: same icon, rendered at its own larger glyph
+    // size instead of LOGO_TILE_ICON_SIZE_1X's shared 64px.
+    const gridArrangementIconEl =
+      iconObj && iconObj.url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img {...fitBox(iconObj.width ?? 1, iconObj.height ?? 1, GRID_ARRANGEMENT_ICON_GLYPH_SIZE_1X * s)} src={iconObj.url} />
+      ) : iconObj ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          width={GRID_ARRANGEMENT_ICON_GLYPH_SIZE_1X * s}
+          height={GRID_ARRANGEMENT_ICON_GLYPH_SIZE_1X * s}
+          src={iconDataUri(iconObj, {
+            sizePx: GRID_ARRANGEMENT_ICON_GLYPH_SIZE_1X * s,
+            strokePx: ICON_STROKE * s,
+            color: color('illustration.stroke', brand),
+          })}
+        />
+      ) : null
+
     const logoHeight = WORDMARK_HEIGHT_1X * s
     const logoEl = (
       // eslint-disable-next-line @next/next/no-img-element
@@ -476,6 +498,7 @@ export async function GET(req: Request) {
       halfThumbLogoEl,
       iconEl,
       boxedIconEl,
+      gridArrangementIconEl,
       hasIcon,
       showBrandLogo,
       eyebrowBlockHeight,

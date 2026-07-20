@@ -35,11 +35,13 @@ export interface TemplateParts {
   halfThumbLogoEl?: ReactNode | null
   /** Single icon pre-sized to `ICON_TILE_ICON_SIZE_1X` — icon-layout's icon inside its chip bounding box. */
   boxedIconEl?: ReactNode | null
+  /** Same icon, pre-sized to `GRID_ARRANGEMENT_ICON_GLYPH_SIZE_1X` — icon-layout arrangement 0's larger chip. */
+  gridArrangementIconEl?: ReactNode | null
   /** Whether to render the Supabase wordmark signature — logo-grid only, toggleable since it already shows partner marks. Defaults to true. */
   showBrandLogo?: boolean
   /** Rendered height (px, pre-scaled) of the eyebrow pill + its gap above the headline, or 0 if no eyebrow — Announcement uses this to keep the headline from drifting too far down when an eyebrow is present. */
   eyebrowBlockHeight?: number
-  /** Full-canvas background texture data URI (lib/design/og-backgrounds.ts), or null for a flat `bg` color — applied by rootBase() so any template can opt in. */
+  /** Full-canvas background texture data URI (lib/design/og-backgrounds.ts), or null for a flat `bg` color — applied by backgroundPanel() so any template can opt in. */
   backgroundImageUri?: string | null
 }
 
@@ -95,15 +97,15 @@ function iconTile(p: TemplateParts, content: ReactNode): ReactElement {
   return iconTileAtScale(p.scaleFactor, content)
 }
 
-function iconTileAtScale(scaleFactor: number, content: ReactNode): ReactElement {
+function iconTileAtScale(scaleFactor: number, content: ReactNode, sizePx1x: number = ICON_TILE_SIZE_1X): ReactElement {
   return (
     <div
       style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: ICON_TILE_SIZE_1X * scaleFactor,
-        height: ICON_TILE_SIZE_1X * scaleFactor,
+        width: sizePx1x * scaleFactor,
+        height: sizePx1x * scaleFactor,
         borderRadius: ICON_TILE_RADIUS_1X * scaleFactor,
         backgroundColor: ICON_TILE_BG,
         border: `${ICON_TILE_BORDER_WIDTH_1X * scaleFactor}px solid ${ICON_TILE_BORDER_COLOR}`,
@@ -159,6 +161,15 @@ export function logoTilesRow(tiles: ReactNode[], scaleFactor: number): ReactElem
 // Gap (1x px) between the headline and the icon column in split-right.
 const SPLIT_RIGHT_GAP = 56
 
+// icon-layout arrangement 0 (headline bottom-left, icon top-right, paired
+// with the grid-background texture) — its own icon chip size, distinct from
+// the shared ICON_TILE_SIZE_1X other arrangements use.
+const GRID_ARRANGEMENT_ICON_TILE_SIZE_1X = 244.07
+// Fixed distance (1x px) from the true canvas edges, not from the padded
+// content box — a brand-guideline placement independent of headlineInset.
+const GRID_ARRANGEMENT_ICON_TOP_1X = 73
+const GRID_ARRANGEMENT_ICON_RIGHT_1X = 69
+
 // How far (1x px) logo-center-left's logo sits above dead-center vertically.
 const LOGO_CENTER_LIFT_1X = 40
 
@@ -188,19 +199,14 @@ function rootBase(p: TemplateParts): CSSProperties {
   }
 }
 
-// Width (1x design px) of the background-texture panel on the right — a
-// fixed box (not the full canvas), matching where the icon column sits.
-const BACKGROUND_PANEL_WIDTH_1X = 620
-
 /**
- * Background-texture panel — a full-height box along the right edge (not
- * the whole canvas), so the pattern reads as a distinct panel behind the
- * icon rather than a full-bleed canvas texture. Render first (behind other
- * content) in any template that opts in via `backgroundImageUri`.
+ * Background-texture layer — spans the full canvas (the source PNGs are
+ * authored at exactly 2x the canvas, 2400x1260, so `auto ${p.H}px` scales
+ * them down to fill it edge-to-edge with no crop). Render first (behind
+ * other content) in any template that opts in via `backgroundImageUri`.
  */
 function backgroundPanel(p: TemplateParts): ReactNode {
   if (!p.backgroundImageUri) return null
-  const w = BACKGROUND_PANEL_WIDTH_1X * p.scaleFactor
   return (
     <div
       style={{
@@ -208,20 +214,20 @@ function backgroundPanel(p: TemplateParts): ReactNode {
         position: 'absolute',
         // The root container has padY/padX padding, and `top`/`right`/`bottom`
         // on an absolutely-positioned child resolve against its *padding*
-        // box — so 0 here would inset the panel from the true canvas edges
+        // box — so 0 here would inset the layer from the true canvas edges
         // by that padding instead of reaching them. Negative-offset by the
-        // same amount to escape the padding and span the full canvas height,
-        // flush to the real right edge.
+        // same amount to escape the padding and span the full canvas.
         top: -p.padY,
         right: -p.padX,
         bottom: -p.padY,
-        width: w,
+        left: -p.padX,
         backgroundImage: `url(${p.backgroundImageUri})`,
         backgroundRepeat: 'no-repeat',
-        // Fit the source image's height to the panel's height (its own
-        // aspect ratio decides the width) — right-aligned, so only the
-        // rightmost slice of the image shows if it's wider than the panel.
-        backgroundPosition: 'right center',
+        backgroundPosition: 'center',
+        // Two explicit px values here (`WpxHpx`) makes satori silently drop
+        // the whole backgroundImage, so this single-axis `auto` form is the
+        // only one that reliably renders — the source's 2x-canvas aspect
+        // ratio means it still lands exactly full-bleed, no crop.
         backgroundSize: `auto ${p.H}px`,
       }}
     />
@@ -258,11 +264,12 @@ export const TEMPLATES: Template[] = [
       // Icon renders inside the same dark chip bounding box Partner logos
       // uses, not bare — consistent icon treatment across both templates.
       const icon = p.hasIcon ? iconTile(p, p.boxedIconEl) : null
-      // The background panel is anchored to the right edge, which only
-      // lines up with where the icon actually sits in 0 (top-right) and 1
-      // (center-right) — arrangement 2 (centered) and 3 (icon bottom-left)
-      // would have it cut through unrelated content, so they skip it.
-      const showBackgroundPanel = arrangement === 0 || arrangement === 1
+      // Arrangement 0 (paired with the grid-background texture) uses its own
+      // larger icon chip, not the shared ICON_TILE_SIZE_1X.
+      const gridIcon = p.hasIcon
+        ? iconTileAtScale(p.scaleFactor, p.gridArrangementIconEl, GRID_ARRANGEMENT_ICON_TILE_SIZE_1X)
+        : null
+      // Full-bleed now, so it reads fine behind any arrangement.
       if (arrangement === 1) {
         // Headline left, icon right.
         return (
@@ -275,7 +282,7 @@ export const TEMPLATES: Template[] = [
               gap: 56 * p.scaleFactor,
             }}
           >
-            {showBackgroundPanel && backgroundPanel(p)}
+            {backgroundPanel(p)}
             {p.textBlock}
             {icon}
           </div>
@@ -293,6 +300,7 @@ export const TEMPLATES: Template[] = [
               textAlign: 'center',
             }}
           >
+            {backgroundPanel(p)}
             {icon ? <div style={{ display: 'flex', marginBottom: 36 * p.scaleFactor }}>{icon}</div> : null}
             {p.textBlock}
           </div>
@@ -309,6 +317,7 @@ export const TEMPLATES: Template[] = [
               alignItems: 'flex-start',
             }}
           >
+            {backgroundPanel(p)}
             {p.textBlock}
             {icon}
           </div>
@@ -320,13 +329,32 @@ export const TEMPLATES: Template[] = [
           style={{
             ...rootBase(p),
             flexDirection: 'column',
-            justifyContent: p.hasIcon ? 'space-between' : 'flex-end',
+            // gridIcon is absolutely positioned (own fixed top/right offset,
+            // not part of this flex flow), so the headline always just
+            // anchors to the bottom regardless of whether an icon is set.
+            justifyContent: 'flex-end',
             alignItems: 'flex-start',
           }}
         >
-          {showBackgroundPanel && backgroundPanel(p)}
-          {icon ? (
-            <div style={{ display: 'flex', width: p.W - p.padX * 2, justifyContent: 'flex-end' }}>{icon}</div>
+          {backgroundPanel(p)}
+          {gridIcon ? (
+            <div
+              style={{
+                display: 'flex',
+                position: 'absolute',
+                // A plain top/left absolute child (no matching bottom/right
+                // pair) resolves directly against the true canvas edges in
+                // satori — no padding escape needed here (unlike
+                // backgroundPanel's four-sided stretch, which does need it).
+                // (satori also doesn't reliably support negative `right`
+                // with an intrinsically-sized child, so the horizontal
+                // position is expressed as a computed `left` instead.)
+                top: GRID_ARRANGEMENT_ICON_TOP_1X * p.scaleFactor,
+                left: p.W - GRID_ARRANGEMENT_ICON_RIGHT_1X * p.scaleFactor - GRID_ARRANGEMENT_ICON_TILE_SIZE_1X * p.scaleFactor,
+              }}
+            >
+              {gridIcon}
+            </div>
           ) : null}
           {p.textBlock}
         </div>

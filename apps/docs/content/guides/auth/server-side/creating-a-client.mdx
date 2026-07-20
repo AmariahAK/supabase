@@ -841,7 +841,7 @@ To access Supabase from a TanStack Start app, you need 2 types of Supabase clien
 1. **Browser client** - To access Supabase from components that run in the browser.
 2. **Server client** - To access Supabase from loaders, server functions, and other code that runs only on the server.
 
-TanStack Start renders matched routes on the server by default, so `beforeLoad` and `loader` run server-side on the initial request. Unlike Next.js, this means you don't need a proxy or middleware layer to keep sessions fresh — the server client reads and writes the session cookie directly on each request.
+TanStack Start renders matched routes on the server by default, so `beforeLoad` and `loader` run server-side on the initial request. Unlike Next.js, this means you don't need a proxy or middleware layer to keep sessions fresh. The server client reads and writes the session cookie directly on each request.
 
 <$Partial path="auth_methods.mdx" />
 
@@ -868,9 +868,9 @@ TanStack Start has no global middleware layer, so protect routes with a layout r
 
 <Admonition type="danger">
 
-`beforeLoad` only controls what gets rendered — it's a UX guard, not a security boundary. Because there's no proxy re-checking every request, the server function it calls is the **only** checkpoint before a redirect happens or private data is returned, so that function must authorize the request itself.
+`beforeLoad` only controls what gets rendered. It's a UX guard, not a security boundary. Because there's no proxy re-checking every request, the server function it calls is the **only** checkpoint before a redirect happens or private data is returned, so that function must authorize the request itself.
 
-Use `supabase.auth.getUser()` here, which revalidates the session against the Auth server on every call, rather than trusting local session data. This is a different tradeoff than the Next.js Proxy, which can rely on the cheaper `getClaims()` because it re-validates on every single request anyway — TanStack Start's per-route check needs the stronger guarantee, because it's the only check that runs.
+Use `supabase.auth.getUser()` here, which revalidates the session against the Auth server on every call, rather than trusting local session data. This is a different tradeoff than the Next.js Proxy, which can rely on the cheaper `getClaims()` because it re-validates on every single request anyway. TanStack Start's per-route check needs the stronger guarantee, because it's the only check that runs.
 
 </Admonition>
 
@@ -889,13 +889,7 @@ Use `supabase.auth.getUser()` here, which revalidates the session against the Au
   </$CodeTabs>
 </div>
 
-Any other server function that returns or mutates private data needs this same check — don't rely on a route being nested under `_protected` alone.
-
-<Admonition type="caution">
-
-TanStack Start is still in beta, so expect some breaking changes and rough edges. See the [TanStack Start quick start](https://tanstack.com/start/latest/docs/framework/react/quick-start) for the latest guidance.
-
-</Admonition>
+Any other server function that returns or mutates private data needs this same check. Don't rely on a route being nested under `_protected` alone.
 
 ## Congratulations
 

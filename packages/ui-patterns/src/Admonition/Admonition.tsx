@@ -38,11 +38,12 @@ export const Admonition = forwardRef<
         aria-label={label}
         variant={TYPE_TO_VARIANT[type]}
         className={cn(
-          // Isolate from parent MDX `.prose` (docs applies `text-base leading-7` to `p`)
-          'not-prose overflow-hidden',
+          'overflow-hidden',
           layout === 'responsive' && '@container',
-          type === 'success' &&
-            'bg-brand-400/15 dark:bg-brand/10 border-brand-400 dark:border-brand-500',
+          type === 'success' && [
+            'bg-brand-400/15 dark:bg-brand/10',
+            'border-brand-400 dark:border-brand-500',
+          ],
           className
         )}
       >
@@ -52,16 +53,23 @@ export const Admonition = forwardRef<
             className={cn(
               'min-w-0 flex-1',
               layout === 'vertical' && 'flex flex-col',
-              layout === 'horizontal' &&
-                'flex flex-row items-center justify-between gap-x-6 lg:gap-x-8',
-              layout === 'responsive' &&
-                'flex flex-col @md:flex-row @md:items-center @md:justify-between @md:gap-x-6 @lg:gap-x-8'
+              layout === 'horizontal' && [
+                'flex flex-row items-center justify-between',
+                'gap-x-6 lg:gap-x-8',
+              ],
+              layout === 'responsive' && [
+                'flex flex-col',
+                '@md:flex-row @md:items-center @md:justify-between',
+                '@md:gap-x-6 @lg:gap-x-8',
+              ]
             )}
           >
             <div
               {...childProps?.description}
               className={cn(
-                'text-sm leading-5 text-foreground-light [&_p]:!mt-0 [&_p]:!mb-1.5 [&_p:last-child]:!mb-0 [&_p:only-child]:!mb-0 [&_ul]:!my-1.5 [&_ol]:!my-1.5 [&_li]:!my-0.5',
+                'text-base leading-6 text-foreground-light',
+                '[&_p]:!mt-0 [&_p]:!mb-1.5 [&_p]:!leading-6 [&_p:last-child]:!mb-0 [&_p:only-child]:!mb-0',
+                '[&_ul]:!my-1.5 [&_ol]:!my-1.5 [&_li]:!my-0.5 [&_li]:!leading-6',
                 !title && '[&>p:first-of-type]:inline',
                 childProps?.description?.className
               )}
@@ -70,7 +78,7 @@ export const Admonition = forwardRef<
                 <div
                   {...childProps?.title}
                   className={cn(
-                    'mb-0.5 text-sm leading-5 font-medium text-foreground',
+                    'mb-0.5 text-base leading-6 font-medium text-foreground',
                     childProps?.title?.className
                   )}
                 >

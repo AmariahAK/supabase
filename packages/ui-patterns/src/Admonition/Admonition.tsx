@@ -43,22 +43,36 @@ const admonitionToAlertMapping: Record<AdmonitionType, 'default' | 'destructive'
   success: 'default',
 }
 
-const admonitionSVG = cva('', {
+const admonitionSurface = cva('', {
   variants: {
     type: {
-      default: `[&>svg]:bg-foreground-muted`,
-      success: `bg-brand-400/15 dark:bg-brand/10 border-brand-400 dark:border-brand-500 [&>svg]:text-white dark:[&>svg]:text-brand-link [&>svg]:bg-brand dark:[&>svg]:bg-brand-500/50`,
-      warning: ``,
-      destructive: ``,
+      default: '',
+      success: 'bg-brand-400/15 dark:bg-brand/10 border-brand-400 dark:border-brand-500',
+      warning: '',
+      destructive: '',
     },
   },
 })
+
+const admonitionIcon = cva(
+  'inline-flex shrink-0 items-center justify-center size-[23px] p-1 rounded-sm [&>svg]:size-full',
+  {
+    variants: {
+      type: {
+        default: 'text-background bg-foreground-muted',
+        success: 'text-white dark:text-brand-link bg-brand dark:bg-brand-500/50',
+        warning: 'text-warning-200 bg-warning-600',
+        destructive: 'text-destructive-200 bg-destructive-600',
+      },
+    },
+  }
+)
 
 const admonitionBodyClassName =
   '[&_p]:!mt-0 [&_p]:!mb-1.5 [&_p:last-child]:!mb-0 [&_p:only-child]:!mb-0 [&_ul]:!my-1.5 [&_ol]:!my-1.5 [&_li]:!my-0.5'
 
 export const Admonition = forwardRef<
-  React.ElementRef<typeof Alert>,
+  React.ComponentRef<typeof Alert>,
   Omit<React.ComponentPropsWithoutRef<typeof Alert>, keyof AdmonitionProps | 'children'> &
     AdmonitionProps
 >(
@@ -82,6 +96,16 @@ export const Admonition = forwardRef<
     const typeStyle = type === 'success' ? 'success' : typeMapped
     const heading = title
 
+    const resolvedIcon = !!icon ? (
+      icon
+    ) : showIcon && typeStyle === 'success' ? (
+      <SuccessIcon />
+    ) : showIcon && (typeMapped === 'warning' || typeMapped === 'destructive') ? (
+      <WarningIcon />
+    ) : showIcon ? (
+      <InfoIcon />
+    ) : null
+
     return (
       <Alert
         ref={ref}
@@ -93,79 +117,63 @@ export const Admonition = forwardRef<
           'overflow-hidden',
           // Container query context for responsive layout
           layout === 'responsive' && '@container',
-          // SVG icon
-          admonitionSVG({ type: typeStyle }),
+          admonitionSurface({ type: typeStyle }),
           props.className
         )}
       >
-        {!!icon ? (
-          icon
-        ) : showIcon && typeStyle === 'success' ? (
-          <SuccessIcon />
-        ) : showIcon && (typeMapped === 'warning' || typeMapped === 'destructive') ? (
-          <WarningIcon />
-        ) : showIcon ? (
-          <InfoIcon />
-        ) : null}
-        <div
-          className={cn(
-            'flex',
-            layout === 'vertical' && 'flex-col',
-            layout === 'horizontal' && 'flex-row items-center justify-between gap-x-6 lg:gap-x-8',
-            layout === 'responsive' &&
-              'flex-col @md:flex-row @md:items-center @md:justify-between @md:gap-x-6 @lg:gap-x-8'
+        <div className="flex items-start gap-3">
+          {resolvedIcon && (
+            <span className={admonitionIcon({ type: typeStyle })}>{resolvedIcon}</span>
           )}
-        >
-          <div>
-            {heading && (
-              <AlertTitle
-                {...childProps.title}
-                className={cn(
-                  'text mt-0.5 flex flex-col gap-3 text-sm',
-                  childProps.title?.className
-                )}
-              >
-                {heading}
-              </AlertTitle>
+          <div
+            className={cn(
+              'flex min-w-0 flex-1',
+              layout === 'vertical' && 'flex-col',
+              layout === 'horizontal' && 'flex-row items-center justify-between gap-x-6 lg:gap-x-8',
+              layout === 'responsive' &&
+                'flex-col @md:flex-row @md:items-center @md:justify-between @md:gap-x-6 @lg:gap-x-8'
             )}
-            {description && (
-              <AlertDescription
-                {...childProps.description}
+          >
+            <div>
+              {heading && (
+                <AlertTitle
+                  {...childProps.title}
+                  className={cn('text flex flex-col gap-3 text-sm', childProps.title?.className)}
+                >
+                  {heading}
+                </AlertTitle>
+              )}
+              {description && (
+                <AlertDescription
+                  {...childProps.description}
+                  className={cn(admonitionBodyClassName, childProps.description?.className)}
+                >
+                  {description}
+                </AlertDescription>
+              )}
+              {/* // children is to handle Docs and MDX issues with children and <p> elements */}
+              {children && (
+                <AlertDescription
+                  {...childProps.description}
+                  className={cn(admonitionBodyClassName, childProps?.description?.className)}
+                >
+                  {children}
+                </AlertDescription>
+              )}
+            </div>
+            {actions && (
+              <div
                 className={cn(
-                  admonitionBodyClassName,
-                  !heading && 'my-0.5',
-                  childProps.description?.className
+                  'flex flex-row gap-3',
+                  layout === 'vertical' && 'mt-3 items-start',
+                  layout === 'horizontal' && 'items-center',
+                  layout === 'responsive' && 'mt-3 items-start @md:mt-0 @md:items-center'
                 )}
               >
-                {description}
-              </AlertDescription>
-            )}
-            {/* // children is to handle Docs and MDX issues with children and <p> elements */}
-            {children && (
-              <AlertDescription
-                {...childProps.description}
-                className={cn(
-                  admonitionBodyClassName,
-                  !heading && !description && 'my-0.5',
-                  childProps?.description?.className
-                )}
-              >
-                {children}
-              </AlertDescription>
+                {actions}
+              </div>
             )}
           </div>
-          {actions && (
-            <div
-              className={cn(
-                'flex flex-row gap-3',
-                layout === 'vertical' && 'mt-3 items-start',
-                layout === 'horizontal' && 'items-center',
-                layout === 'responsive' && 'mt-3 items-start @md:mt-0 @md:items-center'
-              )}
-            >
-              {actions}
-            </div>
-          )}
         </div>
       </Alert>
     )

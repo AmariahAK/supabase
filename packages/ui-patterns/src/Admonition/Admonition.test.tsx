@@ -62,6 +62,7 @@ describe('Admonition', () => {
     const label = within(note).getByText('Warning:')
     expect(label.tagName).toBe('STRONG')
     expect(label.parentElement).toHaveTextContent('Warning: Manual approval required')
+    expect(note.querySelector('h1, h2, h3, h4, h5, h6')).not.toBeInTheDocument()
     expect(note).toHaveTextContent('Review the pending changes before continuing.')
   })
 
@@ -75,6 +76,7 @@ describe('Admonition', () => {
     const note = screen.getByRole('note')
     expect(within(note).getByText('Caution:').tagName).toBe('STRONG')
     expect(note).toHaveTextContent('Caution: Security definer function')
+    expect(note.querySelector('h1, h2, h3, h4, h5, h6')).not.toBeInTheDocument()
     expect(note).toHaveTextContent('Review ownership before exposing this function.')
   })
 

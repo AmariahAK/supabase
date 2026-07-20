@@ -1,11 +1,29 @@
 import type { ReactNode, SVGProps } from 'react'
 import { cn } from 'ui'
 
+import type { AdmonitionType } from './Admonition.types'
+
 export type AdmonitionIconProps = SVGProps<SVGSVGElement>
 
 type AdmonitionIconBaseProps = AdmonitionIconProps & {
   viewBox: string
   children: ReactNode
+}
+
+type IconVisual = 'default' | 'warning' | 'destructive' | 'success'
+
+const ICON_BADGE_CLASS: Record<IconVisual, string> = {
+  default: 'text-background bg-foreground-muted',
+  success: 'text-white dark:text-brand-link bg-brand dark:bg-brand-500/50',
+  warning: 'text-warning-200 bg-warning-600',
+  destructive: 'text-destructive-200 bg-destructive-600',
+}
+
+function getIconVisual(type: AdmonitionType): IconVisual {
+  if (type === 'success') return 'success'
+  if (type === 'danger' || type === 'destructive') return 'destructive'
+  if (type === 'caution' || type === 'warning' || type === 'deprecation') return 'warning'
+  return 'default'
 }
 
 function AdmonitionIcon({ className, viewBox, children, ...props }: AdmonitionIconBaseProps) {
@@ -52,3 +70,25 @@ export const WarningIcon = (props: AdmonitionIconProps) => (
     />
   </AdmonitionIcon>
 )
+
+function getGlyph(type: AdmonitionType) {
+  const visual = getIconVisual(type)
+  if (visual === 'success') return <SuccessIcon />
+  if (visual === 'warning' || visual === 'destructive') return <WarningIcon />
+  return <InfoIcon />
+}
+
+export function AdmonitionTypeIcon({ type }: { type: AdmonitionType }) {
+  const visual = getIconVisual(type)
+
+  return (
+    <span
+      className={cn(
+        'inline-flex shrink-0 items-center justify-center size-[23px] p-1 rounded-sm [&>svg]:size-full',
+        ICON_BADGE_CLASS[visual]
+      )}
+    >
+      {getGlyph(type)}
+    </span>
+  )
+}

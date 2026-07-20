@@ -43,6 +43,18 @@ const admonitionToAlertMapping: Record<AdmonitionType, 'default' | 'destructive'
   success: 'default',
 }
 
+const admonitionTypeLabel: Record<AdmonitionType, string> = {
+  note: 'Note',
+  tip: 'Tip',
+  caution: 'Caution',
+  danger: 'Danger',
+  deprecation: 'Deprecated',
+  default: 'Note',
+  warning: 'Warning',
+  destructive: 'Danger',
+  success: 'Success',
+}
+
 const admonitionSurface = cva('', {
   variants: {
     type: {
@@ -94,6 +106,7 @@ export const Admonition = forwardRef<
   ) => {
     const typeMapped = variant ? admonitionToAlertMapping[variant] : admonitionToAlertMapping[type]
     const typeStyle = type === 'success' ? 'success' : typeMapped
+    const typeLabel = admonitionTypeLabel[type]
     const heading = title
 
     const resolvedIcon = !!icon ? (
@@ -140,7 +153,7 @@ export const Admonition = forwardRef<
                   {...childProps.title}
                   className={cn('text flex flex-col gap-3 text-sm', childProps.title?.className)}
                 >
-                  {heading}
+                  <strong>{typeLabel}:</strong> {heading}
                 </AlertTitle>
               )}
               {description && (
@@ -148,6 +161,11 @@ export const Admonition = forwardRef<
                   {...childProps.description}
                   className={cn(admonitionBodyClassName, childProps.description?.className)}
                 >
+                  {!heading && (
+                    <>
+                      <strong>{typeLabel}:</strong>{' '}
+                    </>
+                  )}
                   {description}
                 </AlertDescription>
               )}
@@ -155,8 +173,17 @@ export const Admonition = forwardRef<
               {children && (
                 <AlertDescription
                   {...childProps.description}
-                  className={cn(admonitionBodyClassName, childProps?.description?.className)}
+                  className={cn(
+                    admonitionBodyClassName,
+                    !heading && !description && '[&>p:first-of-type]:inline',
+                    childProps?.description?.className
+                  )}
                 >
+                  {!heading && !description && (
+                    <>
+                      <strong>{typeLabel}:</strong>{' '}
+                    </>
+                  )}
                   {children}
                 </AlertDescription>
               )}

@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { Admonition, type AdmonitionProps } from './admonition'
+import { Admonition, type AdmonitionProps } from './index'
 
 const stringDescriptionProps = {
   description: 'Description-only copy.',

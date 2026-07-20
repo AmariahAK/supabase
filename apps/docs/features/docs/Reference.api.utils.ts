@@ -25,6 +25,10 @@ export interface IApiEndPoint {
   tags?: Array<string>
   security?: Array<ISecurityOption>
   'x-oauth-scope'?: string
+  // Array of permission groups — a fine-grained token needs all permissions in at least one
+  // group (OR between groups, AND within a group). Replaces the legacy `fga_permissions`
+  // pseudo-scheme in `security`.
+  'x-fga-permissions'?: string[][]
   'x-allowed-plans'?: string[]
 }
 

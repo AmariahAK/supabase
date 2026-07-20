@@ -20,7 +20,7 @@ describe('Admonition', () => {
   it('renders description-only content', () => {
     render(<Admonition type="default" description="Changes can take a few minutes to apply." />)
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Changes can take a few minutes to apply.')
+    expect(screen.getByRole('note')).toHaveTextContent('Changes can take a few minutes to apply.')
   })
 
   it('renders children-only rich MDX-like content', () => {
@@ -36,7 +36,7 @@ describe('Admonition', () => {
       </Admonition>
     )
 
-    const alert = screen.getByRole('alert')
+    const alert = screen.getByRole('note')
     expect(within(alert).getByText('SECURITY DEFINER')).toHaveAttribute(
       'href',
       '/docs/guides/database/postgres/row-level-security'
@@ -53,7 +53,7 @@ describe('Admonition', () => {
       />
     )
 
-    const alert = screen.getByRole('alert')
+    const alert = screen.getByRole('note')
     expect(alert).toHaveTextContent('Manual approval required')
     expect(alert).toHaveTextContent('Review the pending changes before continuing.')
   })
@@ -65,7 +65,7 @@ describe('Admonition', () => {
       </Admonition>
     )
 
-    const alert = screen.getByRole('alert')
+    const alert = screen.getByRole('note')
     expect(alert).toHaveTextContent('Security definer function')
     expect(alert).toHaveTextContent('Review ownership before exposing this function.')
   })
@@ -79,7 +79,7 @@ describe('Admonition', () => {
       />
     )
 
-    const alert = screen.getByRole('alert')
+    const alert = screen.getByRole('note')
     expect(alert).toHaveTextContent('Connection confirmed')
     expect(alert).toHaveTextContent('You can now close this tab.')
     expect(alert).toHaveClass('bg-brand-400/15')
@@ -97,7 +97,7 @@ describe('Admonition', () => {
       />
     )
 
-    const alert = screen.getByRole('alert')
+    const alert = screen.getByRole('note')
     expect(alert).toHaveTextContent('Deletion blocked')
     expect(alert.querySelector('svg')).not.toBeInTheDocument()
   })

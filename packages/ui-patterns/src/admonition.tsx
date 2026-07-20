@@ -130,6 +130,7 @@ export const Admonition = forwardRef<
         ref={ref}
         variant={typeMapped}
         {...props}
+        role="note"
         className={cn(
           // Handle occasional background elements
           'overflow-hidden',

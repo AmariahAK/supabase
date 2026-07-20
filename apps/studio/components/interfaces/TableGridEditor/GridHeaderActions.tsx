@@ -7,6 +7,7 @@ import {
   Lock,
   MoreVertical,
   PlusCircle,
+  RefreshCw,
   Unlock,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -56,6 +57,7 @@ import {
 } from '@/data/table-editor/table-editor-types'
 import { isWarehouseSchema } from '@/data/table-rows/warehouse-time-travel'
 import { useTableUpdateMutation } from '@/data/tables/table-update-mutation'
+import { useWarehouseRefreshSchemaMutation } from '@/data/warehouse/refresh-schema-mutation'
 import { useAsyncCheckPermissions } from '@/hooks/misc/useCheckPermissions'
 import { useIsFeatureEnabled } from '@/hooks/misc/useIsFeatureEnabled'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
@@ -200,6 +202,11 @@ export const GridHeaderActions = ({ table, isRefetching }: GridHeaderActionsProp
       toast.error(`Failed to toggle RLS: ${error.message}`)
     },
   })
+
+  const { mutate: refreshWarehouseSchema, isPending: isRefreshingWarehouseSchema } =
+    useWarehouseRefreshSchemaMutation({
+      onSuccess: () => toast.success('Warehouse schema refreshed'),
+    })
 
   const showHeaderActions = snap.selectedRows.size === 0
 
@@ -467,6 +474,22 @@ export const GridHeaderActions = ({ table, isRefetching }: GridHeaderActionsProp
                   >
                     <Lightbulb size={14} />
                     <span>Enable Index Advisor</span>
+                  </DropdownMenuItem>
+                </>
+              )}
+              {isWarehouseSchema(table.schema) && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="gap-x-2"
+                    disabled={!projectRef || isRefreshingWarehouseSchema}
+                    onClick={() => projectRef && refreshWarehouseSchema({ projectRef })}
+                  >
+                    <RefreshCw
+                      size={14}
+                      className={isRefreshingWarehouseSchema ? 'animate-spin' : ''}
+                    />
+                    <span>Refresh Warehouse schema</span>
                   </DropdownMenuItem>
                 </>
               )}

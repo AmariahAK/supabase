@@ -67,9 +67,9 @@ export const Admonition = forwardRef<
             <div
               {...childProps?.description}
               className={cn(
-                'text-base leading-6 text-foreground-light',
-                '[&_p]:!mt-0 [&_p]:!mb-1.5 [&_p]:!leading-6 [&_p:last-child]:!mb-0 [&_p:only-child]:!mb-0',
-                '[&_ul]:!my-1.5 [&_ol]:!my-1.5 [&_li]:!my-0.5 [&_li]:!leading-6',
+                'text-foreground-light',
+                '[&_p]:!mt-0 [&_p]:!mb-1.5 [&_p:last-child]:!mb-0',
+                '[&_ul]:!my-1.5 [&_ol]:!my-1.5 [&_li]:!my-0.5',
                 !title && '[&>p:first-of-type]:inline',
                 childProps?.description?.className
               )}
@@ -77,10 +77,7 @@ export const Admonition = forwardRef<
               {title ? (
                 <div
                   {...childProps?.title}
-                  className={cn(
-                    'mb-0.5 text-base leading-6 font-medium text-foreground',
-                    childProps?.title?.className
-                  )}
+                  className={cn('mb-0.5 font-medium text-foreground', childProps?.title?.className)}
                 >
                   <strong>{label}:</strong> {title}
                 </div>

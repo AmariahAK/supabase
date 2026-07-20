@@ -1,15 +1,7 @@
 import { forwardRef } from 'react'
 import { Alert, cn } from 'ui'
 
-import {
-  CONTENT_CLASS,
-  getSurfaceClass,
-  INLINE_FIRST_P,
-  LAYOUT_CLASS,
-  TITLE_CLASS,
-  TYPE_LABEL,
-  TYPE_TO_VARIANT,
-} from './Admonition.constants'
+import { TYPE_LABEL, TYPE_TO_VARIANT } from './Admonition.constants'
 import type { AdmonitionLayout, AdmonitionProps, AdmonitionType } from './Admonition.types'
 import { AdmonitionTypeIcon } from './AdmonitionIcons'
 
@@ -47,25 +39,38 @@ export const Admonition = forwardRef<
         className={cn(
           'overflow-hidden',
           layout === 'responsive' && '@container',
-          getSurfaceClass(type),
+          type === 'success' &&
+            'bg-brand-400/15 dark:bg-brand/10 border-brand-400 dark:border-brand-500',
           className
         )}
       >
         <div className="flex items-start gap-3">
           {showIcon && (icon ?? <AdmonitionTypeIcon type={type} />)}
-          <div className={cn('min-w-0 flex-1', LAYOUT_CLASS[layout])}>
+          <div
+            className={cn(
+              'min-w-0 flex-1',
+              layout === 'vertical' && 'flex flex-col',
+              layout === 'horizontal' &&
+                'flex flex-row items-center justify-between gap-x-6 lg:gap-x-8',
+              layout === 'responsive' &&
+                'flex flex-col @md:flex-row @md:items-center @md:justify-between @md:gap-x-6 @lg:gap-x-8'
+            )}
+          >
             <div
               {...childProps?.description}
               className={cn(
-                CONTENT_CLASS,
-                !title && INLINE_FIRST_P,
+                'text-sm text-foreground-light [&_p]:!mt-0 [&_p]:!mb-1.5 [&_p:last-child]:!mb-0 [&_p:only-child]:!mb-0 [&_ul]:!my-1.5 [&_ol]:!my-1.5 [&_li]:!my-0.5',
+                !title && '[&>p:first-of-type]:inline',
                 childProps?.description?.className
               )}
             >
               {title ? (
                 <div
                   {...childProps?.title}
-                  className={cn(TITLE_CLASS, childProps?.title?.className)}
+                  className={cn(
+                    'mb-0.5 text-sm font-medium text-foreground',
+                    childProps?.title?.className
+                  )}
                 >
                   <strong>{label}:</strong> {title}
                 </div>

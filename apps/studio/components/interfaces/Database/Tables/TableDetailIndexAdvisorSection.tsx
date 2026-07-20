@@ -9,10 +9,10 @@ import {
   TableIndexAdvisorProvider,
   useTableIndexAdvisor,
 } from '@/components/grid/context/TableIndexAdvisorContext'
-import { EnableIndexAdvisorDialog } from '@/components/interfaces/QueryPerformance/IndexAdvisor/EnableIndexAdvisorButton'
 import { useIndexAdvisorStatus } from '@/components/interfaces/QueryPerformance/hooks/useIsIndexAdvisorStatus'
-import { useTrack } from '@/lib/telemetry/track'
+import { EnableIndexAdvisorDialog } from '@/components/interfaces/QueryPerformance/IndexAdvisor/EnableIndexAdvisorButton'
 import type { TableLike } from '@/data/table-editor/table-editor-types'
+import { useTrack } from '@/lib/telemetry/track'
 
 interface TableDetailIndexAdvisorSectionProps {
   table: TableLike

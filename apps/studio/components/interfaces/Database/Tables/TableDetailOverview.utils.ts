@@ -85,7 +85,10 @@ const SIZE_UNIT_MULTIPLIERS: Record<string, number> = {
 export function parseTableSizeLabelToBytes(size?: string): number {
   if (!size) return 0
 
-  const match = size.trim().toLowerCase().match(/^([\d.]+)\s*([a-z]+)$/)
+  const match = size
+    .trim()
+    .toLowerCase()
+    .match(/^([\d.]+)\s*([a-z]+)$/)
   if (!match) return 0
 
   const amount = Number.parseFloat(match[1])

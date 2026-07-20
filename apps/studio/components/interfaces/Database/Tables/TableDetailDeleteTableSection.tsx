@@ -21,15 +21,15 @@ export function TableDetailDeleteTableSection({ table }: TableDetailDeleteTableS
       <CriticalIcon />
       <AlertTitle>Once this table is deleted, it can no longer be restored</AlertTitle>
       <AlertDescription>
-        Deleting <code className="text-code-inline">{table.schema}.{table.name}</code> permanently
-        removes the table and its data. Use cascade if dependent objects must be removed too.
+        Deleting{' '}
+        <code className="text-code-inline">
+          {table.schema}.{table.name}
+        </code>{' '}
+        permanently removes the table and its data. Use cascade if dependent objects must be removed
+        too.
       </AlertDescription>
       <AlertDescription className="mt-3">
-        <Button
-          variant="danger"
-          disabled={!canDeleteTables}
-          onClick={() => snap.onDeleteTable()}
-        >
+        <Button variant="danger" disabled={!canDeleteTables} onClick={() => snap.onDeleteTable()}>
           Delete table
         </Button>
       </AlertDescription>

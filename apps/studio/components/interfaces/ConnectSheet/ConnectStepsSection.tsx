@@ -6,6 +6,7 @@ import { Button } from 'ui'
 import { Admonition } from 'ui-patterns/admonition'
 import { GenericSkeletonLoader } from 'ui-patterns/ShimmeringLoader'
 
+import { connectSchema } from './connect.schema'
 import type {
   ConnectionStringPooler,
   ConnectState,
@@ -23,7 +24,6 @@ import {
   shouldShowSelfHostedMcpNotice,
   shouldShowSessionPoolerNotice,
 } from './ConnectStepsSection.utils'
-import { connectSchema } from './connect.schema'
 import { CopyPromptAdmonition } from './CopyPromptAdmonition'
 import { buildConnectionStringPooler, getConnectionStrings } from './DatabaseSettings.utils'
 import { getAddons } from '@/components/interfaces/Billing/Subscription/Subscription.utils'

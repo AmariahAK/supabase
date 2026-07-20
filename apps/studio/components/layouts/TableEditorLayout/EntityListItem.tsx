@@ -1,5 +1,15 @@
 import { useParams } from 'common'
-import { Columns2, Copy, Download, Edit, Globe, Lock, MoreVertical, Settings, Trash } from 'lucide-react'
+import {
+  Columns2,
+  Copy,
+  Download,
+  Edit,
+  Globe,
+  Lock,
+  MoreVertical,
+  Settings,
+  Trash,
+} from 'lucide-react'
 import Link from 'next/link'
 import { type CSSProperties, type MouseEvent } from 'react'
 import { toast } from 'sonner'

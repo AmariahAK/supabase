@@ -42,6 +42,7 @@ import { AgentPluginsPanel } from '../ui/AgentPluginsPanel'
 import { ErrorCodes } from '../ui/ErrorCodes'
 import { McpConfigPanel } from '../ui/McpConfigPanel'
 import { Prompt, PromptContent, PromptCopy, PromptPanel, PromptTitle } from '../ui/PromptPanel'
+import { SupportedAgentsTable } from '../ui/SupportedAgentsTable'
 
 // Wrap Admonition for Docs-specific styling (within MDX prose, requires a margin-bottom)
 const AdmonitionWithMargin = (props: AdmonitionProps) => {
@@ -110,6 +111,7 @@ const components = {
   ShowUntil,
   SqlToRest,
   StepHikeCompact,
+  SupportedAgentsTable,
   Tabs,
   TabPanel,
   TerraformProviderSchema,

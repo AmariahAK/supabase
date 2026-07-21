@@ -6,12 +6,12 @@ import { useState } from 'react'
 import { CodeBlock } from 'ui-patterns/CodeBlock'
 import { ClientSelectDropdown, type McpClient } from 'ui-patterns/McpUrlBuilder'
 
-interface PluginClient extends McpClient {
+export interface PluginClient extends McpClient {
   repoUrl?: string
   docsUrl?: string
 }
 
-const PLUGIN_CLIENTS: PluginClient[] = [
+export const PLUGIN_CLIENTS: PluginClient[] = [
   {
     key: 'claude-code',
     label: 'Claude Code',

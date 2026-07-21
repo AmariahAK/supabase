@@ -899,16 +899,13 @@ export interface CopyAsMarkdownClickedEvent {
 }
 
 /**
- * User clicked "Ask..." to open a new window to consult an agent about the current page.
+ * User clicked the sidebar link to set up an AI coding agent with Supabase.
  *
  * @group Events
  * @source docs
  */
-export interface AskAiClickedEvent {
-  action: 'ask_ai_clicked'
-  properties: {
-    agent: 'chatgpt' | 'claude'
-  }
+export interface AgentSetupClickedEvent {
+  action: 'agent_setup_clicked'
 }
 
 /**
@@ -3578,7 +3575,7 @@ export type TelemetryEvent =
   | AssistantMessageRatingSubmittedEvent
   | DocsFeedbackClickedEvent
   | CopyAsMarkdownClickedEvent
-  | AskAiClickedEvent
+  | AgentSetupClickedEvent
   | DocsContentListingClickedEvent
   | Docs404RecommendationClickedEvent
   | DocsProjectConfigVariablesCopyButtonClickedEvent

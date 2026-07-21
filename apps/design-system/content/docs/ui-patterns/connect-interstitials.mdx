@@ -118,6 +118,16 @@ description; do not manufacture a letter avatar to fill the left side of a pair.
   wide
 />
 
+<ComponentPreview
+  name="connect-interstitial-logo-uploaded"
+  description="Uploaded OAuth app icon: forced-light tiles on both sides"
+  align="start"
+  className="p-0"
+  padded={false}
+  peekCode
+  wide
+/>
+
 ### Assets
 
 Treat Connect logos as assets, not theme tokens.
@@ -133,6 +143,11 @@ static or light asset (most partner icons), keep `SupabaseLogo` on its light
 mark too. Theme-aware dark variants are fine for curated partners that already
 have them, but then both sides of the pair should use the dark set together.
 
+**Uploaded icons force light tiles.** Organisation OAuth app icons from Studio
+are unclassified bitmaps. When pairing one with `SupabaseLogo`, use fixed light
+tile chrome (`bg-white` / `SupabaseLogo forceLight`) on both sides in light and
+dark Studio themes. Do not invent a dark variant for the upload.
+
 **What not to do**
 
 - Do not invent light/dark pairs for arbitrary remote OAuth icons.
@@ -142,9 +157,10 @@ have them, but then both sides of the pair should use the dark set together.
 **Where logos come from on `/authorize`**
 
 - Curated partner logos resolve from allowlisted `redirect_uri` hosts only,
-  not from self-asserted `name` or `website`.
+  not from self-asserted `name` or `website`. Those pairs may use theme tiles
+  and dark assets when the partner has them.
 - Published organisation OAuth app icons uploaded in Studio remain trusted
-  remote images.
+  remote images, paired with forced-light tiles on both sides.
 - Everything else falls back to `SupabaseLogo` alone.
 
 ```tsx

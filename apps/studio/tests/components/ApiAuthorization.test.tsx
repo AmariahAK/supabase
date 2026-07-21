@@ -173,6 +173,32 @@ describe('AuthorizeConnectLogo', () => {
     expect(screen.queryByAltText('Unknown App')).not.toBeInTheDocument()
     expect(screen.queryByText('U')).not.toBeInTheDocument()
   })
+
+  test('forces light tiles when pairing an uploaded OAuth app icon', () => {
+    customRender(
+      <AuthorizeConnectLogo
+        icon="https://example.com/uploaded-icon.png"
+        name="Acme"
+        redirectUri="https://acme.example/callback"
+      />
+    )
+
+    expect(screen.getByAltText('Acme').parentElement).toHaveClass('bg-white')
+    expect(screen.getByAltText('Supabase').parentElement).toHaveClass('bg-white')
+  })
+
+  test('keeps theme tiles for curated partners', () => {
+    customRender(
+      <AuthorizeConnectLogo
+        icon={null}
+        name="Cursor"
+        redirectUri="https://cursor.com/callback"
+      />
+    )
+
+    expect(screen.getByAltText('Cursor').parentElement).toHaveClass('bg-surface-75')
+    expect(screen.getByAltText('Supabase').parentElement).toHaveClass('bg-surface-75')
+  })
 })
 
 describe('ApiAuthorizationScreen', () => {

@@ -15,7 +15,7 @@ import { InfoTooltip } from 'ui-patterns/info-tooltip'
 
 import { PERMISSIONS_DESCRIPTIONS } from './OAuthApps.constants'
 import { getRequesterLogo } from './oauthRequesterBranding'
-import { LogoBox, LogoPair, SupabaseLogo } from '@/components/layouts/InterstitialLayout'
+import { LogoBox, LogoPair, SupabaseLogo, CONNECT_LOGO_LIGHT_TILE_CLASSNAME } from '@/components/layouts/InterstitialLayout'
 import { InlineLink } from '@/components/ui/InlineLink'
 import { DOCS_URL } from '@/lib/constants'
 
@@ -171,6 +171,10 @@ const PERMISSION_GROUPS: PermissionGroup[] = [
  * Connect interstitial header mark for `/authorize`.
  * Curated logos resolve from allowlisted redirect_uri hosts; otherwise pair only
  * when a usable remote icon is present, else show Supabase alone.
+ *
+ * Uploaded / unknown bitmaps have no light/dark metadata, so both tiles use
+ * fixed light chrome (`forceLight`) across Studio themes. Curated partners keep
+ * theme-reactive tiles and may swap dark assets when available.
  */
 export const AuthorizeConnectLogo = ({
   icon,
@@ -200,10 +204,14 @@ export const AuthorizeConnectLogo = ({
     return <SupabaseLogo />
   }
 
+  const forceLightPair = !logo.isKnownClient
+
   return (
     <LogoPair
       left={
-        <LogoBox className="bg-surface-75">
+        <LogoBox
+          className={forceLightPair ? CONNECT_LOGO_LIGHT_TILE_CLASSNAME : 'bg-surface-75'}
+        >
           <img
             alt={name}
             src={logo.src}
@@ -212,7 +220,7 @@ export const AuthorizeConnectLogo = ({
           />
         </LogoBox>
       }
-      right={<SupabaseLogo />}
+      right={<SupabaseLogo forceLight={forceLightPair} />}
     />
   )
 }

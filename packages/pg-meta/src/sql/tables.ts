@@ -1,6 +1,38 @@
-import { safeSql } from '../pg-format'
+import { safeSql, type SafeSqlFragment } from '../pg-format'
 
-export const TABLES_SQL = /* SQL */ safeSql`
+/**
+ * Builder for the tables introspection query.
+ *
+ * `targetOid`, when provided, is a scalar SQL fragment yielding the single OID
+ * to restrict the query to -- either a literal (`123`) or an uncorrelated scalar
+ * subquery (`(select tc.oid from pg_class tc join ... where relname=..)`). It is
+ * compared with `=` so the planner evaluates it once as an initplan constant and
+ * drives INDEX scans on the base pg_class scan AND the primary-key /
+ * relationships subqueries, instead of computing sizes, PKs and FK relationships
+ * for the ENTIRE catalog. (A multiply-referenced CTE would be materialized and
+ * act as an optimization barrier, forcing seq scans -- hence a scalar.) The
+ * relationships filter keeps BOTH directions (conrelid OR confrelid), matching
+ * the outgoing/incoming FK rows the unscoped query would have matched by name.
+ *
+ * When `targetOid` is omitted the injected fragments are empty and the rendered
+ * SQL is byte-identical to the legacy full-catalog query -- `TABLES_SQL` below
+ * is exactly that rendering, so every existing consumer is unaffected.
+ */
+export const getTablesSql = (targetOid?: SafeSqlFragment) => {
+  const mainScope = targetOid
+    ? safeSql`
+  AND c.oid = ${targetOid}`
+    : (safeSql`` as SafeSqlFragment)
+  const pkScope = targetOid
+    ? safeSql`
+      and c.oid = ${targetOid}`
+    : (safeSql`` as SafeSqlFragment)
+  const relScope = targetOid
+    ? safeSql`
+      and (c.conrelid = ${targetOid} or c.confrelid = ${targetOid})`
+    : (safeSql`` as SafeSqlFragment)
+
+  return /* SQL */ safeSql`
 SELECT
   c.oid :: int8 AS id,
   nc.nspname AS schema,
@@ -46,7 +78,7 @@ FROM
       join pg_namespace n on c.relnamespace = n.oid
       join pg_attribute a on a.attrelid = c.oid and a.attnum = any(i.indkey)
     where
-      i.indisprimary
+      i.indisprimary${pkScope}
     group by c.oid
   ) as pk
   on pk.table_id = c.oid
@@ -73,7 +105,7 @@ FROM
       join pg_namespace nta on cta.relnamespace = nta.oid
     ) on ta.attrelid = c.confrelid and ta.attnum = any (c.confkey)
     where
-      c.contype = 'f'
+      c.contype = 'f'${relScope}
   ) as relationships
   on (relationships.source_schema = nc.nspname and relationships.source_table_name = c.relname)
   or (relationships.target_table_schema = nc.nspname and relationships.target_table_name = c.relname)
@@ -87,7 +119,7 @@ WHERE
       'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER'
     )
     OR has_any_column_privilege(c.oid, 'SELECT, INSERT, UPDATE, REFERENCES')
-  )
+  )${mainScope}
 group by
   c.oid,
   c.relname,
@@ -97,3 +129,6 @@ group by
   nc.nspname,
   pk.primary_keys
 `
+}
+
+export const TABLES_SQL = getTablesSql()

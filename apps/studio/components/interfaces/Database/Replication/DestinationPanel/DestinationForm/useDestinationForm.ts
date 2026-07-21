@@ -4,9 +4,10 @@ import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { type DestinationType, type ExistingDestination } from '../DestinationPanel.types'
-import { CREATE_NEW_NAMESPACE } from './DestinationForm.constants'
+import { CREATE_NEW_NAMESPACE, DEFAULT_MAX_FILL_MS } from './DestinationForm.constants'
 import { DestinationPanelFormSchema as FormSchema } from './DestinationForm.schema'
 import {
+  buildBatchConfig,
   buildDestinationConfig,
   buildDestinationConfigForValidation,
   buildTableSyncCopyConfig,
@@ -15,6 +16,7 @@ import {
   useCreateDestinationPipelineMutation,
   type BatchConfig,
 } from '@/data/replication/create-destination-pipeline-mutation'
+import type { ReplicationPipelineByIdData } from '@/data/replication/pipeline-by-id-query'
 import { useReplicationSourcesQuery } from '@/data/replication/sources-query'
 import { useStartPipelineMutation } from '@/data/replication/start-pipeline-mutation'
 import { useUpdateDestinationPipelineMutation } from '@/data/replication/update-destination-pipeline-mutation'
@@ -31,7 +33,13 @@ import {
 } from '@/state/replication-pipeline-request-status'
 import { type ResponseError } from '@/types'
 
-export const useDestinationForm = ({ selectedType }: { selectedType: DestinationType }) => {
+export const useDestinationForm = ({
+  selectedType,
+  editMode,
+}: {
+  selectedType: DestinationType
+  editMode: boolean
+}) => {
   const { ref: projectRef } = useParams()
   const { setRequestStatus } = usePipelineRequestStatus()
 
@@ -127,18 +135,26 @@ export const useDestinationForm = ({ selectedType }: { selectedType: Destination
 
     // Call both validation endpoints in parallel and wait for both to complete
     // even if one fails - this makes the validation feel like a single operation
+    const destinationValidation = editMode
+      ? Promise.resolve({ validation_failures: [] as ValidationFailure[] })
+      : validateDestination({
+          projectRef,
+          destinationConfig: buildDestinationConfigForValidation({
+            projectRef,
+            selectedType,
+            data,
+          }),
+          sourceId,
+          publicationName: data.publicationName,
+          maxFillMs: data.maxFillMs,
+          maxTableSyncWorkers: data.maxTableSyncWorkers,
+          maxCopyConnectionsPerTable: data.maxCopyConnectionsPerTable,
+          invalidatedSlotBehavior: data.invalidatedSlotBehavior,
+          tableSyncCopy,
+        })
+
     const results = await Promise.allSettled([
-      validateDestination({
-        projectRef,
-        destinationConfig: buildDestinationConfigForValidation({ projectRef, selectedType, data }),
-        sourceId,
-        publicationName: data.publicationName,
-        maxFillMs: data.maxFillMs,
-        maxTableSyncWorkers: data.maxTableSyncWorkers,
-        maxCopyConnectionsPerTable: data.maxCopyConnectionsPerTable,
-        invalidatedSlotBehavior: data.invalidatedSlotBehavior,
-        tableSyncCopy,
-      }),
+      destinationValidation,
       validatePipeline({
         projectRef,
         sourceId,
@@ -194,11 +210,13 @@ export const useDestinationForm = ({ selectedType }: { selectedType: Destination
   const submitPipeline = async ({
     data,
     existingDestination,
+    existingBatch,
     onSuccess,
     onClose,
   }: {
     data: z.infer<typeof FormSchema>
     existingDestination?: ExistingDestination
+    existingBatch?: ReplicationPipelineByIdData['config']['batch']
     onSuccess: () => void
     onClose: () => void
   }) => {
@@ -218,8 +236,14 @@ export const useDestinationForm = ({ selectedType }: { selectedType: Destination
 
       if (!destinationConfig) throw new Error('Destination configuration is missing')
 
-      const batchConfig: BatchConfig | undefined =
-        data.maxFillMs !== undefined ? { maxFillMs: data.maxFillMs } : undefined
+      const shouldSendBatch =
+        !editMode || data.maxFillMs !== (existingBatch?.max_fill_ms ?? DEFAULT_MAX_FILL_MS)
+      const batchConfig: BatchConfig | undefined = shouldSendBatch
+        ? buildBatchConfig({
+            maxFillMs: data.maxFillMs,
+            existingBatch,
+          })
+        : undefined
       const hasBatchFields = batchConfig !== undefined
       const tableSyncCopy = buildTableSyncCopyConfig({
         mode: data.tableSyncCopyMode,

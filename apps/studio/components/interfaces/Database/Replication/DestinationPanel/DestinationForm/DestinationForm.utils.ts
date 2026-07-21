@@ -25,6 +25,7 @@ import {
 import { type DucklakeApiConfig } from './DuckLake/DuckLake.utils'
 import { type SnowflakeApiConfig } from './Snowflake/Snowflake.utils'
 import {
+  BatchConfig,
   BigQueryDestinationConfig,
   ClickHouseDestinationConfig,
   DestinationConfig,
@@ -75,7 +76,10 @@ export const generateDefaultValues = ({
 }): DestinationPanelSchemaType => {
   const config = destinationData?.config
   const isBigQueryConfig = config && 'big_query' in config
-  const isIcebergConfig = config && 'iceberg' in config
+  const icebergConfig =
+    config && 'iceberg' in config && 'supabase' in config.iceberg
+      ? config.iceberg.supabase
+      : undefined
   const ducklakeConfigValue =
     config && 'ducklake' in (config as Record<string, unknown>)
       ? (config as Record<string, unknown>).ducklake
@@ -124,19 +128,21 @@ export const generateDefaultValues = ({
     // BigQuery fields
     projectId: isBigQueryConfig ? config.big_query.project_id : '',
     datasetId: isBigQueryConfig ? config.big_query.dataset_id : '',
-    serviceAccountKey: isBigQueryConfig ? config.big_query.service_account_key : '',
+    // Destination response DTOs intentionally omit stored secrets. Edit submissions
+    // leave blank secret fields unset so the existing values are preserved.
+    serviceAccountKey: '',
     connectionPoolSize:
       (config as { big_query?: { connection_pool_size?: number } } | undefined)?.big_query
         ?.connection_pool_size ?? DEFAULT_CONNECTION_POOL_SIZE,
     maxStalenessMins: isBigQueryConfig ? config.big_query.max_staleness_mins : undefined, // Default: null
     // Analytics Bucket fields
-    warehouseName: isIcebergConfig ? config.iceberg.supabase.warehouse_name : '',
-    namespace: isIcebergConfig ? config.iceberg.supabase.namespace : '',
+    warehouseName: icebergConfig?.warehouse_name ?? '',
+    namespace: icebergConfig?.namespace ?? '',
     newNamespaceName: '',
-    catalogToken: isIcebergConfig ? config.iceberg.supabase.catalog_token : catalogToken,
-    s3AccessKeyId: isIcebergConfig ? config.iceberg.supabase.s3_access_key_id : '',
-    s3SecretAccessKey: isIcebergConfig ? config.iceberg.supabase.s3_secret_access_key : '',
-    s3Region: region ?? (isIcebergConfig ? config.iceberg.supabase.s3_region : ''),
+    catalogToken: editMode || icebergConfig ? '' : catalogToken,
+    s3AccessKeyId: '',
+    s3SecretAccessKey: '',
+    s3Region: region ?? icebergConfig?.s3_region ?? '',
     // DuckLake fields
     // New destinations default to the managed "Use Supabase" mode with the current project
     // pre-selected as both catalog and storage. Existing destinations always read back as the
@@ -193,6 +199,22 @@ export const buildTableSyncCopyConfig = ({
   return {
     type: mode,
     table_ids: tableIds,
+  }
+}
+
+export const buildBatchConfig = ({
+  maxFillMs,
+  existingBatch,
+}: {
+  maxFillMs?: number
+  existingBatch?: ReplicationPipelineByIdData['config']['batch']
+}): BatchConfig | undefined => {
+  if (maxFillMs === undefined && existingBatch === undefined) return undefined
+
+  return {
+    maxFillMs,
+    maxBytes: existingBatch?.max_bytes,
+    memoryBudgetRatio: existingBatch?.memory_budget_ratio,
   }
 }
 

@@ -5,6 +5,7 @@ import { getBigQueryValidationIssues } from './BigQuery/BigQuery.utils'
 import { getClickHouseValidationIssues } from './ClickHouse/ClickHouse.utils'
 import { CREATE_NEW_KEY, CREATE_NEW_NAMESPACE } from './DestinationForm.constants'
 import {
+  buildBatchConfig,
   buildDestinationConfig,
   buildDestinationConfigForValidation,
   buildTableSyncCopyConfig,
@@ -90,6 +91,23 @@ const baseSnowflakeFormData = {
 }
 
 describe('DestinationForm.utils table copy selection', () => {
+  it('preserves server-managed batch fields while changing the exposed fill interval', () => {
+    expect(
+      buildBatchConfig({
+        maxFillMs: 500,
+        existingBatch: {
+          max_fill_ms: 200,
+          max_bytes: 8_388_608,
+          memory_budget_ratio: 0.2,
+        },
+      })
+    ).toEqual({
+      maxFillMs: 500,
+      maxBytes: 8_388_608,
+      memoryBudgetRatio: 0.2,
+    })
+  })
+
   it.each(['include_all_tables', 'skip_all_tables'] as const)(
     'builds the %s config without table ids',
     (mode) => {
@@ -139,6 +157,15 @@ describe('DestinationForm.utils table copy selection', () => {
 
     expect(defaults.tableSyncCopyMode).toBe('include_tables')
     expect(defaults.tableSyncCopyTableIds).toEqual(['202', '101'])
+  })
+
+  it('never hydrates an edit form with a newly revealed catalog token', () => {
+    const defaults = generateDefaultValues({
+      catalogToken: 'newly-revealed-token',
+      editMode: true,
+    })
+
+    expect(defaults.catalogToken).toBe('')
   })
 
   it('drops selected ids that are no longer in the publication', () => {

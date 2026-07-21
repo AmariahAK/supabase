@@ -5,14 +5,16 @@ import { Admonition } from 'ui-patterns/admonition'
 import { FormItemLayout } from 'ui-patterns/form/FormItemLayout/FormItemLayout'
 import { MultiSelector } from 'ui-patterns/multi-select'
 
-import { getPublicationTableIds } from './DestinationForm.utils'
 import type { DestinationPanelSchemaType } from './DestinationForm.schema'
+import { getPublicationTableIds } from './DestinationForm.utils'
 import type { ReplicationPublication } from '@/data/replication/publications-query'
 
 type TableCopySelectionProps = {
   form: UseFormReturn<DestinationPanelSchemaType>
   publications: ReplicationPublication[]
   isLoadingPublications: boolean
+  isErrorPublications: boolean
+  editMode: boolean
 }
 
 const isSelectiveMode = (mode: DestinationPanelSchemaType['tableSyncCopyMode']) =>
@@ -24,6 +26,8 @@ export const TableCopySelection = ({
   form,
   publications,
   isLoadingPublications,
+  isErrorPublications,
+  editMode,
 }: TableCopySelectionProps) => {
   const { publicationName, tableSyncCopyMode, tableSyncCopyTableIds } = form.watch()
 
@@ -48,9 +52,10 @@ export const TableCopySelection = ({
   const selectedPublicationCount = tableSyncCopyTableIds.filter((id) =>
     publicationTableIds.has(id)
   ).length
-  const staleSelectedCount = tableSyncCopyTableIds.filter(
-    (id) => !publicationTableIds.has(id)
-  ).length
+  const staleSelectedCount =
+    isLoadingPublications || isErrorPublications
+      ? 0
+      : tableSyncCopyTableIds.filter((id) => !publicationTableIds.has(id)).length
   const tableCount = publicationTables.length
 
   return (
@@ -102,6 +107,24 @@ export const TableCopySelection = ({
         )}
       />
 
+      {editMode && (
+        <Admonition type="note">
+          <p className="leading-normal!">
+            Changing this setting does not immediately re-copy tables that have completed their
+            initial sync. It applies whenever a table next requires an initial sync.
+          </p>
+        </Admonition>
+      )}
+
+      {isErrorPublications && (
+        <Admonition type="warning">
+          <p className="leading-normal!">
+            Publication tables could not be loaded. Refresh before changing or saving the initial
+            copy configuration.
+          </p>
+        </Admonition>
+      )}
+
       {isSelectiveMode(tableSyncCopyMode) && (
         <FormField
           control={form.control}
@@ -120,7 +143,12 @@ export const TableCopySelection = ({
                 <MultiSelector
                   values={field.value}
                   onValuesChange={field.onChange}
-                  disabled={isLoadingPublications || !publicationName || tableCount === 0}
+                  disabled={
+                    isLoadingPublications ||
+                    isErrorPublications ||
+                    !publicationName ||
+                    tableCount === 0
+                  }
                 >
                   <MultiSelector.Trigger
                     badgeLimit={2}

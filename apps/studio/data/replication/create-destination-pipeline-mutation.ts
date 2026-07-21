@@ -4,8 +4,11 @@ import { toast } from 'sonner'
 
 import { optionalSecret } from './destination-secret-utils'
 import { replicationKeys } from './keys'
+import type { TableSyncCopyConfig } from './table-sync-copy'
 import { handleError, post } from '@/data/fetchers'
 import type { ResponseError, UseCustomMutationOptions } from '@/types'
+
+export type { TableSyncCopyConfig } from './table-sync-copy'
 
 export type DestinationConfig =
   | { bigQuery: BigQueryDestinationConfig }
@@ -139,13 +142,9 @@ export type ClickHouseDestinationConfig = {
 
 export type BatchConfig = {
   maxFillMs?: number
+  maxBytes?: number
+  memoryBudgetRatio?: number
 }
-
-export type TableSyncCopyConfig =
-  | { type: 'include_all_tables' }
-  | { type: 'skip_all_tables' }
-  | { type: 'include_tables'; table_ids: number[] }
-  | { type: 'skip_tables'; table_ids: number[] }
 
 export type PipelineConfig = {
   publicationName: string
@@ -169,7 +168,13 @@ export const buildPipelineApiConfig = ({
   max_copy_connections_per_table: maxCopyConnectionsPerTable,
   invalidated_slot_behavior: invalidatedSlotBehavior,
   table_sync_copy: tableSyncCopy,
-  batch: batch ? { max_fill_ms: batch.maxFillMs } : undefined,
+  batch: batch
+    ? {
+        max_fill_ms: batch.maxFillMs,
+        max_bytes: batch.maxBytes,
+        memory_budget_ratio: batch.memoryBudgetRatio,
+      }
+    : undefined,
 })
 
 export type CreateDestinationPipelineParams = {

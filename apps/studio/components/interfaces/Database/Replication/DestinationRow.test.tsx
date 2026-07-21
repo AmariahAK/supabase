@@ -72,7 +72,11 @@ const addDestinationMock = () =>
         id: DESTINATION_ID,
         name: 'My BigQuery Destination',
         config: {
-          big_query: { project_id: 'gcp-proj', dataset_id: 'analytics', service_account_key: '{}' },
+          big_query: {
+            project_id: 'gcp-proj',
+            dataset_id: 'analytics',
+            connection_pool_size: 5,
+          },
         },
       }),
   })

@@ -10,7 +10,7 @@ describe('buildPipelineApiConfig', () => {
     expect(
       buildPipelineApiConfig({
         publicationName: 'analytics',
-        batch: { maxFillMs: 500 },
+        batch: { maxFillMs: 500, maxBytes: 8_388_608, memoryBudgetRatio: 0.2 },
         maxTableSyncWorkers: 4,
         maxCopyConnectionsPerTable: 2,
         invalidatedSlotBehavior: 'recreate',
@@ -18,7 +18,7 @@ describe('buildPipelineApiConfig', () => {
       })
     ).toEqual({
       publication_name: 'analytics',
-      batch: { max_fill_ms: 500 },
+      batch: { max_fill_ms: 500, max_bytes: 8_388_608, memory_budget_ratio: 0.2 },
       max_table_sync_workers: 4,
       max_copy_connections_per_table: 2,
       invalidated_slot_behavior: 'recreate',

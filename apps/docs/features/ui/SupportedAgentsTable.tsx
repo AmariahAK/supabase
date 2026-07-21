@@ -63,9 +63,12 @@ function SupportCell({ supported }: { supported: boolean }) {
   return supported ? (
     <Check size={16} strokeWidth={2} className="text-brand mx-auto" aria-label="Supported" />
   ) : (
-    <span className="text-foreground-muted" aria-hidden="true">
-      –
-    </span>
+    <>
+      <span className="text-foreground-muted" aria-hidden="true">
+        –
+      </span>
+      <span className="sr-only">Not supported</span>
+    </>
   )
 }
 

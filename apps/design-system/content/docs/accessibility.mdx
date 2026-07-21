@@ -56,7 +56,7 @@ focus-visible:ring-offset-background
 
 **`focus-inset`**
 
-Uses `outline` (not `ring`) so it paints reliably on interactive `<tr>`s. Tailwind `ring` is `box-shadow`, which browsers often skip on `display: table-row` (notably Safari). Do not put `focus-ring` or raw `ring-*` on a `<tr>`, and do not add `outline-hidden` alongside `focus-inset` — `outline-hidden` sets `outline-style: none` and will hide the indicator.
+Uses `outline` (not `ring`) so it paints reliably on interactive `<tr>`s. Tailwind `ring` is `box-shadow`, which browsers often skip on `display: table-row` (notably Safari). Do not put `focus-ring` or raw `ring-*` on a `<tr>`, and do not add `outline-hidden` alongside `focus-inset`. `outline-hidden` sets `outline-style: none` and will hide the indicator.
 
 ```txt
 &:focus-visible {
@@ -74,7 +74,7 @@ Rules:
 
 - Prefer `:focus-visible` over `:focus` so click/tap does not show a focus indicator
 - Never use `outline-none` / `outline-hidden` without a ring or outline replacement
-- Always use the shared colour (`ring-ring` / `outline-ring`) — variants (primary, danger, warning) do not change focus colour
+- Always use the shared color (`ring-ring` / `outline-ring`). Variants (primary, danger, warning) do not change focus colour
 - Do not animate the focus indicator; avoid `transition-all` / `transition` on controls that show one (prefer `transition-colors`)
 - Prefer `focus-ring` / `focus-inset` over copy-pasting the class stack
 - On interactive `<tr>`s, use `focus-inset` only. `focus-ring` will look fine in some browsers and invisible in others

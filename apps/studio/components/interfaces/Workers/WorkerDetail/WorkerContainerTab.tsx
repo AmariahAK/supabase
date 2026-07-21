@@ -57,55 +57,52 @@ export const WorkerContainerTab = ({ worker }: { worker: Worker }) => {
 
   return (
     <ConstrainedIntegrationTabScaffold>
-      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 items-start gap-10 @4xl:grid-cols-[minmax(0,760px)_240px]">
-        <div className="flex min-w-0 flex-col gap-8">
-          <section>
-            <h3 className="text-sm text-foreground">Container</h3>
-            <p className="mt-1 text-sm text-foreground-light">{WORKER_SIZE_GUIDANCE}</p>
-            <div className="mt-4 rounded-md border border-default bg-surface-100 px-4">
-              <Fact label="Runtime">
-                <WorkerRuntimeBadge runtime={worker.runtime} />
-              </Fact>
-              <Fact label="Base image">
-                <code className="text-xs text-foreground">{BASE_IMAGES[worker.runtime]}</code>
-              </Fact>
-              <Fact label="Entrypoint">
-                <code className="text-xs text-foreground">{ENTRYPOINTS[worker.runtime]}</code>
-              </Fact>
-              <Fact label="Listening port">
-                <code className="text-xs text-foreground">$PORT → 8080</code>
-              </Fact>
-            </div>
-          </section>
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+        <section>
+          <h3 className="text-sm text-foreground">Container</h3>
+          <p className="mt-1 text-sm text-foreground-light">{WORKER_SIZE_GUIDANCE}</p>
+          <div className="mt-4 rounded-md border border-default bg-surface-100 px-4">
+            <Fact label="Runtime">
+              <WorkerRuntimeBadge runtime={worker.runtime} />
+            </Fact>
+            <Fact label="Base image">
+              <code className="text-xs text-foreground">{BASE_IMAGES[worker.runtime]}</code>
+            </Fact>
+            <Fact label="Entrypoint">
+              <code className="text-xs text-foreground">{ENTRYPOINTS[worker.runtime]}</code>
+            </Fact>
+            <Fact label="Listening port">
+              <code className="text-xs text-foreground">$PORT → 8080</code>
+            </Fact>
+          </div>
+        </section>
 
-          <section>
-            <h3 className="text-sm text-foreground">Resources</h3>
-            <div className="mt-4 rounded-md border border-default bg-surface-100 px-4">
-              <Fact label="Size">
-                {size.label} · {size.memory} · {size.vcpu}
-              </Fact>
-              <Fact label="Instances">{worker.instances}</Fact>
-              <Fact label="Access">
-                <WorkerAccessBadge access={worker.access} />
-              </Fact>
-              <Fact label="Region">
-                {WORKER_REGION.label} <span className="text-foreground-lighter">(locked)</span>
-              </Fact>
-              <Fact label="Created">
-                <span className="flex items-center justify-end gap-2">
-                  {dayjs(worker.createdAt).format('MMM D, YYYY HH:mm')}
-                  <WorkerActorBadge actor={worker.createdBy} />
-                </span>
-              </Fact>
-            </div>
-          </section>
-        </div>
+        <section>
+          <h3 className="text-sm text-foreground">Resources</h3>
+          <div className="mt-4 rounded-md border border-default bg-surface-100 px-4">
+            <Fact label="Size">
+              {size.label} · {size.memory} · {size.vcpu}
+            </Fact>
+            <Fact label="Instances">{worker.instances}</Fact>
+            <Fact label="Access">
+              <WorkerAccessBadge access={worker.access} />
+            </Fact>
+            <Fact label="Region">
+              {WORKER_REGION.label} <span className="text-foreground-lighter">(locked)</span>
+            </Fact>
+            <Fact label="Created">
+              <span className="flex items-center justify-end gap-2">
+                {dayjs(worker.createdAt).format('MMM D, YYYY HH:mm')}
+                <WorkerActorBadge actor={worker.createdBy} />
+              </span>
+            </Fact>
+          </div>
+        </section>
 
-        {/* Rail: danger zone */}
-        <aside className="flex flex-col gap-4">
-          <div className="rounded-md border border-destructive-400 bg-destructive-200/30 p-4">
-            <h3 className="text-sm text-foreground">Delete {UNIT_NAME_LOWER}</h3>
-            <p className="mt-1 text-sm text-foreground-light">
+        <section>
+          <h3 className="text-sm text-foreground">Delete {UNIT_NAME_LOWER}</h3>
+          <div className="mt-4 rounded-md border border-destructive-400 bg-destructive-200/30 p-4">
+            <p className="text-sm text-foreground-light">
               No resize at alpha — to change the container, delete and redeploy. Deleting frees its
               instances back to the project cap.
             </p>
@@ -113,7 +110,7 @@ export const WorkerContainerTab = ({ worker }: { worker: Worker }) => {
               Delete {UNIT_NAME_LOWER}
             </Button>
           </div>
-        </aside>
+        </section>
       </div>
 
       <DeleteWorkerModal

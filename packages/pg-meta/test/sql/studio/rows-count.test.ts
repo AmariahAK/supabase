@@ -121,23 +121,20 @@ withTestDatabase(
   }
 )
 
-withTestDatabase(
-  'scoped: small analyzed table -> exact count, is_estimate=false',
-  async (db) => {
-    await db.executeQuery(`
+withTestDatabase('scoped: small analyzed table -> exact count, is_estimate=false', async (db) => {
+  await db.executeQuery(`
       create table public.small_analyzed (id int primary key);
       insert into public.small_analyzed select generate_series(1, 5);
       analyze public.small_analyzed;
     `)
-    const table = await tableOf(db, 'public.small_analyzed', 'small_analyzed', 'public')
+  const table = await tableOf(db, 'public.small_analyzed', 'small_analyzed', 'public')
 
-    expect(await runCount(db, { table, scoped: true })).toEqual({ count: 5, is_estimate: false })
-    expect(await runCount(db, { table, scoped: true, isReadOnlyContext: true })).toEqual({
-      count: 5,
-      is_estimate: false,
-    })
-  }
-)
+  expect(await runCount(db, { table, scoped: true })).toEqual({ count: 5, is_estimate: false })
+  expect(await runCount(db, { table, scoped: true, isReadOnlyContext: true })).toEqual({
+    count: 5,
+    is_estimate: false,
+  })
+})
 
 withTestDatabase(
   'scoped: analyzed table over THRESHOLD_COUNT -> estimate, is_estimate=true (unchanged)',

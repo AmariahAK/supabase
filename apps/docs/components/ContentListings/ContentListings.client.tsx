@@ -79,8 +79,17 @@ function ContentListingsGroup({ group }: { group: ContentListingGroup }) {
                       title={item.title}
                       icon={item.icon}
                       hasLightIcon={item.hasLightIcon ?? Boolean(item.icon)}
-                      badge={item.badge ? <Badge variant="success">{item.badge}</Badge> : undefined}
+                      badge={
+                        item.badge && item.badgePosition !== 'below' ? (
+                          <Badge variant="success">{item.badge}</Badge>
+                        ) : undefined
+                      }
                     >
+                      {item.badge && item.badgePosition === 'below' && (
+                        <Badge variant="success" className="mb-2 block w-fit">
+                          {item.badge}
+                        </Badge>
+                      )}
                       {item.description}
                     </GlassPanel>
                   </Link>

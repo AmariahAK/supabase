@@ -82,7 +82,7 @@ function describeSupport(plugin: boolean, mcp: boolean): string {
 }
 
 function badgeFor(plugin: boolean, mcp: boolean): string {
-  if (plugin && mcp) return 'Both'
+  if (plugin && mcp) return 'MCP + Plugin'
   if (plugin) return 'Plugin'
   return 'MCP'
 }
@@ -107,5 +107,6 @@ export const aiToolsSupportedAgents: ContentListingGroup = {
     icon: ICON_ASSETS[agent.key]?.icon,
     hasLightIcon: ICON_ASSETS[agent.key]?.hasLightIcon,
     badge: badgeFor(agent.plugin, agent.mcp),
+    badgePosition: 'below',
   })),
 }

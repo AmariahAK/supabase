@@ -14,6 +14,7 @@ import {
   getViewDefinitionSql,
 } from '../../../src'
 import tablePrivileges from '../../../src/pg-meta-table-privileges'
+import * as tables from '../../../src/pg-meta-tables'
 import * as types from '../../../src/pg-meta-types'
 import { assertPlanWithinBudget, explainAnalyze } from '../../db/plan-guard'
 import { buildStressCatalog, STRESS_TABLE_COUNT } from '../../db/stress-catalog'
@@ -351,4 +352,41 @@ test('tablePrivileges.retrieve: scoped plan stays scoped for a single relation',
     tablePrivileges.retrieve({ name: 't_1000', schema: 'stress', scoped: true }).sql
   )
   assertPlanWithinBudget(result, TABLE_PRIVILEGES_BUDGET)
+}, 60_000)
+
+// ── tables.retrieve (pg-meta-tables.ts / sql/tables.ts) — single table ───────
+// Scoped pushes the target OID (a literal, or an initplan scalar subquery
+// resolved via pg_class's (relname, relnamespace) index) into the base scan and
+// every enrichment subquery, so pg_class/pg_attribute/pg_type/pg_index are all
+// index-driven. Two scaling-catalog seq scans remain and are structural:
+//   - pg_constraint: the relationships subquery keeps BOTH FK directions and
+//     pg_constraint.confrelid has no index, so the incoming-FK half is a seq
+//     scan (identical to getTableEditorSql's relationships CTE);
+//   - pg_attrdef: the columns enrichment resolves column defaults; pg_attrdef is
+//     scanned once and hash-joined against the target's (few) attributes.
+const TABLES_RETRIEVE_BUDGET = {
+  allowedSeqScans: {
+    pg_constraint: {
+      max: 2,
+      reason:
+        'relationships subquery keeps both FK directions; no index on pg_constraint.confrelid, so the incoming-FK half is a seq scan (same as getTableEditorSql)',
+    },
+    pg_attrdef: {
+      max: 1,
+      reason: 'columns enrichment resolves defaults; pg_attrdef scanned once and hash-joined',
+    },
+  },
+}
+
+test('tables.retrieve: scoped plan stays scoped for a single table by id', async () => {
+  const result = await explainAnalyze(db, tables.retrieve({ id: midChainTableId, scoped: true }).sql)
+  assertPlanWithinBudget(result, TABLES_RETRIEVE_BUDGET)
+}, 60_000)
+
+test('tables.retrieve: scoped plan stays scoped for a single table by name+schema', async () => {
+  const result = await explainAnalyze(
+    db,
+    tables.retrieve({ name: 't_1000', schema: 'stress', scoped: true }).sql
+  )
+  assertPlanWithinBudget(result, TABLES_RETRIEVE_BUDGET)
 }, 60_000)

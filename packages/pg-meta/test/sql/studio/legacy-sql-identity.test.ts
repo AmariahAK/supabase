@@ -6,8 +6,10 @@ import { expect, test } from 'vitest'
 
 import { getTableRowsCountSql } from '../../../src'
 import tablePrivileges from '../../../src/pg-meta-table-privileges'
+import * as tables from '../../../src/pg-meta-tables'
 import * as types from '../../../src/pg-meta-types'
 import type { Filter } from '../../../src/query'
+import { TABLES_SQL } from '../../../src/sql/tables'
 
 /**
  * Legacy byte-identity guard.
@@ -61,6 +63,22 @@ test('tablePrivileges.list/retrieve legacy rendering is byte-identical (scoped:f
   expect(String(tablePrivileges.retrieve({ name: 'todos', schema: 'public' }).sql)).toBe(
     fixture('tablepriv-retrieve-name.sql')
   )
+})
+
+test('TABLES_SQL is byte-identical to origin/master (getTablesSql refactor introduced no drift)', () => {
+  // tables-full.sql was extracted verbatim from origin/master's TABLES_SQL
+  // literal; the getTablesSql(targetOids?) refactor must render identically when
+  // unscoped, so every existing consumer (list/retrieve legacy paths) is
+  // unaffected.
+  expect(String(TABLES_SQL)).toBe(fixture('tables-full.sql'))
+})
+
+test('tables.retrieve/list legacy rendering is byte-identical (scoped:false)', () => {
+  expect(String(tables.retrieve({ id: 12345 }).sql)).toBe(fixture('tables-retrieve-id.sql'))
+  expect(String(tables.retrieve({ name: 'todos', schema: 'public' }).sql)).toBe(
+    fixture('tables-retrieve-name.sql')
+  )
+  expect(String(tables.list().sql)).toBe(fixture('tables-list-default.sql'))
 })
 
 test('getTableRowsCountSql legacy rendering is byte-identical (scoped:false)', () => {

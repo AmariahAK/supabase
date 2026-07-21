@@ -1,5 +1,7 @@
 import fs from 'fs'
 import path from 'path'
+import { expect, Page } from '@playwright/test'
+
 import { env } from '../env.config.js'
 import { expectClipboardValue } from '../utils/clipboard.js'
 import { dropTable, query } from '../utils/db/index.js'
@@ -14,7 +16,6 @@ import {
   waitForGridDataToLoad,
   waitForTableToLoad,
 } from '../utils/wait-for-response.js'
-import { expect, Page } from '@playwright/test'
 
 const deleteTable = async (page: Page, ref: string, tableName: string) => {
   const viewLocator = page.getByLabel(`View ${tableName}`)
@@ -33,7 +34,7 @@ const deleteTable = async (page: Page, ref: string, tableName: string) => {
 }
 
 const deleteEnumIfExist = async (page: Page, ref: string, enumName: string) => {
-  const loadTypesPromise = waitForApiResponse(page, 'pg-meta', ref, `types`)
+  const loadTypesPromise = waitForApiResponse(page, 'pg-meta', ref, `query?key=types`)
   await page.goto(toUrl(`/project/${ref}/database/types?schema=public`))
   await loadTypesPromise
   expect(page.getByText('public').first()).toBeVisible()
@@ -1254,7 +1255,7 @@ testRunner('table editor', () => {
     await expect(page.getByRole('link', { name: 'public.pw_table_fk_target' })).toBeVisible()
 
     // Remove the foreign key relation
-    await page.getByRole('button', { name: 'Remove' }).click()
+    await page.getByRole('button', { name: 'Remove', exact: true }).click()
 
     // Save the table changes after removing foreign key
     const removeFkPromise = waitForApiResponseWithTimeout(

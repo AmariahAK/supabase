@@ -3,7 +3,16 @@ import { snakeCase } from 'lodash'
 import z from 'zod'
 
 import { DestinationType } from '../DestinationPanel.types'
-import { CREATE_NEW_KEY, CREATE_NEW_NAMESPACE } from './DestinationForm.constants'
+import { type ClickHouseApiConfig } from './ClickHouse/ClickHouse.utils'
+import {
+  CREATE_NEW_KEY,
+  CREATE_NEW_NAMESPACE,
+  DEFAULT_CONNECTION_POOL_SIZE,
+  DEFAULT_DUCKLAKE_POOL_SIZE,
+  DEFAULT_MAX_COPY_CONNECTIONS_PER_TABLE,
+  DEFAULT_MAX_FILL_MS,
+  DEFAULT_MAX_TABLE_SYNC_WORKERS,
+} from './DestinationForm.constants'
 import {
   DestinationPanelFormSchema,
   type DestinationPanelSchemaType,
@@ -17,6 +26,7 @@ import { type DucklakeApiConfig } from './DuckLake/DuckLake.utils'
 import { type SnowflakeApiConfig } from './Snowflake/Snowflake.utils'
 import {
   BigQueryDestinationConfig,
+  ClickHouseDestinationConfig,
   DestinationConfig,
   DucklakeDestinationConfig,
   DucklakeManualDestinationConfig,
@@ -80,14 +90,25 @@ export const generateDefaultValues = ({
     snowflakeConfigValue && typeof snowflakeConfigValue === 'object'
       ? (snowflakeConfigValue as SnowflakeApiConfig)
       : undefined
+  const clickhouseConfigValue =
+    config && 'clickhouse' in (config as Record<string, unknown>)
+      ? (config as Record<string, unknown>).clickhouse
+      : undefined
+  const clickhouseConfig =
+    clickhouseConfigValue && typeof clickhouseConfigValue === 'object'
+      ? (clickhouseConfigValue as ClickHouseApiConfig)
+      : undefined
 
   return {
     // Common fields
     name: destinationData?.name ?? '',
     publicationName: pipelineData?.config.publication_name ?? '',
-    maxFillMs: pipelineData?.config?.batch?.max_fill_ms ?? undefined,
-    maxTableSyncWorkers: pipelineData?.config?.max_table_sync_workers ?? undefined,
-    maxCopyConnectionsPerTable: pipelineData?.config?.max_copy_connections_per_table ?? undefined,
+    maxFillMs: pipelineData?.config?.batch?.max_fill_ms ?? DEFAULT_MAX_FILL_MS,
+    maxTableSyncWorkers:
+      pipelineData?.config?.max_table_sync_workers ?? DEFAULT_MAX_TABLE_SYNC_WORKERS,
+    maxCopyConnectionsPerTable:
+      pipelineData?.config?.max_copy_connections_per_table ??
+      DEFAULT_MAX_COPY_CONNECTIONS_PER_TABLE,
     invalidatedSlotBehavior:
       (pipelineData?.config as { invalidated_slot_behavior?: 'error' | 'recreate' } | undefined)
         ?.invalidated_slot_behavior ?? undefined,
@@ -97,7 +118,7 @@ export const generateDefaultValues = ({
     serviceAccountKey: isBigQueryConfig ? config.big_query.service_account_key : '',
     connectionPoolSize:
       (config as { big_query?: { connection_pool_size?: number } } | undefined)?.big_query
-        ?.connection_pool_size ?? undefined,
+        ?.connection_pool_size ?? DEFAULT_CONNECTION_POOL_SIZE,
     maxStalenessMins: isBigQueryConfig ? config.big_query.max_staleness_mins : undefined, // Default: null
     // Analytics Bucket fields
     warehouseName: isIcebergConfig ? config.iceberg.supabase.warehouse_name : '',
@@ -117,7 +138,7 @@ export const generateDefaultValues = ({
     ducklakeStorageBucket: '',
     ducklakeCatalogUrl: ducklakeConfig?.catalog_url ?? '',
     ducklakeDataPath: ducklakeConfig?.data_path ?? '',
-    ducklakePoolSize: ducklakeConfig?.pool_size,
+    ducklakePoolSize: ducklakeConfig?.pool_size ?? DEFAULT_DUCKLAKE_POOL_SIZE,
     ducklakeS3AccessKeyId: ducklakeConfig?.s3_access_key_id ?? '',
     ducklakeS3SecretAccessKey: ducklakeConfig?.s3_secret_access_key ?? '',
     ducklakeS3Region: ducklakeConfig?.s3_region ?? '',
@@ -133,6 +154,12 @@ export const generateDefaultValues = ({
     snowflakeDatabase: snowflakeConfig?.database ?? '',
     snowflakeSchema: snowflakeConfig?.schema ?? '',
     snowflakeRole: snowflakeConfig?.role ?? '',
+    // ClickHouse fields
+    clickhouseUrl: clickhouseConfig?.url ?? '',
+    clickhouseUser: clickhouseConfig?.user ?? '',
+    clickhousePassword: clickhouseConfig?.password ?? '',
+    clickhouseDatabase: clickhouseConfig?.database ?? '',
+    clickhouseEngine: clickhouseConfig?.engine ?? 'replacing_merge_tree',
   }
 }
 
@@ -156,6 +183,16 @@ const buildSnowflakeConfig = (
   database: normalizeRequiredString(data.snowflakeDatabase),
   schema: normalizeRequiredString(data.snowflakeSchema),
   role: normalizeOptionalString(data.snowflakeRole),
+})
+
+const buildClickHouseConfig = (
+  data: z.infer<typeof DestinationPanelFormSchema>
+): ClickHouseDestinationConfig => ({
+  url: normalizeRequiredString(data.clickhouseUrl),
+  user: normalizeRequiredString(data.clickhouseUser),
+  password: normalizeOptionalUntrimmedString(data.clickhousePassword),
+  database: normalizeRequiredString(data.clickhouseDatabase),
+  engine: data.clickhouseEngine,
 })
 
 // Builds the studio-side DuckLake config from form data, picking the right shape for the
@@ -232,6 +269,8 @@ export const buildDestinationConfigForValidation = ({
     return { ducklake: buildDucklakeConfig(data) }
   } else if (selectedType === 'Snowflake') {
     return { snowflake: buildSnowflakeConfig(data) }
+  } else if (selectedType === 'ClickHouse') {
+    return { clickHouse: buildClickHouseConfig(data) }
   } else {
     throw new Error('Invalid destination type')
   }
@@ -291,6 +330,8 @@ export const buildDestinationConfig = async ({
     destinationConfig = { ducklake: buildDucklakeConfig(data) }
   } else if (selectedType === 'Snowflake') {
     destinationConfig = { snowflake: buildSnowflakeConfig(data) }
+  } else if (selectedType === 'ClickHouse') {
+    destinationConfig = { clickHouse: buildClickHouseConfig(data) }
   }
 
   return destinationConfig

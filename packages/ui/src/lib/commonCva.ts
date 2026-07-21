@@ -1,22 +1,5 @@
 import { cva, VariantProps } from 'class-variance-authority'
 
-/** Canonical keyboard focus ring. Prefer this over inventing local ring/outline styles. */
-export const focusRing = `
-  outline-hidden
-  focus-visible:ring-2
-  focus-visible:ring-ring
-  focus-visible:ring-offset-2
-  focus-visible:ring-offset-background
-`
-
-/** Inset focus ring for dense/flush surfaces (e.g. interactive table rows). */
-export const focusRingInset = `
-  outline-hidden
-  focus-visible:ring-2
-  focus-visible:ring-ring
-  focus-visible:ring-inset
-`
-
 const defaults = {
   bg: {
     brand: {
@@ -40,7 +23,8 @@ const defaults = {
     outline-hidden
     focus:ring-current focus:ring-2
   `,
-  'focus-visible': focusRing,
+  // Shared Tailwind utility — see packages/config/css/utilities.css
+  'focus-visible': 'focus-ring',
   size: {
     // buttons, inputs, input labels use these sizes
     text: {

@@ -1,6 +1,0 @@
-@reference "./globals.css";
-
-/* Focus styles for keyboard navigation on interactive table rows */
-.inset-focus {
-  @apply outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset focus-visible:rounded-md;
-}

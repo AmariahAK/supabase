@@ -29,13 +29,22 @@ Interactive page elements should also provide visual feedback upon selection via
 
 ### Focus ring recipe
 
-Use Tailwind `ring`, not `outline`. Import the shared constants from `ui` instead of inventing local styles:
+Use Tailwind `ring`, not `outline`. Prefer the shared utilities over inventing local styles:
+
+| Utility       | Use when                                               |
+| ------------- | ------------------------------------------------------ |
+| `focus-ring`  | Buttons, inputs, and most controls (offset ring)       |
+| `focus-inset` | Dense or flush surfaces such as interactive table rows |
 
 ```tsx
-import { focusRing, focusRingInset } from 'ui'
+className="focus-ring"
+// or
+className="relative cursor-pointer focus-inset"
 ```
 
-**Default** (`focusRing`) — buttons, inputs, and most controls:
+These expand to:
+
+**`focus-ring`**
 
 ```txt
 outline-hidden
@@ -45,13 +54,14 @@ focus-visible:ring-offset-2
 focus-visible:ring-offset-background
 ```
 
-**Inset** (`focusRingInset`) — dense or flush surfaces such as interactive table rows (Studio also exposes this as the `.inset-focus` utility class):
+**`focus-inset`**
 
 ```txt
 outline-hidden
 focus-visible:ring-2
 focus-visible:ring-ring
 focus-visible:ring-inset
+focus-visible:rounded-md
 ```
 
 `outline-hidden` is always on (not `focus-visible:`-prefixed) so mouse click does not show the browser’s default outline; the ring replaces it for keyboard focus only.
@@ -62,13 +72,14 @@ Rules:
 - Never use `outline-none` / `outline-hidden` without a ring (or equivalent) replacement
 - Always use `ring-ring` — variants (primary, danger, warning) do not change focus ring colour
 - Do not animate the focus ring; avoid `transition-all` / `transition` on controls that show a ring (prefer `transition-colors`)
+- Prefer `focus-ring` / `focus-inset` over copy-pasting the class stack
 
 [Button](components/button) has focus, `tabIndex`, and the shared ring built-in. The same explicit `tabIndex` default is also baked into Checkbox, Switch, Select Trigger, Toggle, Accordion Trigger, Collapsible Trigger, Dropdown Menu Trigger, Popover Trigger, Dialog Trigger, Sheet Trigger, Alert Dialog Trigger, and the Sidebar Menu and action buttons. Bespoke interactive elements however, such as the below interactive [Table Row](components/table#examples), require these props to be added manually:
 
 ```tsx showLineNumbers {4-14}
 <TableRow
   key={id}
-  className="relative cursor-pointer h-16 inset-focus"
+  className="relative cursor-pointer h-16 focus-inset"
   onClick={(event) => {
     if (event.currentTarget !== event.target) return
     handleBucketNavigation(bucket.id, event)

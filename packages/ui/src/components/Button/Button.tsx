@@ -5,7 +5,6 @@ import { Loader2 } from 'lucide-react'
 import { Slot } from 'radix-ui'
 import { cloneElement, forwardRef, isValidElement, ReactNode } from 'react'
 
-import { focusRing } from '../../lib/commonCva'
 import { SIZE_VARIANTS, SIZE_VARIANTS_DEFAULT } from '../../lib/constants'
 import { cn } from '../../lib/utils/cn'
 import { getExplicitTabIndex } from '../../lib/utils/getExplicitTabIndex'
@@ -22,7 +21,7 @@ const buttonVariants = cva(
   duration-200
   rounded-md
   transition-colors
-  ${focusRing}
+  focus-ring
   border
   `,
   {

@@ -48,7 +48,7 @@ export const menuItemVariants = cva(
     // focus-visible: when the item itself is focused; group-focus-visible: when a
     // wrapping Link/button (e.g. ProductMenu) is the focus target.
     'cursor-pointer flex space-x-3 items-center outline-hidden focus-visible:z-10 group',
-    'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+    'focus-ring',
     'group-focus-visible:ring-2 group-focus-visible:ring-ring group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-background'
   ),
   {

@@ -189,7 +189,7 @@ export function DataTableSheetRowAction<TData, TFields extends DataTableFilterFi
           asChild
           className={cn(
             'rounded-md ring-offset-background',
-            'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            'focus-ring',
             'relative py-0',
             className
           )}

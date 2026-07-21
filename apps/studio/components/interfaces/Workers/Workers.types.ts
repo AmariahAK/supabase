@@ -26,6 +26,8 @@ export interface WorkerLogLine {
   level: WorkerLogLevel
   kind: 'request' | 'stdout' | 'lifecycle'
   message: string
+  // lifecycle-only: the state this line represents (drives its styling)
+  state?: WorkerLifecycleState
   // request-only fields
   method?: string
   path?: string

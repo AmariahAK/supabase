@@ -89,6 +89,7 @@ const makeLifecycleLog = (
   timestamp: isoSecondsAgo(offsetSeconds),
   level: state === 'errored' ? 'error' : 'info',
   kind: 'lifecycle',
+  state,
   message: note ?? `Worker ${WORKER_STATE_LABELS[state].toLowerCase()}`,
 })
 

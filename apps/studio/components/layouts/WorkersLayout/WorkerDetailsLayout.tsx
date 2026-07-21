@@ -1,25 +1,23 @@
 import { useParams } from 'common'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
-import { Copy, Lock, Zap } from 'lucide-react'
+import { Copy, Lock } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import React, { useEffect, type PropsWithChildren } from 'react'
+import { useEffect, type PropsWithChildren } from 'react'
 import { toast } from 'sonner'
 import {
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
+  BreadcrumbPage,
   BreadcrumbSeparator,
   Button,
   copyToClipboard,
   NavMenu,
   NavMenuItem,
 } from 'ui'
+import { PageBreadcrumbs, PageBreadcrumbsActions } from 'ui-patterns/PageBreadcrumbs'
 import {
   PageHeader,
-  PageHeaderAside,
-  PageHeaderBreadcrumb,
   PageHeaderDescription,
   PageHeaderMeta,
   PageHeaderNavigationTabs,
@@ -28,6 +26,7 @@ import {
 } from 'ui-patterns/PageHeader'
 
 import WorkersLayout from './WorkersLayout'
+import { WorkerActions } from '@/components/interfaces/Workers/WorkerActions'
 import {
   WorkerAccessBadge,
   WorkerActorBadge,
@@ -35,10 +34,8 @@ import {
   WorkerStateBadge,
 } from '@/components/interfaces/Workers/WorkerBadges'
 import { withAuth } from '@/hooks/misc/withAuth'
-import { WORKER_ACCESS_MODES, PRODUCT_NAME } from '@/lib/constants/workers'
-import { ensureWorkersMockTicker, useWorkerBySlug, workersMockState } from '@/state/workers-mock-state'
-
-dayjs.extend(relativeTime)
+import { PRODUCT_NAME, WORKER_ACCESS_MODES } from '@/lib/constants/workers'
+import { ensureWorkersMockTicker, useWorkerBySlug } from '@/state/workers-mock-state'
 
 interface WorkerDetailsLayoutProps {
   title: string
@@ -66,45 +63,47 @@ const WorkerDetailsLayout = ({ title, children }: PropsWithChildren<WorkerDetail
     return <WorkersLayout title={title} browserTitle={browserTitle} />
   }
 
-  const breadcrumbItems = [
-    { label: PRODUCT_NAME, href: `/project/${ref}/workers` },
-    { label: worker.name, href: `/project/${ref}/workers/${worker.slug}` },
-  ]
-
   // Primary tab is mode-dependent: public workers lead on Requests, private on
-  // Logs. Private workers have no Requests tab at all (there's no endpoint).
+  // Logs. Terminal and Filesystem give a live shell / file view (gated on the
+  // worker running). Private workers have no Requests tab (there's no endpoint).
   const base = `/project/${ref}/workers/${worker.slug}`
-  const navigationItems =
-    worker.access === 'public'
+  const navigationItems = [
+    ...(worker.access === 'public'
       ? [
           { label: 'Requests', href: base },
           { label: 'Logs', href: `${base}/logs` },
-          { label: 'Settings', href: `${base}/settings` },
         ]
-      : [
-          { label: 'Logs', href: base },
-          { label: 'Settings', href: `${base}/settings` },
-        ]
+      : [{ label: 'Logs', href: base }]),
+    { label: 'Terminal', href: `${base}/terminal` },
+    { label: 'Filesystem', href: `${base}/filesystem` },
+    { label: 'Settings', href: `${base}/settings` },
+  ]
 
   return (
     <WorkersLayout title={title} browserTitle={browserTitle}>
       <div className="flex min-h-full w-full flex-col items-stretch">
-        <PageHeader size="full" className="sticky top-0 z-10 bg-surface-75">
-          <PageHeaderBreadcrumb>
-            <BreadcrumbList>
-              {breadcrumbItems.map((item, index) => (
-                <React.Fragment key={item.label}>
-                  <BreadcrumbItem>
-                    <BreadcrumbLink asChild>
-                      <Link href={item.href}>{item.label}</Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  {index < breadcrumbItems.length - 1 && <BreadcrumbSeparator />}
-                </React.Fragment>
-              ))}
-            </BreadcrumbList>
-          </PageHeaderBreadcrumb>
+        <PageBreadcrumbs
+          slotClassName="sticky top-0 z-20 bg-dash-sidebar"
+          actions={
+            <PageBreadcrumbsActions>
+              <WorkerActions worker={worker} />
+            </PageBreadcrumbsActions>
+          }
+        >
+          <BreadcrumbList className="flex-1 min-w-0 flex-nowrap [&_li]:text-xs">
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href={`/project/${ref}/workers`}>{PRODUCT_NAME}</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem className="min-w-0">
+              <BreadcrumbPage className="block min-w-0 truncate">{worker.name}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </PageBreadcrumbs>
 
+        <PageHeader size="full">
           <PageHeaderMeta>
             <PageHeaderSummary>
               <PageHeaderTitle>{worker.name}</PageHeaderTitle>
@@ -115,21 +114,6 @@ const WorkerDetailsLayout = ({ title, children }: PropsWithChildren<WorkerDetail
                 <WorkerActorBadge actor={worker.createdBy} />
               </PageHeaderDescription>
             </PageHeaderSummary>
-
-            <PageHeaderAside>
-              {worker.state !== 'killed' && (
-                <Button
-                  variant="default"
-                  icon={<Zap />}
-                  onClick={() => {
-                    workersMockState.simulateTraffic(worker.id)
-                    toast.success('Simulated traffic sent')
-                  }}
-                >
-                  Simulate traffic
-                </Button>
-              )}
-            </PageHeaderAside>
           </PageHeaderMeta>
 
           {/* Access-mode explainer lives in the shared header so it's visible

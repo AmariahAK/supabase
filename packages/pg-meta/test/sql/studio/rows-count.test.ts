@@ -53,7 +53,11 @@ withTestDatabase(
     )
     expect(Number(reltuples)).toBe(-1)
 
-    const table = { id: await oidOf(db, 'public.bulk_unanalyzed'), name: 'bulk_unanalyzed', schema: 'public' }
+    const table = {
+      id: await oidOf(db, 'public.bulk_unanalyzed'),
+      name: 'bulk_unanalyzed',
+      schema: 'public',
+    }
 
     // Non-readonly scoped: uses the EXPLAIN-based estimate (works via relpages
     // without ANALYZE). Must be an estimate, and clearly not the raw -1.
@@ -65,9 +69,9 @@ withTestDatabase(
 
     // Readonly scoped: cannot create the estimate function, reports -1 as an
     // estimate rather than running an exact count.
-    const [scopedReadonly] = await db.executeQuery<
-      Array<{ count: number; is_estimate: boolean }>
-    >(getTableRowsCountSql({ table, scoped: true, isReadOnlyContext: true }))
+    const [scopedReadonly] = await db.executeQuery<Array<{ count: number; is_estimate: boolean }>>(
+      getTableRowsCountSql({ table, scoped: true, isReadOnlyContext: true })
+    )
     expect(scopedReadonly.is_estimate).toBe(true)
     expect(Number(scopedReadonly.count)).toBe(-1)
 
@@ -90,7 +94,11 @@ withTestDatabase(
       insert into public.small_analyzed select generate_series(1, 5);
       analyze public.small_analyzed;
     `)
-    const table = { id: await oidOf(db, 'public.small_analyzed'), name: 'small_analyzed', schema: 'public' }
+    const table = {
+      id: await oidOf(db, 'public.small_analyzed'),
+      name: 'small_analyzed',
+      schema: 'public',
+    }
 
     const [scoped] = await db.executeQuery<Array<{ count: number; is_estimate: boolean }>>(
       getTableRowsCountSql({ table, scoped: true })
@@ -99,9 +107,9 @@ withTestDatabase(
     expect(Number(scoped.count)).toBe(5)
 
     // Readonly scoped on a small analyzed table also returns the exact count.
-    const [scopedReadonly] = await db.executeQuery<
-      Array<{ count: number; is_estimate: boolean }>
-    >(getTableRowsCountSql({ table, scoped: true, isReadOnlyContext: true }))
+    const [scopedReadonly] = await db.executeQuery<Array<{ count: number; is_estimate: boolean }>>(
+      getTableRowsCountSql({ table, scoped: true, isReadOnlyContext: true })
+    )
     expect(scopedReadonly.is_estimate).toBe(false)
     expect(Number(scopedReadonly.count)).toBe(5)
   }

@@ -379,7 +379,10 @@ const TABLES_RETRIEVE_BUDGET = {
 }
 
 test('tables.retrieve: scoped plan stays scoped for a single table by id', async () => {
-  const result = await explainAnalyze(db, tables.retrieve({ id: midChainTableId, scoped: true }).sql)
+  const result = await explainAnalyze(
+    db,
+    tables.retrieve({ id: midChainTableId, scoped: true }).sql
+  )
   assertPlanWithinBudget(result, TABLES_RETRIEVE_BUDGET)
 }, 60_000)
 

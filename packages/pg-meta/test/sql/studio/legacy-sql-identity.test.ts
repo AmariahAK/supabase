@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-
 import { expect, test } from 'vitest'
 
 import { getTableRowsCountSql } from '../../../src'
@@ -41,9 +40,9 @@ test('types.list legacy rendering is byte-identical (scoped:false)', () => {
   expect(String(types.list({ includeArrayTypes: true }).sql)).toBe(
     fixture('types-list-arraytypes.sql')
   )
-  expect(
-    String(types.list({ excludedSchemas: ['public'], includeSystemSchemas: true }).sql)
-  ).toBe(fixture('types-list-excluded-sys.sql'))
+  expect(String(types.list({ excludedSchemas: ['public'], includeSystemSchemas: true }).sql)).toBe(
+    fixture('types-list-excluded-sys.sql')
+  )
   expect(String(types.list({ limit: 10, offset: 5 }).sql)).toBe(
     fixture('types-list-limit-offset.sql')
   )
@@ -82,9 +81,9 @@ test('tables.retrieve/list legacy rendering is byte-identical (scoped:false)', (
 })
 
 test('getTableRowsCountSql legacy rendering is byte-identical (scoped:false)', () => {
-  expect(
-    String(getTableRowsCountSql({ table: ROWS_TABLE, enforceExactCount: true }))
-  ).toBe(fixture('rows-exact.sql'))
+  expect(String(getTableRowsCountSql({ table: ROWS_TABLE, enforceExactCount: true }))).toBe(
+    fixture('rows-exact.sql')
+  )
   expect(
     String(
       getTableRowsCountSql({ table: ROWS_TABLE, enforceExactCount: true, filters: STATUS_FILTER })

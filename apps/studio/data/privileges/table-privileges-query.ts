@@ -4,8 +4,8 @@ import { useFlag } from 'common'
 import { z } from 'zod'
 
 import { privilegeKeys } from './keys'
-import { PG_META_SCOPED_INTROSPECTION_FLAG } from '@/data/table-editor/table-editor-query'
 import { executeSql } from '@/data/sql/execute-sql-mutation'
+import { PG_META_SCOPED_INTROSPECTION_FLAG } from '@/data/table-editor/table-editor-query'
 import { ResponseError, UseCustomQueryOptions } from '@/types'
 
 export type TablePrivilegesVariables = {

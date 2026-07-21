@@ -3,9 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import { useFlag } from 'common'
 
 import { tableKeys } from './keys'
-import { PG_META_SCOPED_INTROSPECTION_FLAG } from '@/data/table-editor/table-editor-query'
 import { getQueryClient } from '@/data/query-client'
 import { executeSql } from '@/data/sql/execute-sql-mutation'
+import { PG_META_SCOPED_INTROSPECTION_FLAG } from '@/data/table-editor/table-editor-query'
 import type { SafePostgresTable } from '@/lib/postgres-types'
 import type { ResponseError, UseCustomQueryOptions } from '@/types'
 
@@ -55,7 +55,7 @@ export const useTableQuery = <TData = RetrieveTableResult>(
       getTable({ projectRef, connectionString, name, schema, scoped }, signal),
     enabled: enabled && typeof projectRef !== 'undefined',
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    retryOnMount: false,
     staleTime: 5 * 60 * 1000,
     ...options,
   })

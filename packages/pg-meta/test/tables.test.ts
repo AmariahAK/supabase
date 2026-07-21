@@ -51,10 +51,10 @@ const normTable = (t: any) => ({
     .sort((a: any, b: any) => a.ordinal_position - b.ordinal_position),
 })
 
-withTestDatabase('scoped tables.retrieve matches legacy (FKs both directions, PK, comment, enums)', async ({
-  executeQuery,
-}) => {
-  await executeQuery(`
+withTestDatabase(
+  'scoped tables.retrieve matches legacy (FKs both directions, PK, comment, enums)',
+  async ({ executeQuery }) => {
+    await executeQuery(`
     create type mood as enum ('sad', 'ok', 'happy');
     create table public.parent (id int primary key, label text);
     create table public.child (
@@ -66,42 +66,51 @@ withTestDatabase('scoped tables.retrieve matches legacy (FKs both directions, PK
     comment on table public.child is 'a child table';
   `)
 
-  const [{ parent_id }] = await executeQuery<{ parent_id: number }[]>(
-    `select 'public.parent'::regclass::oid::int8 as parent_id;`
-  )
-  const [{ child_id }] = await executeQuery<{ child_id: number }[]>(
-    `select 'public.child'::regclass::oid::int8 as child_id;`
-  )
-
-  // parent: incoming FK (child.parent_id -> parent.id). child: outgoing FK to
-  // parent + a self-referential FK. Cover the id and name+schema branches.
-  const cases = [
-    { label: 'parent by id', legacy: { id: Number(parent_id) }, scoped: { id: Number(parent_id), scoped: true } },
-    {
-      label: 'child by name+schema',
-      legacy: { name: 'child', schema: 'public' },
-      scoped: { name: 'child', schema: 'public', scoped: true },
-    },
-    { label: 'child by id', legacy: { id: Number(child_id) }, scoped: { id: Number(child_id), scoped: true } },
-  ] as const
-
-  for (const c of cases) {
-    const legacy = pgMeta.tables.retrieve(c.legacy as any)
-    const scoped = pgMeta.tables.retrieve(c.scoped as any)
-    const legacyRow = legacy.zod.parse((await executeQuery(legacy.sql))[0])
-    const scopedRow = scoped.zod.parse((await executeQuery(scoped.sql))[0])
-    expect(normTable(scopedRow), c.label).toEqual(normTable(legacyRow))
-  }
-
-  // Sanity: the scoped parent retrieve surfaces the INCOMING FK from child.
-  const scopedParent = pgMeta.tables.retrieve({ id: Number(parent_id), scoped: true })
-  const parentRow: any = scopedParent.zod.parse((await executeQuery(scopedParent.sql))[0])
-  expect(
-    parentRow.relationships.some(
-      (r: any) => r.source_table_name === 'child' && r.target_table_name === 'parent'
+    const [{ parent_id }] = await executeQuery<{ parent_id: number }[]>(
+      `select 'public.parent'::regclass::oid::int8 as parent_id;`
     )
-  ).toBe(true)
-})
+    const [{ child_id }] = await executeQuery<{ child_id: number }[]>(
+      `select 'public.child'::regclass::oid::int8 as child_id;`
+    )
+
+    // parent: incoming FK (child.parent_id -> parent.id). child: outgoing FK to
+    // parent + a self-referential FK. Cover the id and name+schema branches.
+    const cases = [
+      {
+        label: 'parent by id',
+        legacy: { id: Number(parent_id) },
+        scoped: { id: Number(parent_id), scoped: true },
+      },
+      {
+        label: 'child by name+schema',
+        legacy: { name: 'child', schema: 'public' },
+        scoped: { name: 'child', schema: 'public', scoped: true },
+      },
+      {
+        label: 'child by id',
+        legacy: { id: Number(child_id) },
+        scoped: { id: Number(child_id), scoped: true },
+      },
+    ] as const
+
+    for (const c of cases) {
+      const legacy = pgMeta.tables.retrieve(c.legacy as any)
+      const scoped = pgMeta.tables.retrieve(c.scoped as any)
+      const legacyRow = legacy.zod.parse((await executeQuery(legacy.sql))[0])
+      const scopedRow = scoped.zod.parse((await executeQuery(scoped.sql))[0])
+      expect(normTable(scopedRow), c.label).toEqual(normTable(legacyRow))
+    }
+
+    // Sanity: the scoped parent retrieve surfaces the INCOMING FK from child.
+    const scopedParent = pgMeta.tables.retrieve({ id: Number(parent_id), scoped: true })
+    const parentRow: any = scopedParent.zod.parse((await executeQuery(scopedParent.sql))[0])
+    expect(
+      parentRow.relationships.some(
+        (r: any) => r.source_table_name === 'child' && r.target_table_name === 'parent'
+      )
+    ).toBe(true)
+  }
+)
 
 /** Original tests ported from postgres-meta */
 withTestDatabase('list tables', async ({ executeQuery }) => {

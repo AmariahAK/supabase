@@ -9,13 +9,13 @@ import {
   SupabaseLogo,
 } from './connect-interstitial-shared'
 
-/** Stand-in for an uploaded OAuth app icon: Studio's `hcaptcha-icon.png`. */
+/** Stand-in uploaded OAuth icon: checked-in solid-colour bitmap (not a real brand). */
 function UploadedAppLogo() {
   return (
     <LogoBox className="border-black/10 bg-white">
       <img
         alt="Acme"
-        src={`${process.env.NEXT_PUBLIC_BASE_PATH || '/design-system'}/img/icons/hcaptcha-icon.png`}
+        src={`${process.env.NEXT_PUBLIC_BASE_PATH || '/design-system'}/img/icons/acme-oauth-icon.png`}
         className="size-full object-cover"
       />
     </LogoBox>

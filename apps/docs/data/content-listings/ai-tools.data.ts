@@ -30,6 +30,26 @@ const ICON_ASSETS: Record<string, { icon: string; hasLightIcon?: boolean }> = {
 // Claude.ai and ChatGPT are MCP connectors for a chat web app, not a coding agent or IDE.
 const EXCLUDED_KEYS = new Set(['claude-ai', 'chatgpt'])
 
+// Each product's own tagline, sourced from its marketing site (or, where noted, an official
+// GitHub repo description or last-known pre-acquisition tagline). Not Supabase-specific copy —
+// see the "Open questions" note in the PR for the Windsurf/Devin caveat.
+const TAGLINES: Record<string, string> = {
+  antigravity: 'Experience liftoff with the next-gen agent platform.',
+  'claude-code': 'Work with Claude directly in your codebase, from your terminal, IDE, and more.',
+  codex: 'A lightweight coding agent that runs in your terminal.',
+  cursor: 'Your coding agent for building ambitious software.',
+  factory: 'A self-improving system for your SDLC.',
+  'gemini-cli': 'Build, debug & deploy with AI.',
+  'github-copilot': 'Your AI accelerator for every workflow, from the editor to the enterprise.',
+  goose: 'Your native open source AI agent — desktop app, CLI, and API.',
+  kimi: 'Engineered to drop into any dev workflow and get programming tasks done fast.',
+  kiro: 'Move beyond AI coding to agentic engineering.',
+  opencode: 'The open source AI coding agent.',
+  vscode: 'The open source AI code editor — your home for multi-agent development.',
+  // Pre-acquisition tagline (Cognition/Devin acquired Windsurf in 2025) — see "Open questions".
+  windsurf: "The first agentic IDE. Tomorrow's editor, today.",
+}
+
 interface AgentEntry {
   key: string
   label: string
@@ -75,12 +95,6 @@ function buildAgents(): AgentEntry[] {
   return Array.from(byKey.values()).sort((a, b) => a.label.localeCompare(b.label))
 }
 
-function describeSupport(plugin: boolean, mcp: boolean): string {
-  if (plugin && mcp) return 'Install the plugin, or connect the MCP server directly.'
-  if (plugin) return 'Install the Supabase plugin for AI coding agents.'
-  return 'Connect using the Supabase MCP server.'
-}
-
 function badgeFor(plugin: boolean, mcp: boolean): string {
   if (plugin && mcp) return 'MCP + Plugin'
   if (plugin) return 'Plugin'
@@ -96,14 +110,14 @@ function hrefFor(agent: AgentEntry): string {
 
 export const aiToolsSupportedAgents: ContentListingGroup = {
   id: 'ai-tools-supported-agents',
-  heading: 'Supported agents & IDEs',
+  heading: "What's supported?",
   headingLevel: 'h3',
   type: 'grid',
   columns: 3,
   items: buildAgents().map((agent) => ({
     title: agent.label,
     href: hrefFor(agent),
-    description: describeSupport(agent.plugin, agent.mcp),
+    description: TAGLINES[agent.key] ?? 'Connect using the Supabase MCP server or plugin.',
     icon: ICON_ASSETS[agent.key]?.icon,
     hasLightIcon: ICON_ASSETS[agent.key]?.hasLightIcon,
     badge: badgeFor(agent.plugin, agent.mcp),

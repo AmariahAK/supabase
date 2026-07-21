@@ -81,7 +81,7 @@ function AiTools({ className }: { className?: string }) {
           className="flex items-center gap-1.5 text-xs text-foreground-lighter hover:text-foreground transition-colors"
         >
           <Sparkles size={14} strokeWidth={1.5} />
-          Set up your AI agent
+          Connect your AI agent
         </Link>
       </div>
     </section>

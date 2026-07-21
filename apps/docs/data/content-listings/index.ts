@@ -1,6 +1,6 @@
 import type { ContentListingGroup } from '~/lib/content-listings.schema'
 
-import { aiToolsSupportedAgents } from './ai-tools.data'
+import { aiToolsBuildingIntoApp, aiToolsSupportedAgents } from './ai-tools.data'
 import { authGetStarted, authNextSteps, authPricing } from './auth.data'
 import { databaseGetStarted, databaseNextSteps } from './database.data'
 import {
@@ -23,6 +23,7 @@ import { storageExamples, storageGetStarted, storageResources } from './storage.
 
 const ALL_GROUPS: readonly ContentListingGroup[] = [
   aiToolsSupportedAgents,
+  aiToolsBuildingIntoApp,
   authGetStarted,
   authPricing,
   authNextSteps,

@@ -1,4 +1,5 @@
-import { ArrowRight, Sparkles } from 'lucide-react'
+import { ArrowRight, Plus, Sparkles } from 'lucide-react'
+import { Button } from 'ui'
 import { Input } from 'ui-patterns/DataInputs/Input'
 
 import {
@@ -24,16 +25,20 @@ const STEPS = [
   },
 ]
 
-export const WorkersEmptyState = () => {
+export const WorkersEmptyState = ({ onCreate }: { onCreate: () => void }) => {
   return (
     <div className="grid grid-cols-1 items-stretch gap-px overflow-hidden rounded-md border border-default bg-border lg:grid-cols-[1fr_360px]">
       {/* Left: what happens next */}
       <div className="bg-studio p-8">
         <h2 className="text-lg text-foreground">Deploy a {UNIT_NAME_LOWER}</h2>
         <p className="mt-1 max-w-lg text-sm text-foreground-light">
-          {/* Creation is CLI-only at alpha — the dashboard is for listing, logs and deletes. */}
-          Workers are created from the CLI. Run one command and watch it come up here.
+          Workers are created from the CLI. Copy the command, or spin up a mock {UNIT_NAME_LOWER} to
+          preview how it appears here.
         </p>
+
+        <Button className="mt-4" icon={<Plus />} onClick={onCreate}>
+          Create {UNIT_NAME_LOWER}
+        </Button>
 
         <ol className="mt-6 flex flex-col gap-5">
           {STEPS.map((step, index) => (

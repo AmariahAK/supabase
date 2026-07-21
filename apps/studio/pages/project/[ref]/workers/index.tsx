@@ -1,9 +1,7 @@
-import { useEffect, type PropsWithChildren } from 'react'
-import { Button } from 'ui'
+import { useEffect, useState, type PropsWithChildren } from 'react'
 import { PageContainer } from 'ui-patterns/PageContainer'
 import {
   PageHeader,
-  PageHeaderAside,
   PageHeaderDescription,
   PageHeaderMeta,
   PageHeaderSummary,
@@ -11,34 +9,36 @@ import {
 } from 'ui-patterns/PageHeader'
 import { PageSection, PageSectionContent } from 'ui-patterns/PageSection'
 
-import { WorkersCockpit } from '@/components/interfaces/Workers/WorkersCockpit'
+import { CreateWorkerDialog } from '@/components/interfaces/Workers/CreateWorkerDialog'
 import { WorkersEmptyState } from '@/components/interfaces/Workers/WorkersEmptyState'
+import { WorkersList } from '@/components/interfaces/Workers/WorkersList'
 import { DefaultLayout } from '@/components/layouts/DefaultLayout'
 import WorkersLayout from '@/components/layouts/WorkersLayout/WorkersLayout'
-import { DocsButton } from '@/components/ui/DocsButton'
-import { DOCS_URL } from '@/lib/constants'
-import { PRODUCT_NAME, UNIT_NAME_PLURAL_LOWER } from '@/lib/constants/workers'
+import { PRODUCT_NAME } from '@/lib/constants/workers'
 import { ensureWorkersMockTicker, useWorkersFleet } from '@/state/workers-mock-state'
 import type { NextPageWithLayout } from '@/types'
 
 const WorkersPage: NextPageWithLayout = () => {
   const workers = useWorkersFleet()
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   useEffect(() => {
     ensureWorkersMockTicker()
   }, [])
 
   return (
-    <PageContainer size="full">
+    <PageContainer size="large">
       <PageSection>
         <PageSectionContent>
           {workers.length > 0 ? (
-            <WorkersCockpit workers={workers} />
+            <WorkersList workers={workers} onCreate={() => setIsCreateOpen(true)} />
           ) : (
-            <WorkersEmptyState />
+            <WorkersEmptyState onCreate={() => setIsCreateOpen(true)} />
           )}
         </PageSectionContent>
       </PageSection>
+
+      <CreateWorkerDialog visible={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
     </PageContainer>
   )
 }
@@ -47,7 +47,7 @@ const WorkersPage: NextPageWithLayout = () => {
 // Functions index page). Renders the page-level header above the content.
 export const WorkersIndexPageWrapper = ({ children }: PropsWithChildren) => (
   <div className="flex min-h-full w-full flex-col items-stretch">
-    <PageHeader size="full">
+    <PageHeader size="large">
       <PageHeaderMeta>
         <PageHeaderSummary>
           <PageHeaderTitle>{PRODUCT_NAME}</PageHeaderTitle>
@@ -55,12 +55,6 @@ export const WorkersIndexPageWrapper = ({ children }: PropsWithChildren) => (
             Run managed compute in microVMs next to your database
           </PageHeaderDescription>
         </PageHeaderSummary>
-        <PageHeaderAside>
-          <DocsButton href={`${DOCS_URL}/guides/${UNIT_NAME_PLURAL_LOWER}`} />
-          <Button variant="default" disabled>
-            Alpha
-          </Button>
-        </PageHeaderAside>
       </PageHeaderMeta>
     </PageHeader>
     {children}

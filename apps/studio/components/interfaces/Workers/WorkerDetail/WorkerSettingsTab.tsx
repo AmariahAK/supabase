@@ -4,6 +4,14 @@ import { useRouter } from 'next/router'
 import { useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { Button } from 'ui'
+import { PageContainer } from 'ui-patterns/PageContainer'
+import {
+  PageSection,
+  PageSectionContent,
+  PageSectionMeta,
+  PageSectionSummary,
+  PageSectionTitle,
+} from 'ui-patterns/PageSection'
 
 import { DeleteWorkerModal } from './DeleteWorkerModal'
 import { WorkerAccessBadge, WorkerActorBadge, WorkerRuntimeBadge } from '../WorkerBadges'
@@ -39,55 +47,71 @@ export const WorkerSettingsTab = ({ worker }: { worker: Worker }) => {
   }
 
   return (
-    <div className="flex flex-col gap-8 p-4">
-      <section>
-        <h3 className="mb-2 text-sm text-foreground">Configuration</h3>
-        <p className="mb-4 text-xs text-foreground-lighter">{WORKER_SIZE_GUIDANCE}</p>
-        <div className="grid grid-cols-1 gap-x-8 md:grid-cols-2">
-          <Fact label="Runtime">
-            <WorkerRuntimeBadge runtime={worker.runtime} />
-          </Fact>
-          <Fact label="Access">
-            <WorkerAccessBadge access={worker.access} />
-          </Fact>
-          <Fact label="Size">
-            {size.label} · {size.memory} · {size.vcpu}
-          </Fact>
-          <Fact label="Instances">{worker.instances}</Fact>
-          <Fact label="Region">
-            {WORKER_REGION.label} <span className="text-foreground-lighter">(locked)</span>
-          </Fact>
-          <Fact label="Created">
-            <span className="flex items-center gap-2">
-              {dayjs(worker.createdAt).format('MMM D, YYYY HH:mm')}
-              <WorkerActorBadge actor={worker.createdBy} />
-            </span>
-          </Fact>
-        </div>
-      </section>
+    <PageContainer size="large">
+      <PageSection>
+        <PageSectionMeta>
+          <PageSectionSummary>
+            <PageSectionTitle>Configuration</PageSectionTitle>
+          </PageSectionSummary>
+        </PageSectionMeta>
+        <PageSectionContent>
+          <p className="mb-4 text-xs text-foreground-lighter">{WORKER_SIZE_GUIDANCE}</p>
+          <div className="grid grid-cols-1 gap-x-8 md:grid-cols-2">
+            <Fact label="Runtime">
+              <WorkerRuntimeBadge runtime={worker.runtime} />
+            </Fact>
+            <Fact label="Access">
+              <WorkerAccessBadge access={worker.access} />
+            </Fact>
+            <Fact label="Size">
+              {size.label} · {size.memory} · {size.vcpu}
+            </Fact>
+            <Fact label="Instances">{worker.instances}</Fact>
+            <Fact label="Region">
+              {WORKER_REGION.label} <span className="text-foreground-lighter">(locked)</span>
+            </Fact>
+            <Fact label="Created">
+              <span className="flex items-center gap-2">
+                {dayjs(worker.createdAt).format('MMM D, YYYY HH:mm')}
+                <WorkerActorBadge actor={worker.createdBy} />
+              </span>
+            </Fact>
+          </div>
+        </PageSectionContent>
+      </PageSection>
 
-      <section>
-        <h3 className="mb-2 text-sm text-foreground">Not available at alpha</h3>
-        <ul className="grid grid-cols-1 gap-1 text-sm text-foreground-lighter md:grid-cols-2">
-          {NOT_AVAILABLE_AT_ALPHA.map((item) => (
-            <li key={item} className="flex items-center gap-2">
-              <span className="h-1 w-1 rounded-full bg-foreground-muted" aria-hidden />
-              {item}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <PageSection>
+        <PageSectionMeta>
+          <PageSectionSummary>
+            <PageSectionTitle>Not available at alpha</PageSectionTitle>
+          </PageSectionSummary>
+        </PageSectionMeta>
+        <PageSectionContent>
+          <ul className="grid grid-cols-1 gap-1 text-sm text-foreground-lighter md:grid-cols-2">
+            {NOT_AVAILABLE_AT_ALPHA.map((item) => (
+              <li key={item} className="flex items-center gap-2">
+                <span className="h-1 w-1 rounded-full bg-foreground-muted" aria-hidden />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </PageSectionContent>
+      </PageSection>
 
-      <section className="rounded-md border border-destructive-400 bg-destructive-200/30 p-4">
-        <h3 className="text-sm text-foreground">Delete this {UNIT_NAME_LOWER}</h3>
-        <p className="mt-1 max-w-xl text-sm text-foreground-light">
-          There is no resize at alpha — to change size or runtime, delete this {UNIT_NAME_LOWER} and
-          redeploy from the CLI. Deleting frees its instances back to the project cap.
-        </p>
-        <Button variant="danger" className="mt-3" onClick={() => setShowDelete(true)}>
-          Delete {UNIT_NAME_LOWER}
-        </Button>
-      </section>
+      <PageSection>
+        <PageSectionContent>
+          <div className="rounded-md border border-destructive-400 bg-destructive-200/30 p-4">
+            <h3 className="text-sm text-foreground">Delete this {UNIT_NAME_LOWER}</h3>
+            <p className="mt-1 max-w-xl text-sm text-foreground-light">
+              There is no resize at alpha — to change size or runtime, delete this {UNIT_NAME_LOWER}{' '}
+              and redeploy from the CLI. Deleting frees its instances back to the project cap.
+            </p>
+            <Button variant="danger" className="mt-3" onClick={() => setShowDelete(true)}>
+              Delete {UNIT_NAME_LOWER}
+            </Button>
+          </div>
+        </PageSectionContent>
+      </PageSection>
 
       <DeleteWorkerModal
         worker={worker}
@@ -95,6 +119,6 @@ export const WorkerSettingsTab = ({ worker }: { worker: Worker }) => {
         onCancel={() => setShowDelete(false)}
         onConfirm={handleDelete}
       />
-    </div>
+    </PageContainer>
   )
 }

@@ -235,14 +235,28 @@ const SEED: WorkerSeed[] = [
   },
 ]
 
+export interface CreateWorkerInput {
+  name: string
+  runtime: WorkerRuntimeId
+  size: WorkerSizeId
+  access: WorkerAccessMode
+  instances: number
+}
+
 type WorkersMockData = {
   workers: Worker[]
 }
 
 type WorkersMockState = WorkersMockData & {
+  createWorker: (input: CreateWorkerInput) => Worker
   simulateTraffic: (id: string) => void
+  suspendWorker: (id: string) => void
+  resumeWorker: (id: string) => void
   deleteWorker: (id: string) => void
 }
+
+/** A friendly, unique-ish default name for the create form. */
+export const generateWorkerName = () => `worker-${Math.floor(100000 + Math.random() * 899999)}`
 
 const trimHistory = (worker: Worker) => {
   if (worker.logs.length > HISTORY_LIMITS.logs) worker.logs.length = HISTORY_LIMITS.logs
@@ -257,8 +271,53 @@ const transition = (worker: Worker, state: WorkerLifecycleState, note?: string) 
   trimHistory(worker)
 }
 
+const uniqueSlug = (name: string) => {
+  const base = slugify(name) || 'worker'
+  let slug = base
+  let n = 2
+  while (workersMockState.workers.some((w) => w.slug === slug)) slug = `${base}-${n++}`
+  return slug
+}
+
 export const workersMockState: WorkersMockState = proxy<WorkersMockState>({
   workers: SEED.map(seedWorker),
+
+  createWorker(input: CreateWorkerInput) {
+    const slug = uniqueSlug(input.name)
+    const endpoint =
+      input.access === 'public' ? `https://workers.supabase.co/v1/${slug}` : undefined
+
+    const worker: Worker = {
+      id: nextId('wkr'),
+      slug,
+      name: input.name || slug,
+      runtime: input.runtime,
+      size: input.size,
+      access: input.access,
+      state: 'deploying',
+      region: WORKER_REGION.id,
+      instances: input.instances,
+      createdAt: nowIso(),
+      createdBy: { type: 'user', name: 'you@supabase.io' },
+      idleSeconds: 0,
+      endpoint,
+      logs: [makeLifecycleLog('deploying', 0, 'Deploy started from dashboard')],
+      lifecycle: [makeLifecycleEvent('deploying', 0, 'Deploy started from dashboard')],
+    }
+    workersMockState.workers.unshift(worker)
+
+    // Simulate the build finishing and the worker coming up.
+    const newId = worker.id
+    setTimeout(() => {
+      const w = workersMockState.workers.find((x) => x.id === newId)
+      if (!w || w.state !== 'deploying') return
+      transition(w, 'active', 'Build complete, worker is live')
+      if (w.access === 'public') w.logs.unshift(makeRequestLog(0))
+      trimHistory(w)
+    }, WORKER_MOCK_TIMERS.resumingDurationMs)
+
+    return worker
+  },
 
   simulateTraffic(id: string) {
     const worker = workersMockState.workers.find((w) => w.id === id)
@@ -285,6 +344,37 @@ export const workersMockState: WorkersMockState = proxy<WorkersMockState>({
       else worker.logs.unshift(makeStdoutLog('Handled inbound event', 0))
       trimHistory(worker)
     }
+  },
+
+  suspendWorker(id: string) {
+    const worker = workersMockState.workers.find((w) => w.id === id)
+    if (!worker || worker.state !== 'active') return
+    transition(worker, 'draining', 'Suspend requested, finishing in-flight requests')
+    const wid = worker.id
+    setTimeout(() => {
+      const w = workersMockState.workers.find((x) => x.id === wid)
+      if (!w || w.state !== 'draining') return
+      transition(w, 'suspended', 'Scaled to zero — $0 while idle')
+    }, WORKER_MOCK_TIMERS.drainingDurationMs)
+  },
+
+  resumeWorker(id: string) {
+    const worker = workersMockState.workers.find((w) => w.id === id)
+    if (!worker || (worker.state !== 'suspended' && worker.state !== 'errored')) return
+    transition(
+      worker,
+      'resuming',
+      worker.state === 'errored' ? 'Restart requested' : 'Resume requested'
+    )
+    const wid = worker.id
+    setTimeout(() => {
+      const w = workersMockState.workers.find((x) => x.id === wid)
+      if (!w || w.state !== 'resuming') return
+      w.idleSeconds = 0
+      transition(w, 'active', 'Cold start complete in 0.9s')
+      if (w.access === 'public') w.logs.unshift(makeRequestLog(0))
+      trimHistory(w)
+    }, WORKER_MOCK_TIMERS.resumingDurationMs)
   },
 
   deleteWorker(id: string) {

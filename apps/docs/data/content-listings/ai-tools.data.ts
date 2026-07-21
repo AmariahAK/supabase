@@ -131,18 +131,23 @@ export const aiToolsBuildingIntoApp: ContentListingGroup = {
   headingLevel: 'h2',
   description:
     "The tools above are for your development workflow. If you're building AI capabilities into your own product:",
-  type: 'list',
+  type: 'grid',
+  columns: 2,
   items: [
     {
       title: 'Deploy MCP servers',
       href: '/guides/ai-tools/byo-mcp',
       description:
         'Host your own MCP server on Supabase Edge Functions so your users can connect their AI agents to your product',
+      icon: '/docs/img/icons/product-edge-functions-icon',
+      hasLightIcon: true,
     },
     {
       title: 'Vectors / Embeddings',
       href: '/guides/ai',
       description: 'Build semantic search, RAG pipelines, and other AI-powered features using pgvector',
+      icon: '/docs/img/icons/product-vector-icon',
+      hasLightIcon: true,
     },
   ],
 }

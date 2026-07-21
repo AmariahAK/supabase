@@ -92,10 +92,11 @@ vi.mock('@/components/interfaces/SQLEditor/MonacoEditor', async () => {
       return (
         <div data-testid="monaco-editor">
           <div data-testid="monaco-placeholder">{props.placeholder}</div>
-          <button data-testid="editor-run" onClick={() => props.executeQuery()}>
+          <button tabIndex={0} data-testid="editor-run" onClick={() => props.executeQuery()}>
             run
           </button>
           <button
+            tabIndex={0}
             data-testid="editor-prompt"
             onClick={() =>
               props.onPrompt?.({
@@ -131,13 +132,13 @@ vi.mock('@/components/ui/DiffEditor', async () => {
 vi.mock('@/components/ui/AIEditor/ResizableAIWidget', () => ({
   default: (props: any) => (
     <div data-testid={props.id}>
-      <button data-testid={`${props.id}-accept`} onClick={props.onAccept}>
+      <button tabIndex={0} data-testid={`${props.id}-accept`} onClick={props.onAccept}>
         accept
       </button>
-      <button data-testid={`${props.id}-reject`} onClick={props.onReject}>
+      <button tabIndex={0} data-testid={`${props.id}-reject`} onClick={props.onReject}>
         reject
       </button>
-      <button data-testid={`${props.id}-cancel`} onClick={props.onCancel}>
+      <button tabIndex={0} data-testid={`${props.id}-cancel`} onClick={props.onCancel}>
         cancel
       </button>
     </div>
@@ -150,13 +151,14 @@ vi.mock('@/components/interfaces/SQLEditor/UtilityPanel/UtilityActions', () => (
   UtilityActions: (props: any) => (
     <div data-testid="utility-actions">
       <button
+        tabIndex={0}
         data-testid="run-button"
         disabled={props.isDisabled}
         onClick={() => props.executeQuery()}
       >
         Run
       </button>
-      <button data-testid="prettify-button" onClick={() => props.prettifyQuery()}>
+      <button tabIndex={0} data-testid="prettify-button" onClick={() => props.prettifyQuery()}>
         Prettify
       </button>
       <span data-testid="is-executing">{String(props.isExecuting)}</span>
@@ -168,7 +170,7 @@ vi.mock('@/components/interfaces/SQLEditor/UtilityPanel/UtilityPanel', () => ({
   UtilityPanel: (props: any) => (
     <div data-testid="utility-panel">
       <span data-testid="active-tab">{props.activeTab}</span>
-      <button data-testid="debug-button" onClick={() => props.onDebug()}>
+      <button tabIndex={0} data-testid="debug-button" onClick={() => props.onDebug()}>
         Debug
       </button>
     </div>
@@ -179,13 +181,13 @@ vi.mock('@/components/interfaces/SQLEditor/RunQueryWarningModal', () => ({
   RunQueryWarningModal: (props: any) =>
     props.visible ? (
       <div data-testid="warning-modal">
-        <button data-testid="warn-confirm" onClick={props.onConfirm}>
+        <button tabIndex={0} data-testid="warn-confirm" onClick={props.onConfirm}>
           Confirm
         </button>
-        <button data-testid="warn-confirm-rls" onClick={props.onConfirmWithRLS}>
+        <button tabIndex={0} data-testid="warn-confirm-rls" onClick={props.onConfirmWithRLS}>
           Confirm RLS
         </button>
-        <button data-testid="warn-cancel" onClick={props.onCancel}>
+        <button tabIndex={0} data-testid="warn-cancel" onClick={props.onCancel}>
           Cancel
         </button>
       </div>

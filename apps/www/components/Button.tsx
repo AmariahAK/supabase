@@ -27,6 +27,7 @@ const Button = (props: Props) => {
 
   const renderButton = () => (
     <button
+      tabIndex={0}
       type="button"
       className={`
         group inline-flex items-center rounded-md text-sm

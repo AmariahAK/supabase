@@ -25,6 +25,7 @@ const Tab = ({ isActive, label, paragraph, onClick, progress, intervalDuration }
 
   return (
     <button
+      tabIndex={isActive ? 0 : -1}
       onClick={onClick}
       className={cn(
         'hover:text-foreground w-full text-left text-lg flex flex-col group transition-all',

@@ -1,8 +1,8 @@
 'use client'
 
 import { CheckIcon, ClipboardIcon } from '@heroicons/react/outline'
-import Link from 'next/link'
 import { useRouter } from 'next/compat/router'
+import Link from 'next/link'
 import { Fragment, MouseEvent, ReactNode, useEffect, useRef, useState } from 'react'
 import { useClickAway } from 'react-use'
 import {
@@ -127,6 +127,7 @@ const RightClickBrandLogo = () => {
                   ) : (
                     menuItem.type === 'clipboard' && (
                       <button
+                        tabIndex={0}
                         className="group/menu-item w-full text-left flex justify-between gap-2 items-center"
                         onClick={() => handleCopyToClipboard(menuItem)}
                       >

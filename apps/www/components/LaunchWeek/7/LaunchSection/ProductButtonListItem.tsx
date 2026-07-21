@@ -1,5 +1,6 @@
 import { SparklesIcon } from '@heroicons/react/outline'
 import Link from 'next/link'
+
 import { Article } from '../../types'
 
 export const ProductButtonListItem = (props: Article) => {
@@ -7,6 +8,7 @@ export const ProductButtonListItem = (props: Article) => {
     <Link href={props.url}>
       <div className="inline-block">
         <button
+          tabIndex={0}
           className=" 
           text-brand-600 
           group

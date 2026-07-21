@@ -110,8 +110,12 @@ withTestDatabase(
   'scoped tablePrivileges.list/retrieve matches legacy (multiple grantees incl PUBLIC)',
   async ({ executeQuery }) => {
     // Multiple grantees including PUBLIC to exercise the PUBLIC (oid 0) branch of
-    // the grantee union and multi-grantee aggregation.
+    // the grantee union and multi-grantee aggregation. Roles are cluster-global
+    // (not dropped by the per-test database cleanup), so guard the creation to
+    // stay idempotent when the test cluster is reused across runs.
     await executeQuery(`
+      drop role if exists grantee_a;
+      drop role if exists grantee_b;
       create role grantee_a;
       create role grantee_b;
       create table public.priv_demo (id int primary key, data text);

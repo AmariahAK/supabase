@@ -45,9 +45,35 @@ export function StripeLogo() {
   )
 }
 
+/** Stand-in for an organisation OAuth app icon uploaded in Studio (opaque square). */
+export function FigmaLogo({ forceLight = false }: { forceLight?: boolean } = {}) {
+  return (
+    <LogoBox className={forceLight ? 'border-black/10 bg-white' : 'bg-surface-75'}>
+      {/* Same mark as `apps/studio/public/img/icons/figma-icon.svg`, on an opaque
+          light field so it reads like a typical uploaded OAuth app bitmap. */}
+      <svg viewBox="0 0 200 200" className="size-full" aria-hidden>
+        <rect width="200" height="200" fill="#fff" />
+        <g transform="translate(0 0)">
+          <path
+            fill="#0acf83"
+            d="M50 200c27.6 0 50-22.4 50-50v-50H50c-27.6 0-50 22.4-50 50s22.4 50 50 50z"
+          />
+          <path fill="#a259ff" d="M0 100c0-27.6 22.4-50 50-50h50v100H50c-27.6 0-50-22.4-50-50z" />
+          <path fill="#f24e1e" d="M0 50C0 22.4 22.4 0 50 0h50v100H50C22.4 100 0 77.6 0 50z" />
+          <path fill="#ff7262" d="M100 0h50c27.6 0 50 22.4 50 50s-22.4 50-50 50h-50V0z" />
+          <path
+            fill="#1abcfe"
+            d="M200 100c0 27.6-22.4 50-50 50s-50-22.4-50-50 22.4-50 50-50 50 22.4 50 50z"
+          />
+        </g>
+      </svg>
+    </LogoBox>
+  )
+}
+
 export function SupabaseLogo({ forceLight = false }: { forceLight?: boolean } = {}) {
   return (
-    <LogoBox className={forceLight ? 'bg-white' : 'bg-surface-75'}>
+    <LogoBox className={forceLight ? 'border-black/10 bg-white' : 'bg-surface-75'}>
       <svg viewBox="0 0 109 113" className="size-7" aria-hidden>
         <path
           d="M63.708 110.284c-2.86 3.601-8.658 1.628-8.727-2.97L53.974 40.063h45.22c8.19 0 12.758 9.46 7.665 15.874L63.708 110.284Z"

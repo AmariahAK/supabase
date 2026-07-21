@@ -98,6 +98,10 @@ The user is usually arriving from the third-party app. The interstitial should
 confirm they are connecting to Supabase. Put the requester name in the title and
 description; do not manufacture a letter avatar to fill the left side of a pair.
 
+**Known services.** When both sides are curated (or otherwise known), pair them.
+Theme-reactive tiles are fine when both marks have matching light/dark
+treatment.
+
 <ComponentPreview
   name="connect-interstitial-logo-pair"
   description="LogoPair when the user is connecting two services"
@@ -108,6 +112,10 @@ description; do not manufacture a letter avatar to fill the left side of a pair.
   wide
 />
 
+**No trusted requester mark.** If the icon is missing, blocked, or fails to
+load, show `SupabaseLogo` alone. Do not invent an initial tile to fill the
+pair.
+
 <ComponentPreview
   name="connect-interstitial-logo-unknown"
   description="No trusted requester mark: Supabase alone"
@@ -117,6 +125,13 @@ description; do not manufacture a letter avatar to fill the left side of a pair.
   peekCode
   wide
 />
+
+**Uploaded organisation OAuth icons.** Icons published via Studio’s OAuth app
+builder are unclassified bitmaps — we do not know if they were authored for
+light or dark. Treat the pair as light on both Studio themes: fixed light tile
+chrome (`border-black/10 bg-white`, `SupabaseLogo forceLight`) on both sides.
+Do not invent a dark variant for the upload. Toggle the docs theme to dark to
+see the light tiles hold against the Studio chrome.
 
 <ComponentPreview
   name="connect-interstitial-logo-uploaded"
@@ -138,15 +153,9 @@ default for Connect tiles.
 
 **Keep pairs matched.** In a `LogoPair`, both marks must use the same
 treatment: both light, or both dark. Do not mix a light partner tile with a
-dark-theme-only Supabase treatment, or the reverse. When either side is a
-static or light asset (most partner icons), keep `SupabaseLogo` on its light
-mark too. Theme-aware dark variants are fine for curated partners that already
-have them, but then both sides of the pair should use the dark set together.
-
-**Uploaded icons force light tiles.** Organisation OAuth app icons from Studio
-are unclassified bitmaps. When pairing one with `SupabaseLogo`, use fixed light
-tile chrome (`bg-white` / `SupabaseLogo forceLight`) on both sides in light and
-dark Studio themes. Do not invent a dark variant for the upload.
+dark-theme-only Supabase treatment, or the reverse. Theme-aware dark variants
+are fine for curated partners that already have them, but then both sides of
+the pair should use the dark set together.
 
 **What not to do**
 
@@ -162,22 +171,6 @@ dark Studio themes. Do not invent a dark variant for the upload.
 - Published organisation OAuth app icons uploaded in Studio remain trusted
   remote images, paired with forced-light tiles on both sides.
 - Everything else falls back to `SupabaseLogo` alone.
-
-```tsx
-// Trusted / curated requester: AuthorizeConnectLogo pairs with Supabase
-<AuthorizeConnectLogo icon={icon} name={name} />
-
-// Unknown or unusable requester icon: AuthorizeConnectLogo renders Supabase alone
-<AuthorizeConnectLogo icon={null} name="Acme" />
-
-const AwsLogo = () => (
-  <LogoBox className="border-[#232f3e] bg-[#232f3e]">
-    <img alt="AWS" src={`${BASE_PATH}/img/icons/aws-icon.svg`} className="w-8" />
-  </LogoBox>
-)
-
-<LogoPair left={<AwsLogo />} right={<SupabaseLogo />} />
-```
 
 ## Account row
 

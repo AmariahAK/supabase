@@ -184,7 +184,9 @@ describe('AuthorizeConnectLogo', () => {
     )
 
     expect(screen.getByAltText('Acme').parentElement).toHaveClass('bg-white')
+    expect(screen.getByAltText('Acme').parentElement).toHaveClass('border-black/10')
     expect(screen.getByAltText('Supabase').parentElement).toHaveClass('bg-white')
+    expect(screen.getByAltText('Supabase').parentElement).toHaveClass('border-black/10')
   })
 
   test('keeps theme tiles for curated partners', () => {

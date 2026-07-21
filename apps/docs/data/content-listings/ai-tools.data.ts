@@ -9,19 +9,19 @@ const KEY_ALIASES: Record<string, string> = {
 }
 
 const ICON_ASSETS: Record<string, { icon: string; hasLightIcon?: boolean }> = {
-  'claude-code': { icon: '/img/icons/agent-claude-icon' },
-  codex: { icon: '/img/icons/agent-openai-icon', hasLightIcon: true },
-  cursor: { icon: '/img/icons/agent-cursor-icon', hasLightIcon: true },
-  'gemini-cli': { icon: '/img/icons/agent-gemini-cli-icon' },
-  'github-copilot': { icon: '/img/icons/agent-copilot-icon', hasLightIcon: true },
-  kimi: { icon: '/img/icons/agent-kimi-icon', hasLightIcon: true },
-  vscode: { icon: '/img/icons/agent-vscode-icon' },
-  antigravity: { icon: '/img/icons/agent-antigravity-icon' },
-  windsurf: { icon: '/img/icons/agent-windsurf-icon', hasLightIcon: true },
-  goose: { icon: '/img/icons/agent-goose-icon', hasLightIcon: true },
-  factory: { icon: '/img/icons/agent-factory-icon', hasLightIcon: true },
-  opencode: { icon: '/img/icons/agent-opencode-icon', hasLightIcon: true },
-  kiro: { icon: '/img/icons/agent-kiro-icon' },
+  'claude-code': { icon: '/docs/img/icons/agent-claude-icon' },
+  codex: { icon: '/docs/img/icons/agent-openai-icon', hasLightIcon: true },
+  cursor: { icon: '/docs/img/icons/agent-cursor-icon', hasLightIcon: true },
+  'gemini-cli': { icon: '/docs/img/icons/agent-gemini-cli-icon' },
+  'github-copilot': { icon: '/docs/img/icons/agent-copilot-icon', hasLightIcon: true },
+  kimi: { icon: '/docs/img/icons/agent-kimi-icon', hasLightIcon: true },
+  vscode: { icon: '/docs/img/icons/agent-vscode-icon' },
+  antigravity: { icon: '/docs/img/icons/agent-antigravity-icon' },
+  windsurf: { icon: '/docs/img/icons/agent-windsurf-icon', hasLightIcon: true },
+  goose: { icon: '/docs/img/icons/agent-goose-icon', hasLightIcon: true },
+  factory: { icon: '/docs/img/icons/agent-factory-icon', hasLightIcon: true },
+  opencode: { icon: '/docs/img/icons/agent-opencode-icon', hasLightIcon: true },
+  kiro: { icon: '/docs/img/icons/agent-kiro-icon' },
 }
 
 // Claude.ai and ChatGPT are MCP connectors for a chat web app, not a coding agent or IDE.
@@ -79,7 +79,7 @@ function describeSupport(plugin: boolean, mcp: boolean): string {
 }
 
 function badgeFor(plugin: boolean, mcp: boolean): string {
-  if (plugin && mcp) return 'Plugin + MCP'
+  if (plugin && mcp) return 'Both'
   if (plugin) return 'Plugin'
   return 'MCP'
 }

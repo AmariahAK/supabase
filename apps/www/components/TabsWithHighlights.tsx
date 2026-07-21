@@ -98,7 +98,7 @@ interface TabProps {
 
 const Tab = ({ label, isActive, onClick }: TabProps) => (
   <button
-    tabIndex={isActive ? 0 : -1}
+    tabIndex={0}
     onClick={onClick}
     aria-selected={isActive}
     role="tab"

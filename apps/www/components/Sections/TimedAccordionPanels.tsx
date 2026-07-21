@@ -36,7 +36,7 @@ const TimedPanel = ({
 
   return (
     <button
-      tabIndex={isActive ? 0 : -1}
+      tabIndex={0}
       onMouseEnter={() => !isSm && onClick && onClick()}
       onClick={() => isSm && onClick && onClick()}
       className={cn(

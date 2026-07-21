@@ -120,7 +120,7 @@ export function ApiSectionClient({ examples }: { examples: ApiExample[] }) {
             const Icon = ICONS[example.icon]
             return (
               <button
-                tabIndex={isActive ? 0 : -1}
+                tabIndex={0}
                 key={example.title}
                 role="tab"
                 aria-selected={isActive}

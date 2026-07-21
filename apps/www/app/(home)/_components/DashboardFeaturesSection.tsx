@@ -35,7 +35,7 @@ export function DashboardFeaturesSection({
         <div className="flex gap-2" role="tablist">
           {tabs.map((tab, index) => (
             <button
-              tabIndex={index === activeTabIdx ? 0 : -1}
+              tabIndex={0}
               key={index}
               onClick={() => setActiveTabIdx(index)}
               aria-selected={index === activeTabIdx}

@@ -126,8 +126,9 @@ const RightClickBrandLogo = () => {
                     </Link>
                   ) : (
                     menuItem.type === 'clipboard' && (
+                      // DropdownMenuItem asChild manages roving tabIndex; don't override it.
+                      // eslint-disable-next-line supabase/require-explicit-tabindex -- in-menu item
                       <button
-                        tabIndex={0}
                         className="group/menu-item w-full text-left flex justify-between gap-2 items-center"
                         onClick={() => handleCopyToClipboard(menuItem)}
                       >

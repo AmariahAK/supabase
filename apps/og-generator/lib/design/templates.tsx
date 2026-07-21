@@ -41,6 +41,8 @@ export interface TemplateParts {
   showBrandLogo?: boolean
   /** Rendered height (px, pre-scaled) of the eyebrow pill + its gap above the headline, or 0 if no eyebrow — Announcement uses this to keep the headline from drifting too far down when an eyebrow is present. */
   eyebrowBlockHeight?: number
+  /** Number of headline lines actually rendered (from fitHeadline) — Announcement shifts a 2-line headline up so it doesn't crowd the logo below. */
+  headlineLineCount?: number
   /** Full-canvas background texture data URI (lib/design/og-backgrounds.ts), or null for a flat `bg` color — applied by backgroundPanel() so any template can opt in. */
   backgroundImageUri?: string | null
 }
@@ -182,10 +184,14 @@ const ANNOUNCEMENT_LOGO_BOTTOM_1X = 80
 // its own natural width, centered) — 1100 is the smallest round number past
 // the ~1067px needed for the default "Hydra joins Supabase" example to pass
 // the single-line-max-fraction check (fit-headline.ts) and render on one
-// line at 72px instead of force-wrapping to two. The headline itself is
-// vertically centered on the canvas (see build()), so 1-line and 2-line
-// headlines don't need separate offsets.
+// line at 72px instead of force-wrapping to two.
 const ANNOUNCEMENT_HEADLINE_MAX_WIDTH_1X = 1100
+
+// The headline block is vertically centered on the canvas, which centers a
+// 2-line headline's extra height evenly above AND below — pushing it down
+// closer to the logo. Shift a 2-line headline up by this much (1x px) so it
+// reads as growing upward instead of crowding the logo below.
+const ANNOUNCEMENT_TWO_LINE_SHIFT_UP_1X = 40
 
 function rootBase(p: TemplateParts): CSSProperties {
   return {
@@ -541,8 +547,12 @@ export const TEMPLATES: Template[] = [
               // a percentage — satori's transform/calc doesn't support
               // mixing the two) so the headline's position is unaffected by
               // whether an eyebrow is showing; the eyebrow just extends the
-              // composition upward instead.
-              marginTop: -(p.eyebrowBlockHeight ?? 0),
+              // composition upward instead. A 2-line headline gets an extra
+              // upward shift (see ANNOUNCEMENT_TWO_LINE_SHIFT_UP_1X) so it
+              // doesn't crowd the logo below.
+              marginTop:
+                -(p.eyebrowBlockHeight ?? 0) -
+                (p.headlineLineCount === 2 ? ANNOUNCEMENT_TWO_LINE_SHIFT_UP_1X * p.scaleFactor : 0),
             }}
           >
             {p.textBlock}

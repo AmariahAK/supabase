@@ -502,6 +502,7 @@ export async function GET(req: Request) {
       hasIcon,
       showBrandLogo,
       eyebrowBlockHeight,
+      headlineLineCount: fit.lineCount,
     })
 
     return new ImageResponse(root, {

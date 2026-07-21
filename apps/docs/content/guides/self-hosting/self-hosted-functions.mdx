@@ -82,7 +82,7 @@ functions:
     - .env.functions
   environment:
     JWT_SECRET: ${JWT_SECRET}
-    SUPABASE_URL: http://kong:8000
+    SUPABASE_URL: http://api-gw:8000
 ```
 
 <Admonition type="caution">
@@ -108,7 +108,7 @@ functions:
     MY_CUSTOM_VAR: ${MY_CUSTOM_VAR}
     # Required variables
     JWT_SECRET: ${JWT_SECRET}
-    SUPABASE_URL: http://kong:8000
+    SUPABASE_URL: http://api-gw:8000
 ```
 
 Then define `MY_CUSTOM_VAR` in your main `.env` file, or specify the value directly.
@@ -127,7 +127,7 @@ The functions service is pre-configured with the following environment variables
 
 | Variable                    | Value                             | Purpose                                           |
 | --------------------------- | --------------------------------- | ------------------------------------------------- |
-| `SUPABASE_URL`              | `http://kong:8000`                | Internal API gateway URL                          |
+| `SUPABASE_URL`              | `http://api-gw:8000`              | Internal API gateway URL                          |
 | `SUPABASE_PUBLIC_URL`       | `http(s)://<your-domain>`         | Base URL for accessing Supabase from the Internet |
 | `JWT_SECRET`                | `your-jwt-secret`                 | Legacy symmetric encryption key for JWTs          |
 | `SUPABASE_ANON_KEY`         | `your-anon-key`                   | Client-side API key (`anon` role).                |

@@ -202,6 +202,12 @@ For **Realtime WebSocket** connections, the API key is sent as a `?apikey=` quer
 
 ### Kong API gateway routing
 
+<Admonition type="note">
+
+Envoy is the default API gateway and performs the same opaque-key translation - see the [Envoy API Gateway guide](/docs/guides/self-hosting/self-hosted-envoy#authentication). The section below applies to the optional [Kong gateway override](/docs/guides/self-hosting/self-hosted-envoy#reverting-to-kong).
+
+</Admonition>
+
 Kong is configured with two consumers that each accept both the legacy and new API keys:
 
 ```yaml name=volumes/api/kong.yml

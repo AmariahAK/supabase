@@ -29,7 +29,7 @@ When connecting via an SSH tunnel to the Studio Docker container, the source IP 
 scrollable
 size="small"
 type="underlined"
-defaultActiveId="kong"
+defaultActiveId="envoy"
 >
 
 <TabPanel id="kong" label="Kong">
@@ -64,7 +64,7 @@ This command will output an IP address, e.g., `172.18.0.1`.
 scrollable
 size="small"
 type="underlined"
-defaultActiveId="kong"
+defaultActiveId="envoy"
 >
 
 <TabPanel id="kong" label="Kong">
@@ -187,14 +187,16 @@ After you've added the local IP address as above, restart your gateway:
 scrollable
 size="small"
 type="underlined"
-defaultActiveId="kong"
+defaultActiveId="envoy"
 >
 
 <TabPanel id="kong" label="Kong">
 
 ```sh
-sh run.sh restart kong
+sh run.sh restart api-gw
 ```
+
+This assumes the Kong gateway override is active (`sh run.sh config add kong`).
 
 </TabPanel>
 
@@ -203,8 +205,6 @@ sh run.sh restart kong
 ```sh
 sh run.sh restart api-gw
 ```
-
-This assumes the Envoy override is already active (`sh run.sh config add envoy`).
 
 </TabPanel>
 
@@ -270,5 +270,5 @@ If you are unable to connect to the MCP server:
 
 1. Update Kong configuration file to the [latest version](https://github.com/supabase/supabase/blob/master/docker/volumes/api/kong.yml) and edit carefully
 2. Confirm the Docker bridge gateway IP is correctly added in `./volumes/api/kong.yml`
-3. Check Kong's logs for errors: `docker compose logs kong`
+3. Check the gateway's logs for errors: `docker compose logs api-gw`
 4. Make sure your SSH tunnel is active

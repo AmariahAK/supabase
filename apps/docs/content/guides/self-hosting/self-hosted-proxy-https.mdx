@@ -33,9 +33,9 @@ If you already run [HAProxy](https://www.haproxy.com/), [Traefik](https://traefi
 
 </Admonition>
 
-<Admonition type="note" title="Using Envoy instead of Kong?">
+<Admonition type="note" title="Using the Kong gateway override?">
 
-Envoy is an optional [API gateway](/docs/guides/self-hosting/self-hosted-envoy), enabled via the `docker-compose.envoy.yml` override. If you already run Envoy instead of Kong, edit `docker-compose.caddy.yml` or `docker-compose.nginx.yml` to comment out the `kong:` block and uncomment the `api-gw:` block (and the matching `depends_on` entry) so the reverse proxy sits in front of Envoy.
+The reverse-proxy overrides front the `api-gw` service, which works for either gateway. If you run the [Kong override](/docs/guides/self-hosting/self-hosted-envoy#reverting-to-kong) (`sh run.sh config add kong`), also uncomment the `KONG_PORT_MAPS` block in `docker-compose.caddy.yml` or `docker-compose.nginx.yml` so Kong builds correct redirect URLs behind TLS.
 
 </Admonition>
 
@@ -126,7 +126,7 @@ Self-signed certificates trigger browser warnings and are rejected by most OAuth
 
 </Admonition>
 
-For development or internal networks where you cannot use Let's Encrypt, here's how you can configure Kong (the current default API gateway) to serve HTTPS directly using self-signed certificates.
+For development or internal networks where you cannot use Let's Encrypt, here's how you can configure the [Kong gateway override](/docs/guides/self-hosting/self-hosted-envoy#reverting-to-kong) to serve HTTPS directly using self-signed certificates. This requires the Kong override (`sh run.sh config add kong`); the default Envoy gateway does not terminate TLS, so use Caddy or Nginx above instead.
 
 ### Step 1: Generate a self-signed certificate
 
@@ -147,20 +147,22 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 
 Comment out Kong's **HTTP** port mapping in `docker-compose.yml`:
 
-```yaml name=docker-compose.yml
-kong:
+```yaml name=docker-compose.kong.yml
+api-gw:
   # ...
-  ports:
-    #- ${KONG_HTTP_PORT}:8000/tcp
+  ports: !override
+    #- ${API_GW_HTTP_PORT:-${KONG_HTTP_PORT:-8000}}:8000/tcp
+    - ${KONG_HTTPS_PORT:-8443}:8443/tcp
 ```
 
 Uncomment the certificate volume mounts and SSL environment variables in `docker-compose.yml`:
 
-```yaml name=docker-compose.yml
-kong:
+```yaml name=docker-compose.kong.yml
+api-gw:
   # ... existing configuration ...
-  volumes:
+  volumes: !override
     - ./volumes/api/kong.yml:/home/kong/temp.yml:ro,z
+    - ./volumes/api/kong-entrypoint.sh:/home/kong/kong-entrypoint.sh:ro,z
     - ./volumes/api/server.crt:/home/kong/server.crt:ro
     - ./volumes/api/server.key:/home/kong/server.key:ro
   environment:

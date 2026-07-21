@@ -105,7 +105,7 @@ export default function BlogHero({
         {secondaryPosts.length > 0 && (
           <ul
             aria-label="More recent posts"
-            className="mt-4 pt-4 border-t border-muted grid grid-cols-1 sm:grid-cols-2 gap-4"
+            className="mt-4 pt-4 border-t border-muted grid grid-cols-1 sm:grid-cols-2 gap-4 -mx-2 sm:-mx-4"
           >
             {secondaryPosts.map((post) => (
               <li key={post.slug}>

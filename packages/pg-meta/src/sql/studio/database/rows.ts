@@ -1,6 +1,6 @@
 import { literal, safeSql, type SafeSqlFragment } from '../../../pg-format'
 import { Filter, Query } from '../../../query'
-import { COUNT_ESTIMATE_SQL, THRESHOLD_COUNT } from './get-count-estimate'
+import { COUNT_ESTIMATE_SQL, THRESHOLD_COUNT, THRESHOLD_ESTIMATE_BYTES } from './get-count-estimate'
 
 /**
  * [Joshen] Initially check reltuples from pg_class for an estimate of row count on the table
@@ -11,14 +11,14 @@ import { COUNT_ESTIMATE_SQL, THRESHOLD_COUNT } from './get-count-estimate'
  * The `reltuples = -1` assumption above is a latent bug on large, freshly
  * bulk-loaded (never-analyzed) tables: pg_class.reltuples is -1 until the first
  * ANALYZE, so the legacy path runs an exact `count(*)` and can hit a statement
- * timeout on a multi-million-row table. The opt-in `scoped` path fixes this by
- * treating `estimate = -1` the same as "over threshold": it never returns the
- * raw -1 as a count and instead uses the EXPLAIN-based estimate (which works on
- * an unanalyzed table via relpages) in the non-readonly context, or reports -1
- * with is_estimate=true in the readonly context (where it cannot create the
- * pg_temp estimate function). `scoped` defaults to false so the behavior can be
- * rolled out behind a feature flag; the scoped=false rendering stays
- * byte-identical to the current query.
+ * timeout on a multi-million-row table. The opt-in `scoped` path fixes this
+ * WITHOUT breaking the (also `reltuples = -1`) empty/small new-table case: for a
+ * never-analyzed table it gates on the real heap size (pg_relation_size) against
+ * THRESHOLD_ESTIMATE_BYTES -- a physically large one uses the EXPLAIN estimate
+ * (non-readonly) or reports -1 (readonly), while a small/empty one still gets a
+ * fast exact count instead of Postgres's ~10-page minimum phantom estimate.
+ * `scoped` defaults to false so the behavior can be rolled out behind a feature
+ * flag; the scoped=false rendering stays byte-identical to the current query.
  */
 export const getTableRowsCountSql = ({
   table,
@@ -33,9 +33,10 @@ export const getTableRowsCountSql = ({
   /** Skips using the count estimate function if true and fallsback to checking reltuples from pg_class  */
   isReadOnlyContext?: boolean
   /**
-   * Opt-in optimized counting: also treats a never-analyzed table
-   * (reltuples = -1) as "estimate" so a large bulk-loaded table never runs an
-   * exact count(*) that could time out. Defaults to false (legacy behavior).
+   * Opt-in optimized counting: for a never-analyzed table (reltuples = -1) it
+   * gates on the physical heap size so a large bulk-loaded table uses an
+   * estimate (never a timing-out exact count) while a small/empty one still
+   * returns an exact count. Defaults to false (legacy behavior).
    */
   scoped?: boolean
 }): SafeSqlFragment => {
@@ -82,21 +83,24 @@ export const getTableRowsCountSql = ({
     if (isReadOnlyContext) {
       if (scoped) {
         // Readonly context cannot create the pg_temp.count_estimate function, so
-        // an unanalyzed (estimate = -1) or over-threshold table reports -1 with
-        // is_estimate=true rather than running an exact count(*) that could time
-        // out. The CASE and the is_estimate flag use the same condition.
+        // an over-threshold table -- or a never-analyzed (estimate = -1) table
+        // whose heap is physically large -- reports -1 with is_estimate=true
+        // rather than running an exact count(*) that could time out. A
+        // never-analyzed but physically SMALL table (incl. an empty new table:
+        // reltuples is also -1 there) still gets an exact, fast count(*). The
+        // CASE and the is_estimate flag use the same condition.
         const sql = safeSql`
 with approximation as (
-    select reltuples as estimate
+    select reltuples as estimate, pg_relation_size(oid) as bytes
     from pg_class
     where oid = ${literal(table.id)}
 )
 select
   case
-    when estimate > ${literal(THRESHOLD_COUNT)} or estimate = -1 then -1
+    when estimate > ${literal(THRESHOLD_COUNT)} or (estimate = -1 and bytes > ${literal(THRESHOLD_ESTIMATE_BYTES)}) then -1
     else (${countBaseSqlWithoutSemicolon})
   end as count,
-  (estimate > ${literal(THRESHOLD_COUNT)} or estimate = -1) as is_estimate
+  (estimate > ${literal(THRESHOLD_COUNT)} or (estimate = -1 and bytes > ${literal(THRESHOLD_ESTIMATE_BYTES)})) as is_estimate
 from approximation;
 `
 
@@ -120,27 +124,31 @@ from approximation;
       return sql
     } else {
       if (scoped) {
-        // Never-analyzed tables report estimate = -1; treat that like
-        // over-threshold and use the EXPLAIN-based estimate (works via relpages
-        // without ANALYZE) so a bulk-loaded table never runs an exact count(*)
-        // that could time out. Over-threshold keeps the legacy behavior (raw
-        // estimate when unfiltered, count_estimate over the filtered select
-        // otherwise). The CASE and is_estimate flag share one condition.
+        // A never-analyzed table reports estimate = -1, which covers BOTH a
+        // freshly bulk-loaded huge table AND a brand-new empty/small one. Gate
+        // that case on the real heap size (pg_relation_size): only a physically
+        // large -1 table uses the EXPLAIN estimate (which works without ANALYZE);
+        // a small/empty -1 table falls through to an exact, fast count(*) so it
+        // never reports Postgres's ~10-page minimum phantom estimate. The
+        // over-threshold branch keeps the legacy behavior (raw estimate when
+        // unfiltered, count_estimate over the filtered select otherwise). The
+        // CASE and is_estimate flag share one condition.
+        const estimateExpr = safeSql`pg_temp.count_estimate('${selectBaseSqlWithoutSemicolon.replaceAll("'", "''") as SafeSqlFragment}')`
         const sql = safeSql`
 ${COUNT_ESTIMATE_SQL}
 
 with approximation as (
-    select reltuples as estimate
+    select reltuples as estimate, pg_relation_size(oid) as bytes
     from pg_class
     where oid = ${literal(table.id)}
 )
 select
   case
-    when estimate = -1 then pg_temp.count_estimate('${selectBaseSqlWithoutSemicolon.replaceAll("'", "''") as SafeSqlFragment}')
-    when estimate > ${literal(THRESHOLD_COUNT)} then ${filters.length > 0 ? safeSql`pg_temp.count_estimate('${selectBaseSqlWithoutSemicolon.replaceAll("'", "''") as SafeSqlFragment}')` : safeSql`estimate`}
+    when estimate = -1 and bytes > ${literal(THRESHOLD_ESTIMATE_BYTES)} then ${estimateExpr}
+    when estimate > ${literal(THRESHOLD_COUNT)} then ${filters.length > 0 ? estimateExpr : safeSql`estimate`}
     else (${countBaseSqlWithoutSemicolon})
   end as count,
-  (estimate > ${literal(THRESHOLD_COUNT)} or estimate = -1) as is_estimate
+  (estimate > ${literal(THRESHOLD_COUNT)} or (estimate = -1 and bytes > ${literal(THRESHOLD_ESTIMATE_BYTES)})) as is_estimate
 from approximation;
 `
 

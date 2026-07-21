@@ -3,14 +3,14 @@ import { afterAll, expect, test } from 'vitest'
 import { getTableRowsCountSql } from '../../../src'
 import { cleanupRoot, createTestDatabase } from '../../db/utils'
 
+type Db = Awaited<ReturnType<typeof createTestDatabase>>
+type CountRow = { count: number; is_estimate: boolean }
+
 afterAll(async () => {
   await cleanupRoot()
 })
 
-const withTestDatabase = (
-  name: string,
-  fn: (db: Awaited<ReturnType<typeof createTestDatabase>>) => Promise<void>
-) => {
+const withTestDatabase = (name: string, fn: (db: Db) => Promise<void>) => {
   test(name, async () => {
     const db = await createTestDatabase()
     try {
@@ -21,96 +21,147 @@ const withTestDatabase = (
   })
 }
 
-const oidOf = async (
-  db: Awaited<ReturnType<typeof createTestDatabase>>,
-  qualified: string
-): Promise<number> => {
+const tableOf = async (db: Db, qualified: string, name: string, schema: string) => {
   const [{ id }] = await db.executeQuery<{ id: number }[]>(
     `select '${qualified}'::regclass::oid::int8 as id;`
   )
-  return Number(id)
+  return { id: Number(id), name, schema }
 }
 
-// A large, freshly bulk-loaded, NEVER-analyzed table: pg_class.reltuples stays
-// -1 until the first (auto)analyze. autovacuum is disabled so reltuples cannot
-// flip mid-test. This is the case the legacy path mishandles (it treats -1 as
-// "small" and runs an exact count(*) that can time out at multi-million scale).
-const BULK_ROWS = 100_000
+const reltuplesOf = async (db: Db, qualified: string) => {
+  const [{ reltuples }] = await db.executeQuery<{ reltuples: number }[]>(
+    `select reltuples::int8 as reltuples from pg_class where oid = '${qualified}'::regclass;`
+  )
+  return Number(reltuples)
+}
+
+const runCount = async (db: Db, args: Parameters<typeof getTableRowsCountSql>[0]) => {
+  const [row] = await db.executeQuery<CountRow[]>(getTableRowsCountSql(args))
+  return { count: Number(row.count), is_estimate: row.is_estimate }
+}
+
+// A never-analyzed table has pg_class.reltuples = -1 -- true for a brand-new
+// EMPTY table, a small one, AND a freshly bulk-loaded huge one. autovacuum is
+// disabled on every fixture so reltuples cannot flip mid-test.
 
 withTestDatabase(
-  'scoped: unanalyzed bulk table returns an estimate (is_estimate=true), never the raw -1',
+  'scoped: empty never-analyzed table -> exact count 0, is_estimate=false (both modes)',
   async (db) => {
-    await db.executeQuery(`
-      create table public.bulk_unanalyzed (id int primary key, val text)
-        with (autovacuum_enabled = false);
-      insert into public.bulk_unanalyzed
-        select g, 'row-' || g from generate_series(1, ${BULK_ROWS}) g;
-    `)
-
-    // Guard: the table is genuinely never-analyzed (reltuples = -1).
-    const [{ reltuples }] = await db.executeQuery<{ reltuples: number }[]>(
-      `select reltuples::int8 as reltuples from pg_class where oid = 'public.bulk_unanalyzed'::regclass;`
+    await db.executeQuery(
+      `create table public.empty_t (id int primary key) with (autovacuum_enabled = false);`
     )
-    expect(Number(reltuples)).toBe(-1)
+    expect(await reltuplesOf(db, 'public.empty_t')).toBe(-1)
+    const table = await tableOf(db, 'public.empty_t', 'empty_t', 'public')
 
-    const table = {
-      id: await oidOf(db, 'public.bulk_unanalyzed'),
-      name: 'bulk_unanalyzed',
-      schema: 'public',
-    }
-
-    // Non-readonly scoped: uses the EXPLAIN-based estimate (works via relpages
-    // without ANALYZE). Must be an estimate, and clearly not the raw -1.
-    const [scoped] = await db.executeQuery<Array<{ count: number; is_estimate: boolean }>>(
-      getTableRowsCountSql({ table, scoped: true })
-    )
-    expect(scoped.is_estimate).toBe(true)
-    expect(Number(scoped.count)).toBeGreaterThan(1000)
-
-    // Readonly scoped: cannot create the estimate function, reports -1 as an
-    // estimate rather than running an exact count.
-    const [scopedReadonly] = await db.executeQuery<Array<{ count: number; is_estimate: boolean }>>(
-      getTableRowsCountSql({ table, scoped: true, isReadOnlyContext: true })
-    )
-    expect(scopedReadonly.is_estimate).toBe(true)
-    expect(Number(scopedReadonly.count)).toBe(-1)
-
-    // Legacy (scoped:false) still mishandles -1 by running an exact count -- it
-    // returns the true count with is_estimate=false. Documents the pre-fix
-    // behavior the scoped path corrects.
-    const [legacy] = await db.executeQuery<Array<{ count: number; is_estimate: boolean }>>(
-      getTableRowsCountSql({ table })
-    )
-    expect(legacy.is_estimate).toBe(false)
-    expect(Number(legacy.count)).toBe(BULK_ROWS)
+    // Postgres estimates a never-vacuumed heap at a ~10-page minimum, so a naive
+    // reltuples=-1 -> estimate would report phantom rows here. The size gate
+    // routes an empty (0-byte) heap to an exact count instead.
+    expect(await runCount(db, { table, scoped: true })).toEqual({ count: 0, is_estimate: false })
+    expect(await runCount(db, { table, scoped: true, isReadOnlyContext: true })).toEqual({
+      count: 0,
+      is_estimate: false,
+    })
   }
 )
 
 withTestDatabase(
-  'scoped: small analyzed table still returns the exact count (is_estimate=false)',
+  'scoped: small never-analyzed table -> exact count, is_estimate=false (both modes)',
+  async (db) => {
+    await db.executeQuery(`
+      create table public.small_unanalyzed (id int primary key, val text)
+        with (autovacuum_enabled = false);
+      insert into public.small_unanalyzed select g, 'r' || g from generate_series(1, 1000) g;
+    `)
+    expect(await reltuplesOf(db, 'public.small_unanalyzed')).toBe(-1)
+    const table = await tableOf(db, 'public.small_unanalyzed', 'small_unanalyzed', 'public')
+
+    // Heap is a few tens of KB -- well under the byte gate -> exact count.
+    expect(await runCount(db, { table, scoped: true })).toEqual({ count: 1000, is_estimate: false })
+    expect(await runCount(db, { table, scoped: true, isReadOnlyContext: true })).toEqual({
+      count: 1000,
+      is_estimate: false,
+    })
+  }
+)
+
+withTestDatabase(
+  'scoped: large never-analyzed table (heap over byte gate) -> estimate, is_estimate=true',
+  async (db) => {
+    // Wide rows (~300-byte payload) so the heap clears the ~10MB byte gate with a
+    // modest, fast-to-insert row count (~19MB at 60k rows) -- the case the legacy
+    // path mishandles (treats reltuples=-1 as small, runs a timing-out count).
+    await db.executeQuery(`
+      create table public.bulk_unanalyzed (id int primary key, val text)
+        with (autovacuum_enabled = false);
+      insert into public.bulk_unanalyzed
+        select g, repeat('x', 300) from generate_series(1, 60000) g;
+    `)
+    expect(await reltuplesOf(db, 'public.bulk_unanalyzed')).toBe(-1)
+    const [{ bytes }] = await db.executeQuery<{ bytes: number }[]>(
+      `select pg_relation_size('public.bulk_unanalyzed'::regclass)::int8 as bytes;`
+    )
+    expect(Number(bytes)).toBeGreaterThan(10_000_000)
+    const table = await tableOf(db, 'public.bulk_unanalyzed', 'bulk_unanalyzed', 'public')
+
+    // Non-readonly scoped: EXPLAIN-based estimate (works without ANALYZE).
+    const scoped = await runCount(db, { table, scoped: true })
+    expect(scoped.is_estimate).toBe(true)
+    expect(scoped.count).toBeGreaterThan(1000)
+    expect(scoped.count).not.toBe(-1)
+
+    // Readonly scoped: cannot create the estimate function -> reports -1 as an
+    // estimate rather than a timing-out exact count.
+    expect(await runCount(db, { table, scoped: true, isReadOnlyContext: true })).toEqual({
+      count: -1,
+      is_estimate: true,
+    })
+
+    // Legacy (scoped:false) still runs an exact count on the -1 table.
+    expect(await runCount(db, { table })).toEqual({ count: 60000, is_estimate: false })
+  }
+)
+
+withTestDatabase(
+  'scoped: small analyzed table -> exact count, is_estimate=false',
   async (db) => {
     await db.executeQuery(`
       create table public.small_analyzed (id int primary key);
       insert into public.small_analyzed select generate_series(1, 5);
       analyze public.small_analyzed;
     `)
-    const table = {
-      id: await oidOf(db, 'public.small_analyzed'),
-      name: 'small_analyzed',
-      schema: 'public',
-    }
+    const table = await tableOf(db, 'public.small_analyzed', 'small_analyzed', 'public')
 
-    const [scoped] = await db.executeQuery<Array<{ count: number; is_estimate: boolean }>>(
-      getTableRowsCountSql({ table, scoped: true })
-    )
-    expect(scoped.is_estimate).toBe(false)
-    expect(Number(scoped.count)).toBe(5)
+    expect(await runCount(db, { table, scoped: true })).toEqual({ count: 5, is_estimate: false })
+    expect(await runCount(db, { table, scoped: true, isReadOnlyContext: true })).toEqual({
+      count: 5,
+      is_estimate: false,
+    })
+  }
+)
 
-    // Readonly scoped on a small analyzed table also returns the exact count.
-    const [scopedReadonly] = await db.executeQuery<Array<{ count: number; is_estimate: boolean }>>(
-      getTableRowsCountSql({ table, scoped: true, isReadOnlyContext: true })
-    )
-    expect(scopedReadonly.is_estimate).toBe(false)
-    expect(Number(scopedReadonly.count)).toBe(5)
+withTestDatabase(
+  'scoped: analyzed table over THRESHOLD_COUNT -> estimate, is_estimate=true (unchanged)',
+  async (db) => {
+    // reltuples > 50000 after analyze routes to the estimate branch regardless of
+    // heap size -- this behavior is unchanged by the byte-gate fix.
+    await db.executeQuery(`
+      create table public.big_analyzed (id int primary key)
+        with (autovacuum_enabled = false);
+      insert into public.big_analyzed select generate_series(1, 60000);
+      analyze public.big_analyzed;
+    `)
+    expect(await reltuplesOf(db, 'public.big_analyzed')).toBeGreaterThan(50000)
+    const table = await tableOf(db, 'public.big_analyzed', 'big_analyzed', 'public')
+
+    // Non-readonly, no filters: returns the raw reltuples estimate.
+    const scoped = await runCount(db, { table, scoped: true })
+    expect(scoped.is_estimate).toBe(true)
+    expect(scoped.count).toBeGreaterThan(1000)
+
+    // Readonly: reports -1 as an estimate.
+    expect(await runCount(db, { table, scoped: true, isReadOnlyContext: true })).toEqual({
+      count: -1,
+      is_estimate: true,
+    })
   }
 )

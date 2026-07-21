@@ -43,6 +43,8 @@ export interface FitResult {
   fits: boolean
   overflow: boolean
   mode: 'auto' | 'manual'
+  /** True when the headline didn't fit within maxLines/box even at minSize, so the last line was cut short and given a trailing "…". */
+  truncated: boolean
 }
 
 /** Width (px) of a single line, including approximate letter-spacing. */
@@ -143,6 +145,52 @@ function autoLayout(
   return { lines: greedy, widest }
 }
 
+/**
+ * Last-resort fallback when the headline still doesn't fit maxLines/box at
+ * minSize: keep the first `maxLines` lines and shorten the last one word by
+ * word (falling back to character-by-character for a single unsplittable
+ * word) until "<line>…" fits the box, so the headline never visually
+ * overflows its box.
+ */
+function truncateToFit(
+  font: Font,
+  lines: string[],
+  maxLines: number,
+  sizePx: number,
+  box: number,
+  ls: number
+): string[] {
+  const ellipsis = '…'
+  const kept = lines.slice(0, maxLines)
+  const lastIdx = kept.length - 1
+  let last = kept[lastIdx] ?? ''
+
+  const fitsWithEllipsis = (s: string) => measureLineWidth(font, s + ellipsis, sizePx, ls) <= box
+
+  if (fitsWithEllipsis(last)) {
+    kept[lastIdx] = last + ellipsis
+    return kept
+  }
+
+  // Drop whole words from the end first.
+  let trimmedByWord = last
+  while (/\s/.test(trimmedByWord) && !fitsWithEllipsis(trimmedByWord)) {
+    trimmedByWord = trimmedByWord.replace(/\s*\S+$/, '')
+  }
+  if (fitsWithEllipsis(trimmedByWord)) {
+    kept[lastIdx] = trimmedByWord + ellipsis
+    return kept
+  }
+
+  // Single unsplittable word still too wide — trim characters instead.
+  let trimmedByChar = trimmedByWord
+  while (trimmedByChar.length > 0 && !fitsWithEllipsis(trimmedByChar)) {
+    trimmedByChar = trimmedByChar.slice(0, -1)
+  }
+  kept[lastIdx] = trimmedByChar + ellipsis
+  return kept
+}
+
 export function fitHeadline(text: string, font: Font, opts: FitOptions): FitResult {
   const { boxWidth, minSize, maxSize, step = 2, maxLines = 2, letterSpacingEm = 0 } = opts
   const safetyPx = opts.safetyPx ?? 20
@@ -161,30 +209,59 @@ export function fitHeadline(text: string, font: Font, opts: FitOptions): FitResu
     return autoLayout(font, trimmed, size, effectiveBox, letterSpacingEm, singleFrac)
   }
 
-  for (let size = maxSize; size >= minSize; size -= step) {
-    const { lines, widest } = layoutAt(size)
-    if (lines.length <= maxLines && widest <= effectiveBox) {
-      return {
-        fontSize: size,
-        lines,
-        lineCount: lines.length,
-        widestLinePx: Math.round(widest),
-        fits: true,
-        overflow: false,
-        mode,
+  // Prefer <=2 lines over the full maxLines budget, even if that means
+  // stepping down to a smaller size within [minSize, maxSize] — a 3rd (or
+  // higher, up to maxLines) line is only used when 2 lines truly doesn't fit
+  // anywhere in that range. Manual mode's line count is fixed by the user's
+  // own breaks, so this pass is a no-op there unless they used <=2 lines.
+  const preferredMaxLines = Math.min(2, maxLines)
+  const linesBudgets = maxLines > preferredMaxLines ? [preferredMaxLines, maxLines] : [maxLines]
+
+  for (const budget of linesBudgets) {
+    for (let size = maxSize; size >= minSize; size -= step) {
+      const { lines, widest } = layoutAt(size)
+      if (lines.length <= budget && widest <= effectiveBox) {
+        return {
+          fontSize: size,
+          lines,
+          lineCount: lines.length,
+          widestLinePx: Math.round(widest),
+          fits: true,
+          overflow: false,
+          mode,
+          truncated: false,
+        }
       }
     }
   }
 
   const { lines, widest } = layoutAt(minSize)
   const fits = lines.length <= maxLines && widest <= effectiveBox
+  if (fits) {
+    return {
+      fontSize: minSize,
+      lines,
+      lineCount: lines.length,
+      widestLinePx: Math.round(widest),
+      fits: true,
+      overflow: false,
+      mode,
+      truncated: false,
+    }
+  }
+
+  // Still doesn't fit even at minSize — truncate the last line with an
+  // ellipsis rather than let it visually overflow the box.
+  const truncatedLines = truncateToFit(font, lines, maxLines, minSize, effectiveBox, letterSpacingEm)
+  const truncatedWidest = Math.max(0, ...truncatedLines.map((l) => measureLineWidth(font, l, minSize, letterSpacingEm)))
   return {
     fontSize: minSize,
-    lines,
-    lineCount: lines.length,
-    widestLinePx: Math.round(widest),
-    fits,
-    overflow: !fits,
+    lines: truncatedLines,
+    lineCount: truncatedLines.length,
+    widestLinePx: Math.round(truncatedWidest),
+    fits: true,
+    overflow: true,
     mode,
+    truncated: true,
   }
 }

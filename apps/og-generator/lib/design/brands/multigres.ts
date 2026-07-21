@@ -27,8 +27,8 @@ export const multigres: Brand = {
     'text.primary': '#FAFAFA',
     'text.secondary': '#B4B4B4',
     'text.muted': '#898989',
-    'illustration.stroke': '#A0A0A0', // neutral gray, same treatment as Supabase
+    'illustration.stroke': '#FFFFFF',
   },
-  illustration: { defaultStrokePx: 2 },
+  illustration: { defaultStrokePx: 2.25 },
   strokeWidthRange: { min: 1.22, max: 2 },
 }

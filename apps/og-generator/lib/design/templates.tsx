@@ -96,7 +96,7 @@ export const ICON_TILE_ICON_SIZE_1X = 64
 const ICON_TILE_RADIUS_1X = 16
 const ICON_TILE_BORDER_WIDTH_1X = 1.5
 const ICON_TILE_BG = '#171717'
-const ICON_TILE_BORDER_COLOR = '#2E2E2E'
+const ICON_TILE_BORDER_COLOR = '#444444'
 
 /** Wraps `content` (expected to be `ICON_TILE_ICON_SIZE_1X`-sized) in the shared dark chip box. */
 function iconTile(p: TemplateParts, content: ReactNode): ReactElement {
@@ -185,6 +185,10 @@ const GRAPH_PAPER_ICON_RIGHT_1X = 84
 
 // icon-layout arrangement 3 (paired with the concentric-circles texture) —
 // same headline position as arrangement 1, its own fixed icon chip/position.
+// 575 keeps the widest possible line clear of the pattern's leftmost visible
+// point (measured at ~x669 on the OG canvas, i.e. ~589px of clear space from
+// the left inset — 575 leaves a small safety margin).
+const CIRCLES_ARRANGEMENT_HEADLINE_MAX_WIDTH_1X = 575
 const CIRCLES_ARRANGEMENT_ICON_TILE_SIZE_1X = 210.72
 const CIRCLES_ARRANGEMENT_ICON_TOP_1X = 209.65
 const CIRCLES_ARRANGEMENT_ICON_RIGHT_1X = 76.09
@@ -300,7 +304,7 @@ export const TEMPLATES: Template[] = [
         : arrangement === 2
           ? Math.round(format.width * 0.75)
           : arrangement === 3
-            ? fullHeadlineBoxWidth(format) - format.iconSize - SPLIT_RIGHT_GAP
+            ? Math.min(CIRCLES_ARRANGEMENT_HEADLINE_MAX_WIDTH_1X, fullHeadlineBoxWidth(format) - format.iconSize - SPLIT_RIGHT_GAP)
             : fullHeadlineBoxWidth(format),
     textAlign: 'left',
     textAlignForArrangement: (arrangement) => (arrangement === 2 ? 'center' : 'left'),

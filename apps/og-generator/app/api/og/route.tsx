@@ -566,6 +566,7 @@ export async function GET(req: Request) {
         'x-og-line-count': String(fit.lineCount),
         'x-og-fits': String(fit.fits),
         'x-og-overflow': String(fit.overflow),
+        'x-og-truncated': String(fit.truncated),
         'x-og-mode': fit.mode,
         'x-og-widest-line-px': String(fit.widestLinePx),
         'x-og-template': template.id,

@@ -2,10 +2,12 @@ import { ArrowRight, Plus, Sparkles } from 'lucide-react'
 import { Button } from 'ui'
 import { Input } from 'ui-patterns/DataInputs/Input'
 
+import CopyButton from '@/components/ui/CopyButton'
 import {
   LOG_DESTINATION,
   UNIT_NAME_LOWER,
   WORKERS_CLI,
+  WORKERS_SKILL_MARKDOWN,
   WORKER_REGION,
 } from '@/lib/constants/workers'
 import { DOCS_URL } from '@/lib/constants'
@@ -78,15 +80,24 @@ export const WorkersEmptyState = ({ onCreate }: { onCreate: () => void }) => {
           <p className="mt-1 text-xs text-foreground-lighter">
             Drop a skill file into your agent so it can deploy and manage workers for you.
           </p>
-          <a
-            href={`${DOCS_URL}/guides/workers`}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-flex items-center gap-1 text-xs text-foreground-light hover:text-foreground"
-          >
-            Get the skill
-            <ArrowRight size={12} />
-          </a>
+          <div className="mt-3 flex items-center gap-2">
+            <CopyButton
+              variant="default"
+              size="tiny"
+              text={WORKERS_SKILL_MARKDOWN}
+              copyLabel="Copy SKILL.md"
+              copiedLabel="Copied SKILL.md"
+            />
+            <a
+              href={`${DOCS_URL}/guides/workers`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-foreground-light hover:text-foreground"
+            >
+              View docs
+              <ArrowRight size={12} />
+            </a>
+          </div>
         </div>
 
         <a

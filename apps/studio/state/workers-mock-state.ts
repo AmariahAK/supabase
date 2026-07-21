@@ -48,6 +48,8 @@ type WorkerSeed = {
   createdSecondsAgo: number
   idleSeconds: number
   createdBy: Worker['createdBy']
+  /** seed a prior suspend->resume cycle so the run/session grouping has >1 group */
+  priorSessions?: boolean
 }
 
 const REQUEST_PATHS = ['/', '/health', '/webhook', '/api/tasks', '/api/embed', '/render']
@@ -119,6 +121,14 @@ const seedWorker = (seed: WorkerSeed): Worker => {
   const lifecycle: WorkerLifecycleEvent[] = []
   lifecycle.push(makeLifecycleEvent('deploying', seed.createdSecondsAgo, 'Deploy started from CLI'))
   lifecycle.push(makeLifecycleEvent('active', Math.max(0, seed.createdSecondsAgo - 4)))
+  if (seed.state === 'active' && seed.priorSessions) {
+    // A prior idle -> suspend -> resume cycle, so this worker shows two runs.
+    const idledAt = Math.round(seed.createdSecondsAgo * 0.5)
+    lifecycle.push(makeLifecycleEvent('draining', idledAt + 2, 'Idle threshold reached'))
+    lifecycle.push(makeLifecycleEvent('suspended', idledAt))
+    lifecycle.push(makeLifecycleEvent('resuming', 180, 'Traffic received, waking worker'))
+    lifecycle.push(makeLifecycleEvent('active', 178, 'Cold start complete in 0.9s'))
+  }
   if (seed.state === 'suspended') {
     lifecycle.push(
       makeLifecycleEvent('draining', seed.idleSeconds + 2, 'Idle threshold reached')
@@ -177,6 +187,7 @@ const SEED: WorkerSeed[] = [
     createdSecondsAgo: 60 * 60 * 26,
     idleSeconds: 2,
     createdBy: { type: 'user', name: 'ana@acme.dev' },
+    priorSessions: true,
   },
   {
     name: 'nightly-reconcile',
@@ -210,6 +221,7 @@ const SEED: WorkerSeed[] = [
     createdSecondsAgo: 60 * 90,
     idleSeconds: 1,
     createdBy: { type: 'user', name: 'ana@acme.dev' },
+    priorSessions: true,
   },
   {
     name: 'edge-cache-primer',

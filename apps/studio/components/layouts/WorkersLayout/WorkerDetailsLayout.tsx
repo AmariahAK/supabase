@@ -1,21 +1,20 @@
 import { useParams } from 'common'
-import { Copy, Lock } from 'lucide-react'
+import { Lock } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, type PropsWithChildren } from 'react'
-import { toast } from 'sonner'
 import {
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-  Button,
-  copyToClipboard,
   NavMenu,
   NavMenuItem,
 } from 'ui'
+import { Admonition } from 'ui-patterns/admonition'
 import { PageBreadcrumbs, PageBreadcrumbsActions } from 'ui-patterns/PageBreadcrumbs'
+import { PageContainer } from 'ui-patterns/PageContainer'
 import {
   PageHeader,
   PageHeaderDescription,
@@ -29,10 +28,11 @@ import WorkersLayout from './WorkersLayout'
 import { WorkerActions } from '@/components/interfaces/Workers/WorkerActions'
 import {
   WorkerAccessBadge,
-  WorkerActorBadge,
+  WorkerConfigBadges,
   WorkerRuntimeBadge,
   WorkerStateBadge,
 } from '@/components/interfaces/Workers/WorkerBadges'
+import CopyButton from '@/components/ui/CopyButton'
 import { withAuth } from '@/hooks/misc/withAuth'
 import { PRODUCT_NAME, WORKER_ACCESS_MODES } from '@/lib/constants/workers'
 import { ensureWorkersMockTicker, useWorkerBySlug } from '@/state/workers-mock-state'
@@ -111,40 +111,37 @@ const WorkerDetailsLayout = ({ title, children }: PropsWithChildren<WorkerDetail
                 <WorkerStateBadge state={worker.state} />
                 <WorkerRuntimeBadge runtime={worker.runtime} />
                 <WorkerAccessBadge access={worker.access} />
-                <WorkerActorBadge actor={worker.createdBy} />
+                <WorkerConfigBadges worker={worker} />
               </PageHeaderDescription>
             </PageHeaderSummary>
           </PageHeaderMeta>
 
           {/* Access-mode explainer lives in the shared header so it's visible
-              regardless of which tab is open (matches 4a's card layout). */}
-          {worker.access === 'public' && worker.endpoint ? (
-            <div className="mt-3 flex flex-col gap-2 rounded-md border border-default bg-surface-100 p-3">
-              <div className="flex items-center gap-2">
-                <code className="flex-1 truncate text-xs text-foreground">{worker.endpoint}</code>
-                <Button
-                  variant="text"
-                  size="tiny"
-                  icon={<Copy />}
-                  onClick={() => {
-                    copyToClipboard(worker.endpoint ?? '')
-                    toast.success('Endpoint copied to clipboard')
-                  }}
-                />
-              </div>
-              <p className="flex items-center gap-1.5 text-xs text-foreground-lighter">
-                <Lock size={12} strokeWidth={1.5} />
-                Requests must carry a valid Supabase Auth key, validated at the API Gateway.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-3 rounded-md border border-dashed border-default p-3">
-              <p className="text-sm text-foreground-light">No endpoint</p>
-              <p className="mt-1 text-xs text-foreground-lighter">
-                {WORKER_ACCESS_MODES.private.description}
-              </p>
-            </div>
-          )}
+              regardless of which tab is open. Wrapped in PageContainer so it
+              shares the header's horizontal padding rather than bleeding to the
+              edges. */}
+          <PageContainer size="full">
+            {worker.access === 'public' && worker.endpoint ? (
+              <Admonition type="default" title="Public endpoint">
+                <div className="mt-1 flex items-center gap-2">
+                  <code className="min-w-0 flex-1 truncate text-xs text-foreground">
+                    {worker.endpoint}
+                  </code>
+                  <CopyButton iconOnly variant="text" text={worker.endpoint} />
+                </div>
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-foreground-lighter">
+                  <Lock size={12} strokeWidth={1.5} />
+                  Requests must carry a valid Supabase Auth key, validated at the API Gateway.
+                </p>
+              </Admonition>
+            ) : (
+              <Admonition
+                type="default"
+                title="No endpoint"
+                description={WORKER_ACCESS_MODES.private.description}
+              />
+            )}
+          </PageContainer>
 
           <PageHeaderNavigationTabs>
             <NavMenu>

@@ -1,5 +1,7 @@
-import { useState } from 'react'
-import { Switch } from 'ui'
+import { useParams } from 'common'
+import { ExternalLink, Telescope } from 'lucide-react'
+import Link from 'next/link'
+import { Button } from 'ui'
 import { PageContainer } from 'ui-patterns/PageContainer'
 import {
   PageSection,
@@ -11,19 +13,19 @@ import {
 } from 'ui-patterns/PageSection'
 
 import { WorkerLifecycleTimeline } from './WorkerLifecycleTimeline'
-import { WorkerLogFeed } from './WorkerLogFeed'
+import { WorkerLogSessions } from './WorkerLogSessions'
 import type { Worker } from '../Workers.types'
 import { LOG_DESTINATION } from '@/lib/constants/workers'
 
 export const WorkerLogsTab = ({ worker }: { worker: Worker }) => {
-  const [showLifecycle, setShowLifecycle] = useState(true)
+  const { ref } = useParams()
 
   return (
     <PageContainer size="large">
       <PageSection>
         <PageSectionMeta>
           <PageSectionSummary>
-            <PageSectionTitle>Lifecycle history</PageSectionTitle>
+            <PageSectionTitle>Lifecycle</PageSectionTitle>
           </PageSectionSummary>
         </PageSectionMeta>
         <PageSectionContent>
@@ -36,26 +38,23 @@ export const WorkerLogsTab = ({ worker }: { worker: Worker }) => {
       <PageSection>
         <PageSectionMeta>
           <PageSectionSummary>
-            <PageSectionTitle>Logs</PageSectionTitle>
+            <PageSectionTitle>Sessions</PageSectionTitle>
           </PageSectionSummary>
           <PageSectionAside>
-            <Switch
-              id="worker-logs-interleave"
-              checked={showLifecycle}
-              onCheckedChange={setShowLifecycle}
-            />
-            <label htmlFor="worker-logs-interleave" className="text-xs text-foreground-light">
-              Interleave lifecycle events
-            </label>
+            <Button asChild variant="default" icon={<ExternalLink />}>
+              <Link href={`/project/${ref}/logs/explorer?q=${worker.slug}`}>Open in Logs</Link>
+            </Button>
+            <Button asChild variant="default" icon={<Telescope />}>
+              <Link href={`/project/${ref}/observability`}>Observability</Link>
+            </Button>
           </PageSectionAside>
         </PageSectionMeta>
         <PageSectionContent>
           <p className="mb-3 text-sm text-foreground-light">
-            Streaming from {LOG_DESTINATION}, tagged with this worker's id.
+            Each run is grouped as a session — a new group starts whenever the worker deploys or
+            resumes. Full history streams to {LOG_DESTINATION}; open it in Logs for deeper filtering.
           </p>
-          <div className="overflow-hidden rounded-md border border-default bg-surface-100">
-            <WorkerLogFeed logs={worker.logs} showLifecycle={showLifecycle} />
-          </div>
+          <WorkerLogSessions worker={worker} />
         </PageSectionContent>
       </PageSection>
     </PageContainer>

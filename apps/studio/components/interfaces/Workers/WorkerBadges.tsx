@@ -1,10 +1,13 @@
-import { Bot, Terminal, User } from 'lucide-react'
+import { Bot, Cpu, Layers, MapPin, Terminal, User } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { cn } from 'ui'
 
-import type { WorkerActor } from './Workers.types'
+import type { Worker, WorkerActor } from './Workers.types'
 import {
   getWorkerRuntime,
+  getWorkerSize,
   WORKER_ACCESS_MODES,
+  WORKER_REGION,
   WORKER_STATE_LABELS,
   type WorkerAccessMode,
   type WorkerLifecycleState,
@@ -74,6 +77,31 @@ export const WorkerAccessBadge = ({ access }: { access: WorkerAccessMode }) => (
     {WORKER_ACCESS_MODES[access].label}
   </span>
 )
+
+const MetaItem = ({ icon: Icon, children }: { icon: typeof Cpu; children: ReactNode }) => (
+  <span className="inline-flex items-center gap-1.5 text-xs text-foreground-light">
+    <Icon size={12} strokeWidth={1.5} className="text-foreground-lighter" />
+    {children}
+  </span>
+)
+
+/** Read-only config summary shown as badges under the worker name. */
+export const WorkerConfigBadges = ({ worker }: { worker: Worker }) => {
+  const size = getWorkerSize(worker.size)
+  return (
+    <>
+      <MetaItem icon={Cpu}>
+        {size.vcpu} · {size.memory}
+      </MetaItem>
+      <MetaItem icon={MapPin}>
+        {WORKER_REGION.short} <span className="text-foreground-lighter">(locked)</span>
+      </MetaItem>
+      <MetaItem icon={Layers}>
+        {worker.instances} {worker.instances === 1 ? 'instance' : 'instances'}
+      </MetaItem>
+    </>
+  )
+}
 
 export const WorkerActorBadge = ({ actor }: { actor: WorkerActor }) => {
   const Icon = actor.type === 'user' ? User : actor.type === 'cli' ? Terminal : Bot

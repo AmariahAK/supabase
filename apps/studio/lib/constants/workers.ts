@@ -35,6 +35,26 @@ export const WORKERS_CLI = {
   delete: 'supabase workers delete',
 } as const
 
+/**
+ * Compact SKILL.md for agents — copyable from the empty state so an agent can
+ * deploy and manage Workers. Mirrors specs/workers-alpha/SKILL.md.
+ */
+export const WORKERS_SKILL_MARKDOWN = `---
+name: supabase-workers
+description: Deploy and manage Supabase Workers (managed compute in microVMs next to Postgres) via the Supabase CLI.
+---
+
+# Supabase Workers (alpha)
+
+- Deploy: \`supabase workers deploy <name> --runtime <node|deno|bun|python|dockerfile> --size <2x1|4x2> --access <public|private> --instances <1-10>\`
+- Inspect: \`supabase workers list\`, \`supabase workers logs <name> --follow\`
+- Remove: \`supabase workers delete <name>\` (immediate, no drain)
+
+Constraints: two sizes only (no resize — delete + redeploy), single locked US-West region,
+1–10 instances / 100 per project, no pricing at alpha. Public = HTTP via the API Gateway (needs a
+valid Supabase Auth key); private = no endpoint, its logs are its product.
+`
+
 // ---------------------------------------------------------------------------
 // Sizes — exactly two shapes, no resize. To change size, delete and redeploy.
 // ---------------------------------------------------------------------------
@@ -195,24 +215,6 @@ export const WORKER_MOCK_TIMERS = {
   idleThresholdSeconds: 20,
   resumingDurationMs: 1400,
   drainingDurationMs: 1600,
-} as const
-
-// ---------------------------------------------------------------------------
-// Latency benchmark — backs the 2c stat + ping-trace tile. Illustrative
-// numbers from a benchmark run, never presented as a live measurement.
-// ---------------------------------------------------------------------------
-
-export const WORKER_LATENCY_BENCHMARK = {
-  /** p90 round-trip Worker -> Postgres, same region */
-  workerP90Ms: 42,
-  /** the target we hold ourselves to */
-  targetMs: 100,
-  /** comparison: an external host reaching the same Postgres */
-  externalHostMs: 340,
-  externalHostLabel: 'External host → DB',
-  workerLabel: 'Worker → DB',
-  caption:
-    'p90 from a benchmark run, not a live measurement. Ping traces below animate at an illustrative pace.',
 } as const
 
 // ---------------------------------------------------------------------------

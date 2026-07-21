@@ -9,7 +9,6 @@ import {
   PageSectionTitle,
 } from 'ui-patterns/PageSection'
 
-import { LatencyStatTile } from '../LatencyStatTile'
 import type { Worker } from '../Workers.types'
 import { LOG_DESTINATION } from '@/lib/constants/workers'
 
@@ -25,17 +24,6 @@ export const WorkerRequestsTab = ({ worker }: { worker: Worker }) => {
 
   return (
     <PageContainer size="large">
-      <PageSection>
-        <PageSectionMeta>
-          <PageSectionSummary>
-            <PageSectionTitle>Latency</PageSectionTitle>
-          </PageSectionSummary>
-        </PageSectionMeta>
-        <PageSectionContent>
-          <LatencyStatTile />
-        </PageSectionContent>
-      </PageSection>
-
       <PageSection>
         <PageSectionMeta>
           <PageSectionSummary>

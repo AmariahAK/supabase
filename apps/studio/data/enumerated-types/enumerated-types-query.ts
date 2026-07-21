@@ -1,26 +1,29 @@
 import pgMeta, { type PGType } from '@supabase/pg-meta'
 import { useQuery } from '@tanstack/react-query'
+import { useFlag } from 'common'
 
 import { executeSql } from '../sql/execute-sql-mutation'
 import { enumeratedTypesKeys } from './keys'
 import type { components } from '@/data/api'
+import { PG_META_SCOPED_INTROSPECTION_FLAG } from '@/data/table-editor/table-editor-query'
 import type { ResponseError, UseCustomQueryOptions } from '@/types'
 
 export type EnumeratedTypesVariables = {
   projectRef?: string
   connectionString?: string | null
   schemas?: string[]
+  scoped?: boolean
 }
 
 export type EnumeratedType = components['schemas']['PostgresType']
 
 export async function getEnumeratedTypes(
-  { projectRef, connectionString, schemas }: EnumeratedTypesVariables,
+  { projectRef, connectionString, schemas, scoped = false }: EnumeratedTypesVariables,
   signal?: AbortSignal
 ) {
   if (!projectRef) throw new Error('projectRef is required')
 
-  const { sql } = pgMeta.types.list({ includedSchemas: schemas })
+  const { sql } = pgMeta.types.list({ includedSchemas: schemas, scoped })
   const { result } = await executeSql(
     {
       projectRef,
@@ -43,10 +46,14 @@ export const useEnumeratedTypesQuery = <TData = EnumeratedTypesData>(
     enabled = true,
     ...options
   }: UseCustomQueryOptions<EnumeratedTypesData, EnumeratedTypesError, TData> = {}
-) =>
-  useQuery<EnumeratedTypesData, EnumeratedTypesError, TData>({
-    queryKey: enumeratedTypesKeys.list(projectRef, schemas),
-    queryFn: ({ signal }) => getEnumeratedTypes({ projectRef, connectionString, schemas }, signal),
+) => {
+  const scoped = !!useFlag(PG_META_SCOPED_INTROSPECTION_FLAG)
+
+  return useQuery<EnumeratedTypesData, EnumeratedTypesError, TData>({
+    queryKey: [...enumeratedTypesKeys.list(projectRef, schemas), { scoped }],
+    queryFn: ({ signal }) =>
+      getEnumeratedTypes({ projectRef, connectionString, schemas, scoped }, signal),
     enabled: enabled && typeof projectRef !== 'undefined',
     ...options,
   })
+}

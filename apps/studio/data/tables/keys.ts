@@ -14,6 +14,10 @@ export const tableKeys = {
     schema: string | undefined,
     options: { includeColumns?: boolean; pageSize?: number; nameFilter?: string }
   ) => [...tableKeys.infiniteListPrefix(projectRef, schema), options],
-  retrieve: (projectRef: string | undefined, name: string, schema: string) =>
-    ['projects', projectRef, 'table', schema, name].filter(Boolean),
+  retrieve: (
+    projectRef: string | undefined,
+    name: string,
+    schema: string,
+    options?: { scoped?: boolean }
+  ) => ['projects', projectRef, 'table', schema, name, options].filter(Boolean),
 }

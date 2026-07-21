@@ -1,7 +1,9 @@
 import pgMeta from '@supabase/pg-meta'
 import { useQuery } from '@tanstack/react-query'
+import { useFlag } from 'common'
 
 import { tableKeys } from './keys'
+import { PG_META_SCOPED_INTROSPECTION_FLAG } from '@/data/table-editor/table-editor-query'
 import { getQueryClient } from '@/data/query-client'
 import { executeSql } from '@/data/sql/execute-sql-mutation'
 import type { SafePostgresTable } from '@/lib/postgres-types'
@@ -12,20 +14,21 @@ export type TablesVariables = {
   connectionString?: string | null
   name: string
   schema: string
+  scoped?: boolean
 }
 
 export async function getTable(
-  { projectRef, connectionString, name, schema }: TablesVariables,
+  { projectRef, connectionString, name, schema, scoped = false }: TablesVariables,
   signal?: AbortSignal
 ): Promise<SafePostgresTable> {
-  const { sql, zod } = pgMeta.tables.retrieve({ name, schema })
+  const { sql, zod } = pgMeta.tables.retrieve({ name, schema, scoped })
 
   const { result } = await executeSql(
     {
       projectRef,
       connectionString,
       sql,
-      queryKey: tableKeys.retrieve(projectRef, name, schema),
+      queryKey: tableKeys.retrieve(projectRef, name, schema, { scoped: !!scoped }),
     },
     signal
   )
@@ -44,9 +47,12 @@ export const useTableQuery = <TData = RetrieveTableResult>(
     ...options
   }: UseCustomQueryOptions<RetrieveTableResult, RetrieveTableError, TData> = {}
 ) => {
+  const scoped = !!useFlag(PG_META_SCOPED_INTROSPECTION_FLAG)
+
   return useQuery<RetrieveTableResult, RetrieveTableError, TData>({
-    queryKey: tableKeys.retrieve(projectRef, name, schema),
-    queryFn: ({ signal }) => getTable({ projectRef, connectionString, name, schema }, signal),
+    queryKey: tableKeys.retrieve(projectRef, name, schema, { scoped }),
+    queryFn: ({ signal }) =>
+      getTable({ projectRef, connectionString, name, schema, scoped }, signal),
     enabled: enabled && typeof projectRef !== 'undefined',
     ...options,
   })
@@ -60,17 +66,20 @@ export const getTableQuery = async ({
   name,
   schema,
   connectionString,
+  scoped = false,
 }: {
   projectRef: string
   name: string
   schema: string
   connectionString?: string | null
+  scoped?: boolean
 }) => {
   const queryClient = getQueryClient()
   const table = await queryClient.fetchQuery({
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
-    queryKey: tableKeys.retrieve(projectRef, name, schema),
-    queryFn: ({ signal }) => getTable({ projectRef, connectionString, name, schema }, signal),
+    queryKey: tableKeys.retrieve(projectRef, name, schema, { scoped: !!scoped }),
+    queryFn: ({ signal }) =>
+      getTable({ projectRef, connectionString, name, schema, scoped }, signal),
   })
   return table
 }

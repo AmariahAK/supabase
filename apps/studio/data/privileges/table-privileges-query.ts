@@ -1,8 +1,10 @@
 import pgMeta from '@supabase/pg-meta'
 import { QueryClient, useQuery } from '@tanstack/react-query'
+import { useFlag } from 'common'
 import { z } from 'zod'
 
 import { privilegeKeys } from './keys'
+import { PG_META_SCOPED_INTROSPECTION_FLAG } from '@/data/table-editor/table-editor-query'
 import { executeSql } from '@/data/sql/execute-sql-mutation'
 import { ResponseError, UseCustomQueryOptions } from '@/types'
 
@@ -10,6 +12,7 @@ export type TablePrivilegesVariables = {
   projectRef?: string
   connectionString?: string | null
   includedSchemas?: string[]
+  scoped?: boolean
 }
 
 export type PgTablePrivileges = z.infer<typeof pgMeta.tablePrivileges.zod>
@@ -19,10 +22,10 @@ export type TablePrivilegesData = z.infer<typeof pgMetaTablePrivilegesList.zod>
 export type TablePrivilegesError = ResponseError
 
 async function getTablePrivileges(
-  { projectRef, connectionString, includedSchemas }: TablePrivilegesVariables,
+  { projectRef, connectionString, includedSchemas, scoped = false }: TablePrivilegesVariables,
   signal?: AbortSignal
 ) {
-  const sql = pgMeta.tablePrivileges.list({ includedSchemas }).sql
+  const sql = pgMeta.tablePrivileges.list({ includedSchemas, scoped }).sql
   const queryKey = ['table-privileges', includedSchemas?.join(',')]
 
   const { result } = await executeSql({ projectRef, connectionString, sql, queryKey }, signal)
@@ -38,9 +41,11 @@ export const useTablePrivilegesQuery = <TData = TablePrivilegesData>(
   }: UseCustomQueryOptions<TablePrivilegesData, TablePrivilegesError, TData> = {}
 ) => {
   const { projectRef, includedSchemas } = vars
+  const scoped = !!useFlag(PG_META_SCOPED_INTROSPECTION_FLAG)
+
   return useQuery<TablePrivilegesData, TablePrivilegesError, TData>({
-    queryKey: privilegeKeys.tablePrivilegesList(projectRef, includedSchemas),
-    queryFn: ({ signal }) => getTablePrivileges(vars, signal),
+    queryKey: [...privilegeKeys.tablePrivilegesList(projectRef, includedSchemas), { scoped }],
+    queryFn: ({ signal }) => getTablePrivileges({ ...vars, scoped }, signal),
     enabled: enabled && typeof projectRef !== 'undefined',
     ...options,
   })

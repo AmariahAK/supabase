@@ -74,6 +74,7 @@ export async function getTableRowsCount(
       filters: formattedFilters,
       enforceExactCount,
       isReadOnlyContext,
+      scoped,
     }),
     roleImpersonationState
   )

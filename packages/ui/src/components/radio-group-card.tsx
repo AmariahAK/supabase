@@ -61,7 +61,7 @@ const RadioGroupCardItem = React.forwardRef<
                 group-focus-visible:ring-2 group-focus-visible:ring-ring group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-background
                 group-disabled:cursor-not-allowed group-disabled:opacity-50
                 flex items-center justify-center
-                transition
+                transition-colors
           "
           >
             <RadioGroupPrimitive.Indicator className="flex items-center justify-center">

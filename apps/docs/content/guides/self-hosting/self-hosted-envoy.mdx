@@ -21,6 +21,8 @@ Envoy is the default API gateway and runs automatically when you start the stack
 
 Envoy is registered as the `api-gw` service and also exposes `kong` and `envoy` as network aliases. Either hostname resolves to whichever gateway is active, so internal configs that reference `api-gw:8000` or `kong:8000` (for example, in Edge Functions or Studio) keep working without changes.
 
+{/* supa-mdx-lint-disable-next-line Rule001HeadingCase */}
+
 ### Reverting to Kong
 
 Kong is available as an optional override. If your stack is already running, bring it down first with `sh run.sh stop`, then enable the Kong override and start the stack:

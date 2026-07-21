@@ -8,7 +8,7 @@ import { satoriFonts, measurementFont } from '@/lib/design/fonts'
 import { getFormat } from '@/lib/design/formats'
 import { iconDataUri } from '@/lib/design/icons'
 import { SUPABASE_WORDMARK_ASPECT, SUPABASE_WORDMARK_DATA_URI } from '@/lib/design/logo'
-import { DEFAULT_BACKGROUND_ID, type BackgroundId } from '@/lib/design/og-backgrounds'
+import type { BackgroundId } from '@/lib/design/og-backgrounds'
 import { backgroundDataUri } from '@/lib/design/og-backgrounds.server'
 import { DEFAULT_TEMPLATE_ID, TEMPLATE_MAP, logoTilesRow } from '@/lib/design/templates'
 import { typography } from '@/lib/design/tokens'
@@ -34,6 +34,18 @@ const LOGO_TILE_ICON_SIZE_1X = 64
 // icon-layout arrangement 0's own icon glyph size (bigger than the shared
 // LOGO_TILE_ICON_SIZE_1X, to fill its larger 244.07px chip).
 const GRID_ARRANGEMENT_ICON_GLYPH_SIZE_1X = 120
+// icon-layout arrangement 1 (graph-paper) and arrangement 3 (concentric-circles)
+// glyph sizes — each fills its own fixed chip (see templates.tsx).
+const GRAPH_PAPER_ICON_GLYPH_SIZE_1X = 156
+const CIRCLES_ARRANGEMENT_ICON_GLYPH_SIZE_1X = 102.69
+
+// icon-layout background texture is tied 1:1 to arrangement, not user-
+// selectable — arrangement 2 (centered) stays a flat color.
+const ICON_LAYOUT_ARRANGEMENT_BACKGROUND: Record<number, BackgroundId> = {
+  0: 'grid-background',
+  1: 'graph-paper',
+  3: 'concentric-circles',
+}
 
 /** Scale (naturalW, naturalH) to fit within a boxSize square, preserving aspect ratio. */
 function fitBox(naturalW: number, naturalH: number, boxSize: number): { width: number; height: number } {
@@ -435,6 +447,42 @@ export async function GET(req: Request) {
         />
       ) : null
 
+    // icon-layout arrangement 1 (graph-paper): same icon, its own glyph size.
+    const graphPaperIconEl =
+      iconObj && iconObj.url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img {...fitBox(iconObj.width ?? 1, iconObj.height ?? 1, GRAPH_PAPER_ICON_GLYPH_SIZE_1X * s)} src={iconObj.url} />
+      ) : iconObj ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          width={GRAPH_PAPER_ICON_GLYPH_SIZE_1X * s}
+          height={GRAPH_PAPER_ICON_GLYPH_SIZE_1X * s}
+          src={iconDataUri(iconObj, {
+            sizePx: GRAPH_PAPER_ICON_GLYPH_SIZE_1X * s,
+            strokePx: ICON_STROKE * s,
+            color: color('illustration.stroke', brand),
+          })}
+        />
+      ) : null
+
+    // icon-layout arrangement 3 (concentric-circles): same icon, its own glyph size.
+    const circlesArrangementIconEl =
+      iconObj && iconObj.url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img {...fitBox(iconObj.width ?? 1, iconObj.height ?? 1, CIRCLES_ARRANGEMENT_ICON_GLYPH_SIZE_1X * s)} src={iconObj.url} />
+      ) : iconObj ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          width={CIRCLES_ARRANGEMENT_ICON_GLYPH_SIZE_1X * s}
+          height={CIRCLES_ARRANGEMENT_ICON_GLYPH_SIZE_1X * s}
+          src={iconDataUri(iconObj, {
+            sizePx: CIRCLES_ARRANGEMENT_ICON_GLYPH_SIZE_1X * s,
+            strokePx: ICON_STROKE * s,
+            color: color('illustration.stroke', brand),
+          })}
+        />
+      ) : null
+
     const logoHeight = WORDMARK_HEIGHT_1X * s
     const logoEl = (
       // eslint-disable-next-line @next/next/no-img-element
@@ -476,10 +524,11 @@ export async function GET(req: Request) {
           })()
         : null
 
-    // Background texture — only Headline + icon opts in by default today;
-    // every other template stays a flat color unless a future template sets
-    // its own default or the caller passes `background` explicitly.
-    const backgroundId = (searchParams.get('background') as BackgroundId | null) ?? (template.id === 'icon-layout' ? DEFAULT_BACKGROUND_ID : 'none')
+    // Background texture — tied 1:1 to icon-layout's arrangement (see
+    // ICON_LAYOUT_ARRANGEMENT_BACKGROUND above), not user-selectable.
+    // Every other template stays a flat color.
+    const backgroundId: BackgroundId =
+      template.id === 'icon-layout' ? (ICON_LAYOUT_ARRANGEMENT_BACKGROUND[arrangement] ?? 'none') : 'none'
     const backgroundImageUri = backgroundDataUri(backgroundId)
 
     const root = template.build({
@@ -499,6 +548,8 @@ export async function GET(req: Request) {
       iconEl,
       boxedIconEl,
       gridArrangementIconEl,
+      graphPaperIconEl,
+      circlesArrangementIconEl,
       hasIcon,
       showBrandLogo,
       eyebrowBlockHeight,

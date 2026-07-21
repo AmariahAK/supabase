@@ -37,6 +37,10 @@ export interface TemplateParts {
   boxedIconEl?: ReactNode | null
   /** Same icon, pre-sized to `GRID_ARRANGEMENT_ICON_GLYPH_SIZE_1X` — icon-layout arrangement 0's larger chip. */
   gridArrangementIconEl?: ReactNode | null
+  /** Same icon, pre-sized to `GRAPH_PAPER_ICON_GLYPH_SIZE_1X` — icon-layout arrangement 1's chip. */
+  graphPaperIconEl?: ReactNode | null
+  /** Same icon, pre-sized to `CIRCLES_ARRANGEMENT_ICON_GLYPH_SIZE_1X` — icon-layout arrangement 3's chip. */
+  circlesArrangementIconEl?: ReactNode | null
   /** Whether to render the Supabase wordmark signature — logo-grid only, toggleable since it already shows partner marks. Defaults to true. */
   showBrandLogo?: boolean
   /** Rendered height (px, pre-scaled) of the eyebrow pill + its gap above the headline, or 0 if no eyebrow — Announcement uses this to keep the headline from drifting too far down when an eyebrow is present. */
@@ -172,6 +176,19 @@ const GRID_ARRANGEMENT_ICON_TILE_SIZE_1X = 244.07
 const GRID_ARRANGEMENT_ICON_TOP_1X = 73
 const GRID_ARRANGEMENT_ICON_RIGHT_1X = 69
 
+// icon-layout arrangement 1 (headline left, icon right, paired with the
+// graph-paper texture) — its own headline cap and fixed icon chip/position.
+const GRAPH_PAPER_HEADLINE_MAX_WIDTH_1X = 559
+const GRAPH_PAPER_ICON_TILE_SIZE_1X = 320
+const GRAPH_PAPER_ICON_TOP_1X = 160
+const GRAPH_PAPER_ICON_RIGHT_1X = 84
+
+// icon-layout arrangement 3 (paired with the concentric-circles texture) —
+// same headline position as arrangement 1, its own fixed icon chip/position.
+const CIRCLES_ARRANGEMENT_ICON_TILE_SIZE_1X = 210.72
+const CIRCLES_ARRANGEMENT_ICON_TOP_1X = 209.65
+const CIRCLES_ARRANGEMENT_ICON_RIGHT_1X = 76.09
+
 // How far (1x px) logo-center-left's logo sits above dead-center vertically.
 const LOGO_CENTER_LIFT_1X = 40
 
@@ -240,20 +257,51 @@ function backgroundPanel(p: TemplateParts): ReactNode {
   )
 }
 
+/**
+ * An icon chip pinned at a fixed distance from the canvas's true top/right
+ * edges — used by icon-layout's arrangements 0/1/3, each of which is now
+ * tied to its own background texture and never moves regardless of headline
+ * length or icon presence. A plain top/left absolute child (no matching
+ * bottom/right pair) resolves directly against the true canvas edges in
+ * satori — no padding escape needed (unlike backgroundPanel's four-sided
+ * stretch, which does need it). satori also doesn't reliably support a
+ * negative `right` with an intrinsically-sized child, so the horizontal
+ * position is expressed as a computed `left` instead.
+ */
+function fixedPositionIcon(p: TemplateParts, icon: ReactNode, topPx1x: number, rightPx1x: number, tileSizePx1x: number): ReactNode {
+  if (!icon) return null
+  return (
+    <div
+      style={{
+        display: 'flex',
+        position: 'absolute',
+        top: topPx1x * p.scaleFactor,
+        left: p.W - rightPx1x * p.scaleFactor - tileSizePx1x * p.scaleFactor,
+      }}
+    >
+      {icon}
+    </div>
+  )
+}
+
 export const TEMPLATES: Template[] = [
   {
     id: 'icon-layout',
     label: 'Headline + icon',
     category: 'Icon layouts',
-    // arrangement 0: bottom-left · 1: split-right · 2: centered · 3: stacked
-    // (formerly 4 separate template ids — grouped behind one carousel entry
-    // + the "Alternate layouts" pager so it doesn't crowd the picker).
+    // arrangement 0: bottom-left (grid-background) · 1: split-right
+    // (graph-paper) · 2: centered (no texture) · 3: split-right variant
+    // (concentric-circles) — each background is tied 1:1 to its arrangement
+    // (see ICON_LAYOUT_ARRANGEMENT_BACKGROUND in app/api/og/route.tsx), not
+    // user-selectable.
     headlineBox: (format, arrangement = 0) =>
       arrangement === 1
-        ? fullHeadlineBoxWidth(format) - format.iconSize - SPLIT_RIGHT_GAP
+        ? Math.min(GRAPH_PAPER_HEADLINE_MAX_WIDTH_1X, fullHeadlineBoxWidth(format) - format.iconSize - SPLIT_RIGHT_GAP)
         : arrangement === 2
           ? Math.round(format.width * 0.75)
-          : fullHeadlineBoxWidth(format),
+          : arrangement === 3
+            ? fullHeadlineBoxWidth(format) - format.iconSize - SPLIT_RIGHT_GAP
+            : fullHeadlineBoxWidth(format),
     textAlign: 'left',
     textAlignForArrangement: (arrangement) => (arrangement === 2 ? 'center' : 'left'),
     anchorX: 'left',
@@ -270,27 +318,33 @@ export const TEMPLATES: Template[] = [
       // Icon renders inside the same dark chip bounding box Partner logos
       // uses, not bare — consistent icon treatment across both templates.
       const icon = p.hasIcon ? iconTile(p, p.boxedIconEl) : null
-      // Arrangement 0 (paired with the grid-background texture) uses its own
-      // larger icon chip, not the shared ICON_TILE_SIZE_1X.
+      // Each of arrangements 0/1/3 pairs with its own background texture and
+      // gets its own fixed icon chip size — not the shared ICON_TILE_SIZE_1X.
       const gridIcon = p.hasIcon
         ? iconTileAtScale(p.scaleFactor, p.gridArrangementIconEl, GRID_ARRANGEMENT_ICON_TILE_SIZE_1X)
         : null
+      const graphPaperIcon = p.hasIcon
+        ? iconTileAtScale(p.scaleFactor, p.graphPaperIconEl, GRAPH_PAPER_ICON_TILE_SIZE_1X)
+        : null
+      const circlesIcon = p.hasIcon
+        ? iconTileAtScale(p.scaleFactor, p.circlesArrangementIconEl, CIRCLES_ARRANGEMENT_ICON_TILE_SIZE_1X)
+        : null
       // Full-bleed now, so it reads fine behind any arrangement.
       if (arrangement === 1) {
-        // Headline left, icon right.
+        // Headline left (vertically centered); icon fixed top-right,
+        // paired with the graph-paper texture — position never changes.
         return (
           <div
             style={{
               ...rootBase(p),
               flexDirection: 'row',
-              justifyContent: 'space-between',
+              justifyContent: 'flex-start',
               alignItems: 'center',
-              gap: 56 * p.scaleFactor,
             }}
           >
             {backgroundPanel(p)}
+            {fixedPositionIcon(p, graphPaperIcon, GRAPH_PAPER_ICON_TOP_1X, GRAPH_PAPER_ICON_RIGHT_1X, GRAPH_PAPER_ICON_TILE_SIZE_1X)}
             {p.textBlock}
-            {icon}
           </div>
         )
       }
@@ -313,55 +367,42 @@ export const TEMPLATES: Template[] = [
         )
       }
       if (arrangement === 3) {
-        // Headline top, icon bottom.
+        // Same horizontal headline position as arrangement 1 (left), but
+        // bottom-aligned (headline + eyebrow sit at the bottom edge, not
+        // vertically centered); icon fixed top-right at its own
+        // offset/size, paired with the concentric-circles texture —
+        // position never changes.
         return (
           <div
             style={{
               ...rootBase(p),
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
+              flexDirection: 'row',
+              justifyContent: 'flex-start',
+              alignItems: 'flex-end',
             }}
           >
             {backgroundPanel(p)}
+            {fixedPositionIcon(p, circlesIcon, CIRCLES_ARRANGEMENT_ICON_TOP_1X, CIRCLES_ARRANGEMENT_ICON_RIGHT_1X, CIRCLES_ARRANGEMENT_ICON_TILE_SIZE_1X)}
             {p.textBlock}
-            {icon}
           </div>
         )
       }
-      // arrangement 0 (default): headline bottom-left, icon top-right.
+      // arrangement 0 (default): headline bottom-left; icon fixed top-right,
+      // paired with the grid-background texture — position never changes.
       return (
         <div
           style={{
             ...rootBase(p),
             flexDirection: 'column',
-            // gridIcon is absolutely positioned (own fixed top/right offset,
-            // not part of this flex flow), so the headline always just
-            // anchors to the bottom regardless of whether an icon is set.
+            // The icon is absolutely positioned (fixed top/right offset, not
+            // part of this flex flow), so the headline always just anchors
+            // to the bottom regardless of whether an icon is set.
             justifyContent: 'flex-end',
             alignItems: 'flex-start',
           }}
         >
           {backgroundPanel(p)}
-          {gridIcon ? (
-            <div
-              style={{
-                display: 'flex',
-                position: 'absolute',
-                // A plain top/left absolute child (no matching bottom/right
-                // pair) resolves directly against the true canvas edges in
-                // satori — no padding escape needed here (unlike
-                // backgroundPanel's four-sided stretch, which does need it).
-                // (satori also doesn't reliably support negative `right`
-                // with an intrinsically-sized child, so the horizontal
-                // position is expressed as a computed `left` instead.)
-                top: GRID_ARRANGEMENT_ICON_TOP_1X * p.scaleFactor,
-                left: p.W - GRID_ARRANGEMENT_ICON_RIGHT_1X * p.scaleFactor - GRID_ARRANGEMENT_ICON_TILE_SIZE_1X * p.scaleFactor,
-              }}
-            >
-              {gridIcon}
-            </div>
-          ) : null}
+          {fixedPositionIcon(p, gridIcon, GRID_ARRANGEMENT_ICON_TOP_1X, GRID_ARRANGEMENT_ICON_RIGHT_1X, GRID_ARRANGEMENT_ICON_TILE_SIZE_1X)}
           {p.textBlock}
         </div>
       )

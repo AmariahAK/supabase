@@ -6,7 +6,6 @@ import { ICON_LIBRARY } from '@/lib/assets/icon-library'
 import { type SeedIcon } from '@/lib/assets/seed-icons'
 import { BRAND_OPTIONS, DEFAULT_BRAND_ID, type BrandId } from '@/lib/design/brands'
 import { DEFAULT_FORMAT_ID, FORMAT_OPTIONS, getFormat, type FormatId } from '@/lib/design/formats'
-import { BACKGROUND_OPTIONS, DEFAULT_BACKGROUND_ID, type BackgroundId } from '@/lib/design/og-backgrounds'
 import {
   DEFAULT_NEWSLETTER_TEMPLATE_ID,
   DEFAULT_SOCIAL_TEMPLATE_ID,
@@ -316,6 +315,7 @@ function ExportRow({
   copied,
   onCopy,
   onDownload,
+  onEnableThumb,
 }: {
   label: string
   endpoint: string
@@ -324,11 +324,27 @@ function ExportRow({
   copied: boolean
   onCopy: () => void
   onDownload: () => void
+  onEnableThumb?: () => void
 }) {
   const abs = typeof window !== 'undefined' ? window.location.origin + endpoint : endpoint
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-xs font-medium text-foreground-light">{label}</span>
+      {/* Thumb's render only fires once the Both/Thumb view is active (see
+          showThumb in Page) — until then imgUrl is null and Download stays
+          disabled, so point the user at the fix instead of a silent no-op. */}
+      {!imgUrl && onEnableThumb && (
+        <span className="text-xs text-foreground-lighter">
+          Please review the thumb to enable download.{' '}
+          <button
+            type="button"
+            onClick={onEnableThumb}
+            className="text-foreground underline hover:text-foreground-light"
+          >
+            Click here.
+          </button>
+        </span>
+      )}
       <div className="flex gap-2">
         <input
           readOnly
@@ -374,6 +390,7 @@ function ExportModal({
     copied: boolean
     onCopy: () => void
     onDownload: () => void
+    onEnableThumb?: () => void
   }[]
 }) {
   return (
@@ -501,9 +518,6 @@ export default function Page() {
   const [eyebrow, setEyebrow] = useState('Engineering')
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE_ID)
   const [icon, setIcon] = useState<string | null>(null)
-  // Headline + icon only, for now — a full-canvas texture behind the
-  // headline/icon (lib/design/og-backgrounds.ts). Defaults to the grid look.
-  const [background, setBackground] = useState<BackgroundId>(DEFAULT_BACKGROUND_ID)
   const [iconPickerOpen, setIconPickerOpen] = useState(false)
   // Separates the picker grid (and its upload button) into line-art icons
   // vs. full-color logos — the two are rendered completely differently
@@ -913,12 +927,11 @@ export default function Page() {
     } else if (icon) {
       p.set('icon', icon)
     }
-    if (template === 'icon-layout' && background !== DEFAULT_BACKGROUND_ID) p.set('background', background)
     if (arrangement) p.set('arrangement', String(arrangement))
     if (scale === 2) p.set('scale', '2')
     return `/api/og?${p.toString()}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandId, formatId, headline, eyebrow, template, icon, logoTileIcons, arrangement, scale, showBrandLogo, background])
+  }, [brandId, formatId, headline, eyebrow, template, icon, logoTileIcons, arrangement, scale, showBrandLogo])
 
   const thumbEndpoint = useMemo(() => {
     const p = new URLSearchParams()
@@ -940,7 +953,6 @@ export default function Page() {
       } else if (icon) {
         p.set('icon', icon)
       }
-      if (template === 'icon-layout' && background !== DEFAULT_BACKGROUND_ID) p.set('background', background)
       if (arrangement) p.set('arrangement', String(arrangement))
       p.set('variant', 'secondary')
     } else {
@@ -959,7 +971,7 @@ export default function Page() {
     if (scale === 2) p.set('scale', '2')
     return `/api/og?${p.toString()}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandId, formatId, hasSecondary, headline, eyebrow, template, icon, logoTileIcons, arrangement, scale, showBrandLogo, background])
+  }, [brandId, formatId, hasSecondary, headline, eyebrow, template, icon, logoTileIcons, arrangement, scale, showBrandLogo])
 
   const og = useRenderedImage(ogEndpoint, showOg)
   const thumb = useRenderedImage(thumbEndpoint, showThumb || wantsThumbForBlogPost)
@@ -1675,46 +1687,6 @@ export default function Page() {
             </div>
             )}
 
-            {template === 'icon-layout' && (
-              <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-foreground-light">
-                  Background
-                  <Hint text="A subtle full-canvas texture behind the headline/icon. Kept low-contrast so it never threatens text legibility." />
-                </span>
-                <div className="grid grid-cols-4 gap-2">
-                  {BACKGROUND_OPTIONS.map((b) => {
-                    const active = background === b.id
-                    return (
-                      <button
-                        key={b.id}
-                        type="button"
-                        onClick={() => setBackground(b.id)}
-                        title={b.label}
-                        className={`flex flex-col items-center gap-1 rounded-md border p-1.5 ${
-                          active ? 'border-brand bg-brand/5' : 'border-default bg-surface-100 hover:border-strong'
-                        }`}
-                      >
-                        <div
-                          className="h-10 w-full rounded border border-default"
-                          style={{
-                            backgroundColor: '#171717',
-                            backgroundImage:
-                              b.id === 'grid-background'
-                                ? 'repeating-linear-gradient(45deg, rgba(255,255,255,0.14) 0 1px, transparent 1px 10px), repeating-linear-gradient(0deg, rgba(255,255,255,0.14) 0 1px, transparent 1px 10px), repeating-linear-gradient(90deg, rgba(255,255,255,0.14) 0 1px, transparent 1px 10px)'
-                                : b.id === 'graph-paper'
-                                  ? 'repeating-linear-gradient(0deg, rgba(255,255,255,0.16) 0 1px, transparent 1px 6px), repeating-linear-gradient(90deg, rgba(255,255,255,0.16) 0 1px, transparent 1px 6px)'
-                                  : b.id === 'concentric-circles'
-                                    ? 'repeating-radial-gradient(circle at 0% 100%, rgba(255,255,255,0.18) 0 1px, transparent 1px 8px)'
-                                    : undefined,
-                          }}
-                        />
-                        <span className="text-[10px] text-foreground-lighter">{b.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
 
             {template === 'logo-grid' && (
               <label className="flex items-center gap-2 text-sm text-foreground-light">
@@ -1954,6 +1926,7 @@ export default function Page() {
                     copied: copied === 'thumb',
                     onCopy: () => copyUrl(thumbEndpoint, 'thumb'),
                     onDownload: () => download(thumb.url, `${secondSlotLabel.toLowerCase()}${suffix}.png`),
+                    onEnableThumb: () => setView('both'),
                   },
                 ]
               : []),

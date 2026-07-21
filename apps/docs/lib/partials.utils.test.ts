@@ -50,14 +50,14 @@ describe('parsePartialVariables', () => {
   })
 
   it('parses JSON object strings', () => {
-    expect(parsePartialVariables('{ "prompt": "ai/quickstart_prompt_nextjs.mdx" }')).toEqual({
-      prompt: 'ai/quickstart_prompt_nextjs.mdx',
+    expect(parsePartialVariables('{ "product": "Auth" }')).toEqual({
+      product: 'Auth',
     })
   })
 
   it('accepts already-parsed objects', () => {
-    expect(parsePartialVariables({ prompt: 'ai/quickstart_prompt_nextjs.mdx' })).toEqual({
-      prompt: 'ai/quickstart_prompt_nextjs.mdx',
+    expect(parsePartialVariables({ product: 'Auth' })).toEqual({
+      product: 'Auth',
     })
   })
 

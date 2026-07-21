@@ -8,20 +8,23 @@ const KEY_ALIASES: Record<string, string> = {
   'copilot-cli': 'github-copilot',
 }
 
+// ContentListings defaults hasLightIcon to true whenever an icon is set (see
+// ContentListings.client.tsx: `item.hasLightIcon ?? Boolean(item.icon)`), so single-variant
+// icons must set `hasLightIcon: false` explicitly or they'll request a nonexistent "-light" file.
 const ICON_ASSETS: Record<string, { icon: string; hasLightIcon?: boolean }> = {
-  'claude-code': { icon: '/docs/img/icons/agent-claude-icon' },
+  'claude-code': { icon: '/docs/img/icons/agent-claude-icon', hasLightIcon: false },
   codex: { icon: '/docs/img/icons/agent-openai-icon', hasLightIcon: true },
   cursor: { icon: '/docs/img/icons/agent-cursor-icon', hasLightIcon: true },
-  'gemini-cli': { icon: '/docs/img/icons/agent-gemini-cli-icon' },
+  'gemini-cli': { icon: '/docs/img/icons/agent-gemini-cli-icon', hasLightIcon: false },
   'github-copilot': { icon: '/docs/img/icons/agent-copilot-icon', hasLightIcon: true },
   kimi: { icon: '/docs/img/icons/agent-kimi-icon', hasLightIcon: true },
-  vscode: { icon: '/docs/img/icons/agent-vscode-icon' },
-  antigravity: { icon: '/docs/img/icons/agent-antigravity-icon' },
+  vscode: { icon: '/docs/img/icons/agent-vscode-icon', hasLightIcon: false },
+  antigravity: { icon: '/docs/img/icons/agent-antigravity-icon', hasLightIcon: false },
   windsurf: { icon: '/docs/img/icons/agent-windsurf-icon', hasLightIcon: true },
   goose: { icon: '/docs/img/icons/agent-goose-icon', hasLightIcon: true },
   factory: { icon: '/docs/img/icons/agent-factory-icon', hasLightIcon: true },
   opencode: { icon: '/docs/img/icons/agent-opencode-icon', hasLightIcon: true },
-  kiro: { icon: '/docs/img/icons/agent-kiro-icon' },
+  kiro: { icon: '/docs/img/icons/agent-kiro-icon', hasLightIcon: false },
 }
 
 // Claude.ai and ChatGPT are MCP connectors for a chat web app, not a coding agent or IDE.

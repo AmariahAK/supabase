@@ -54,6 +54,9 @@ export const useTableQuery = <TData = RetrieveTableResult>(
     queryFn: ({ signal }) =>
       getTable({ projectRef, connectionString, name, schema, scoped }, signal),
     enabled: enabled && typeof projectRef !== 'undefined',
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    staleTime: 5 * 60 * 1000,
     ...options,
   })
 }

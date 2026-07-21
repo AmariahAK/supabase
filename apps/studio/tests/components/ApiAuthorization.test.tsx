@@ -130,9 +130,7 @@ describe('AuthorizeConnectLogo', () => {
     ['OpenAI', 'https://openai.com/callback', 'openai'],
     ['Perplexity', 'https://www.perplexity.ai/callback', 'perplexity'],
   ])('pairs %s with Supabase when redirect host is allowlisted', (name, redirectUri, iconKey) => {
-    customRender(
-      <AuthorizeConnectLogo icon={null} name={name} redirectUri={redirectUri} />
-    )
+    customRender(<AuthorizeConnectLogo icon={null} name={name} redirectUri={redirectUri} />)
 
     expect(screen.getByAltText(name)).toHaveAttribute(
       'src',
@@ -143,11 +141,7 @@ describe('AuthorizeConnectLogo', () => {
 
   test('does not use a curated logo from the requester name alone', () => {
     customRender(
-      <AuthorizeConnectLogo
-        icon={null}
-        name="Claude"
-        redirectUri="https://evil.com/callback"
-      />
+      <AuthorizeConnectLogo icon={null} name="Claude" redirectUri="https://evil.com/callback" />
     )
 
     expect(screen.getByAltText('Supabase')).toBeInTheDocument()
@@ -191,11 +185,7 @@ describe('AuthorizeConnectLogo', () => {
 
   test('keeps theme tiles for curated partners', () => {
     customRender(
-      <AuthorizeConnectLogo
-        icon={null}
-        name="Cursor"
-        redirectUri="https://cursor.com/callback"
-      />
+      <AuthorizeConnectLogo icon={null} name="Cursor" redirectUri="https://cursor.com/callback" />
     )
 
     expect(screen.getByAltText('Cursor').parentElement).toHaveClass('bg-surface-75')

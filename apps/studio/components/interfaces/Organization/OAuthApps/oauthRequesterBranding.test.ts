@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'vitest'
 import { getMcpClientIconSrc } from 'ui-patterns/McpUrlBuilder'
+import { describe, expect, test } from 'vitest'
 
 import {
   findTrustedPartnerByRedirectUri,

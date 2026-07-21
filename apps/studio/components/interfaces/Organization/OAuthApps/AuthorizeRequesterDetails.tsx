@@ -15,7 +15,12 @@ import { InfoTooltip } from 'ui-patterns/info-tooltip'
 
 import { PERMISSIONS_DESCRIPTIONS } from './OAuthApps.constants'
 import { getRequesterLogo } from './oauthRequesterBranding'
-import { LogoBox, LogoPair, SupabaseLogo, CONNECT_LOGO_LIGHT_TILE_CLASSNAME } from '@/components/layouts/InterstitialLayout'
+import {
+  CONNECT_LOGO_LIGHT_TILE_CLASSNAME,
+  LogoBox,
+  LogoPair,
+  SupabaseLogo,
+} from '@/components/layouts/InterstitialLayout'
 import { InlineLink } from '@/components/ui/InlineLink'
 import { DOCS_URL } from '@/lib/constants'
 
@@ -209,9 +214,7 @@ export const AuthorizeConnectLogo = ({
   return (
     <LogoPair
       left={
-        <LogoBox
-          className={forceLightPair ? CONNECT_LOGO_LIGHT_TILE_CLASSNAME : 'bg-surface-75'}
-        >
+        <LogoBox className={forceLightPair ? CONNECT_LOGO_LIGHT_TILE_CLASSNAME : 'bg-surface-75'}>
           <img
             alt={name}
             src={logo.src}

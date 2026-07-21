@@ -188,7 +188,7 @@ export function DataTableSheetRowAction<TData, TFields extends DataTableFilterFi
         <DropdownMenuTrigger
           asChild
           className={cn(
-            'rounded-md ring-offset-background',
+            'rounded-md',
             'focus-ring',
             'relative py-0',
             className

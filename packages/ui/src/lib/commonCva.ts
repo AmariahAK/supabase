@@ -19,12 +19,6 @@ const defaults = {
     alternative: 'border-alternative',
   },
   placeholder: 'placeholder-border-stronger',
-  focus: `
-    outline-hidden
-    focus:ring-current focus:ring-2
-  `,
-  // Shared Tailwind utility — see packages/config/css/utilities.css
-  'focus-visible': 'focus-ring',
   size: {
     // buttons, inputs, input labels use these sizes
     text: {

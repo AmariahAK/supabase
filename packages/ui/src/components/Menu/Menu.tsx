@@ -45,9 +45,11 @@ interface ItemProps {
 
 export const menuItemVariants = cva(
   cn(
-    // focus-visible: when the item itself is focused; group-focus-visible: when a
-    // wrapping Link/button (e.g. ProductMenu) is the focus target.
-    'cursor-pointer flex space-x-3 items-center outline-hidden focus-visible:z-10 group',
+    // focus-ring: when the item itself is focused.
+    // group-focus-visible: when a wrapping Link/button (e.g. ProductMenu) is the
+    // focus target — cannot use focus-ring here (utility targets :focus-visible
+    // on the same element).
+    'cursor-pointer flex space-x-3 items-center focus-visible:z-10 group',
     'focus-ring',
     'group-focus-visible:ring-2 group-focus-visible:ring-ring group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-background'
   ),

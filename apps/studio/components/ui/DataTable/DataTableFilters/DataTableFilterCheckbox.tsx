@@ -151,7 +151,7 @@ export function DataTableFilterCheckbox<TData>({
                       className={cn(
                         'text-xs text-muted-foreground hover:text-foreground',
                         'absolute inset-y-0 right-0 hidden bg-surface-100 group-hover:flex items-center cursor-pointer',
-                        'ring-offset-background focus-ring'
+                        'focus-ring'
                       )}
                     >
                       <span className="pl-1 pr-2">Only</span>

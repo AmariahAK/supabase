@@ -160,7 +160,7 @@ function CommandMenuTrigger({ children }: PropsWithChildren) {
       'rounded-md border border-input bg-background',
       'text-sm',
       'hover:bg-accent hover:text-accent-foreground',
-      'ring-offset-background focus-ring',
+      'focus-ring',
       'disabled:pointer-events-none disabled:opacity-50',
       'transition-colors',
       childFromProps.props.className

@@ -34,8 +34,8 @@ export const WorkersEmptyState = ({ onCreate }: { onCreate: () => void }) => {
       <div className="bg-studio p-8">
         <h2 className="text-lg text-foreground">Deploy a {UNIT_NAME_LOWER}</h2>
         <p className="mt-1 max-w-lg text-sm text-foreground-light">
-          Workers are created from the CLI. Copy the command, or spin up a mock {UNIT_NAME_LOWER} to
-          preview how it appears here.
+          Run managed compute in microVMs right next to your database. Create one to get started —
+          it deploys in a few seconds.
         </p>
 
         <Button className="mt-4" icon={<Plus />} onClick={onCreate}>
@@ -60,7 +60,9 @@ export const WorkersEmptyState = ({ onCreate }: { onCreate: () => void }) => {
       {/* Right: command + skill + docs */}
       <div className="flex flex-col gap-4 bg-surface-75 p-6">
         <div>
-          <p className="mb-2 text-xs uppercase tracking-wide text-foreground-lighter">Run this</p>
+          <p className="mb-2 text-xs uppercase tracking-wide text-foreground-lighter">
+            Prefer the CLI?
+          </p>
           <Input
             copy
             showCopyOnHover

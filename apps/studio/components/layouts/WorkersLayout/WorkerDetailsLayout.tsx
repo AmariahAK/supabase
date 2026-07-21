@@ -71,12 +71,12 @@ const WorkerDetailsLayout = ({ title, children }: PropsWithChildren<WorkerDetail
     ...(worker.access === 'public'
       ? [
           { label: 'Requests', href: base },
-          { label: 'Logs', href: `${base}/logs` },
+          { label: 'Activity', href: `${base}/activity` },
         ]
-      : [{ label: 'Logs', href: base }]),
+      : [{ label: 'Activity', href: base }]),
     { label: 'Terminal', href: `${base}/terminal` },
     { label: 'Filesystem', href: `${base}/filesystem` },
-    { label: 'Settings', href: `${base}/settings` },
+    { label: 'Container', href: `${base}/container` },
   ]
 
   return (

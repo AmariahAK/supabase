@@ -6,9 +6,9 @@ import WorkerDetailsLayout from '@/components/layouts/WorkersLayout/WorkerDetail
 import { useWorkerBySlug } from '@/state/workers-mock-state'
 import type { NextPageWithLayout } from '@/types'
 
-// Secondary Logs tab, public workers only. Private workers' logs already live
-// at the base detail URL, so they don't need a second logs route.
-const WorkerLogsPage: NextPageWithLayout = () => {
+// Secondary Activity tab, public workers only. Private workers' activity lives
+// at the base detail URL, so they don't need a second route.
+const WorkerActivityPage: NextPageWithLayout = () => {
   const { workerSlug } = useParams()
   const worker = useWorkerBySlug(workerSlug)
 
@@ -17,10 +17,10 @@ const WorkerLogsPage: NextPageWithLayout = () => {
   return <WorkerLogsTab worker={worker} />
 }
 
-WorkerLogsPage.getLayout = (page) => (
+WorkerActivityPage.getLayout = (page) => (
   <DefaultLayout>
-    <WorkerDetailsLayout title="Logs">{page}</WorkerDetailsLayout>
+    <WorkerDetailsLayout title="Activity">{page}</WorkerDetailsLayout>
   </DefaultLayout>
 )
 
-export default WorkerLogsPage
+export default WorkerActivityPage

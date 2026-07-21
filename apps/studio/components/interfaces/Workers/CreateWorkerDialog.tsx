@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import {
   Button,
@@ -16,12 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from 'ui'
-import { CodeBlock } from 'ui-patterns/CodeBlock'
 import { Input } from 'ui-patterns/DataInputs/Input'
 
 import {
-  getWorkerRuntime,
-  UNIT_NAME,
   UNIT_NAME_LOWER,
   WORKER_ACCESS_MODES,
   WORKER_INSTANCE_LIMITS,
@@ -66,17 +63,6 @@ export const CreateWorkerDialog = ({
   const [access, setAccess] = useState<WorkerAccessMode>('public')
   const [instances, setInstances] = useState(WORKER_INSTANCE_LIMITS.default)
 
-  const command = useMemo(() => {
-    const runtimeValue = getWorkerRuntime(runtime).cliValue
-    return [
-      `supabase workers deploy ${name || 'my-worker'} \\`,
-      `  --runtime ${runtimeValue} \\`,
-      `  --size ${size} \\`,
-      `  --access ${access} \\`,
-      `  --instances ${instances}`,
-    ].join('\n')
-  }, [name, runtime, size, access, instances])
-
   const handleCreate = () => {
     const worker = workersMockState.createWorker({ name, runtime, size, access, instances })
     toast.success(`Deploying ${UNIT_NAME_LOWER} "${worker.name}"`)
@@ -88,10 +74,10 @@ export const CreateWorkerDialog = ({
     <Dialog open={visible} onOpenChange={(open) => !open && onClose()}>
       <DialogContent size="large" onOpenAutoFocus={(event) => event.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>Create {UNIT_NAME}</DialogTitle>
+          <DialogTitle>Create {UNIT_NAME_LOWER}</DialogTitle>
           <DialogDescription>
-            {UNIT_NAME}s are deployed from the CLI. Copy the command below, or spin up a mock{' '}
-            {UNIT_NAME_LOWER} to preview how it appears here.
+            Configure your {UNIT_NAME_LOWER} and deploy it next to your database — it'll be running
+            in a few seconds.
           </DialogDescription>
         </DialogHeader>
 
@@ -172,12 +158,6 @@ export const CreateWorkerDialog = ({
               />
             </Field>
           </div>
-
-          <Field label="Deploy command">
-            <CodeBlock language="bash" hideLineNumbers className="text-xs">
-              {command}
-            </CodeBlock>
-          </Field>
         </DialogSection>
 
         <DialogFooter>

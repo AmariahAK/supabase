@@ -29,12 +29,12 @@ Interactive page elements should also provide visual feedback upon selection via
 
 ### Focus ring recipe
 
-Use Tailwind `ring`, not `outline`. Prefer the shared utilities over inventing local styles:
+Prefer the shared utilities over inventing local styles:
 
-| Utility       | Use when                                               |
-| ------------- | ------------------------------------------------------ |
-| `focus-ring`  | Buttons, inputs, and most controls (offset ring)       |
-| `focus-inset` | Dense or flush surfaces such as interactive table rows |
+| Utility       | Use when                                                                   |
+| ------------- | -------------------------------------------------------------------------- |
+| `focus-ring`  | Buttons, inputs, and most controls (offset **ring**)                       |
+| `focus-inset` | Dense or flush surfaces such as interactive table rows (inset **outline**) |
 
 ```tsx
 className = 'focus-ring'
@@ -56,7 +56,7 @@ focus-visible:ring-offset-background
 
 **`focus-inset`**
 
-Uses `outline` (not `ring`) so it paints reliably on interactive `<tr>`s — `box-shadow` / Tailwind `ring` on table-row is unreliable across browsers.
+Uses `outline` (not `ring`) so it paints reliably on interactive `<tr>`s. Tailwind `ring` is implemented with `box-shadow`, which browsers often skip on `display: table-row` (notably Safari). Do not “fix” that by putting `focus-ring` or raw `ring-*` on a `<tr>`.
 
 ```txt
 outline-hidden
@@ -67,15 +67,16 @@ focus-visible:outline-ring
 focus-visible:rounded-md
 ```
 
-`outline-hidden` is always on (not `focus-visible:`-prefixed) so mouse click does not show the browser’s default outline; the ring replaces it for keyboard focus only.
+`outline-hidden` is always on (not `focus-visible:`-prefixed) so mouse click does not show the browser’s default outline; the focus indicator replaces it for keyboard focus only.
 
 Rules:
 
-- Prefer `:focus-visible` over `:focus` so click/tap does not show a ring
-- Never use `outline-none` / `outline-hidden` without a ring (or equivalent) replacement
-- Always use `ring-ring` — variants (primary, danger, warning) do not change focus ring colour
-- Do not animate the focus ring; avoid `transition-all` / `transition` on controls that show a ring (prefer `transition-colors`)
+- Prefer `:focus-visible` over `:focus` so click/tap does not show a focus indicator
+- Never use `outline-none` / `outline-hidden` without a ring or outline replacement
+- Always use the shared colour (`ring-ring` / `outline-ring`) — variants (primary, danger, warning) do not change focus colour
+- Do not animate the focus indicator; avoid `transition-all` / `transition` on controls that show one (prefer `transition-colors`)
 - Prefer `focus-ring` / `focus-inset` over copy-pasting the class stack
+- On interactive `<tr>`s, use `focus-inset` only. `focus-ring` will look fine in some browsers and invisible in others
 
 When the focused element is not the thing that should show the ring (e.g. a wrapping `Link` with `group`, or an `InputGroup` parent using `:has()`), keep the explicit `group-focus-visible:ring-*` / `has-[…]:focus-visible:ring-*` stack. The utilities bake in `:focus-visible` on the same element and do not compose as `group-focus-visible:focus-ring`.
 

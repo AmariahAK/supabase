@@ -17,7 +17,7 @@ toc_depth: 2
 
 The [Supabase agent skill](https://github.com/supabase/agent-skills) now includes a debugging workflow. When your agent hits a Supabase error, it reproduces the error, isolates which service produced it, and runs one narrow log query against that exact source, instead of scanning every log source with no time bound.
 
-The skill is built from the same investigation approach Supabase's own engineers already use to debug production issues, adapted here for customer-safe use through the `get_logs` MCP tool.
+The skill is built from the same investigation approach Supabase's own engineers already use to debug production issues, adapted here for customer-safe use through the `query_logs` MCP tool.
 
 ## Agents are a debugging surface now
 
@@ -86,7 +86,7 @@ Install the skill, then ask your agent to debug:
 npx skills add supabase/agent-skills
 ```
 
-The agent uses `get_logs` and `get_advisors` through the Supabase MCP server when it's connected, or the Logs Explorer directly, to gather evidence before proposing a fix.
+The agent uses `query_logs` and `get_advisors` through the Supabase MCP server when it's connected, or the Logs Explorer directly, to gather evidence before proposing a fix.
 
 - [Debugging Supabase issues](https://supabase.com/docs/guides/telemetry/debugging)
 - [Supabase Agent Skills on GitHub](https://github.com/supabase/agent-skills)

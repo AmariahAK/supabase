@@ -1,14 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import WorkerPrimaryPage from '@/pages/project/[ref]/workers/[workerSlug]/index'
+import WorkerActivityPage from '@/pages/project/[ref]/workers/[workerSlug]/index'
 
 export const Route = createFileRoute('/project/$ref/workers/$workerSlug/')({
-  component: WorkerPrimaryRoute,
+  component: WorkerActivityRoute,
   staticData: {
-    workerDetailsTitle: 'Overview',
+    workerDetailsTitle: 'Activity',
   },
 })
 
-function WorkerPrimaryRoute() {
-  return <WorkerPrimaryPage dehydratedState={undefined} />
+function WorkerActivityRoute() {
+  return <WorkerActivityPage dehydratedState={undefined} />
 }

@@ -41,7 +41,7 @@ const Fact = ({ label, children }: { label: string; children: ReactNode }) => (
   </div>
 )
 
-export const WorkerContainerTab = ({ worker }: { worker: Worker }) => {
+export const WorkerSettingsTab = ({ worker }: { worker: Worker }) => {
   const router = useRouter()
   const { ref } = useParams()
   const [showDelete, setShowDelete] = useState(false)
@@ -57,7 +57,7 @@ export const WorkerContainerTab = ({ worker }: { worker: Worker }) => {
 
   return (
     <ConstrainedIntegrationTabScaffold>
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
         <section>
           <h3 className="text-sm text-foreground">Container</h3>
           <p className="mt-1 text-sm text-foreground-light">{WORKER_SIZE_GUIDANCE}</p>

@@ -19,7 +19,6 @@ import {
   PageHeader,
   PageHeaderDescription,
   PageHeaderMeta,
-  PageHeaderNavigationTabs,
   PageHeaderSummary,
   PageHeaderTitle,
 } from 'ui-patterns/PageHeader'
@@ -67,16 +66,14 @@ const WorkerDetailsLayout = ({ title, children }: PropsWithChildren<WorkerDetail
   // Logs. Terminal and Filesystem give a live shell / file view (gated on the
   // worker running). Private workers have no Requests tab (there's no endpoint).
   const base = `/project/${ref}/workers/${worker.slug}`
+  // Activity is the single primary tab for every worker — it covers the
+  // lifecycle timeline plus session-grouped logs (which include HTTP request
+  // lines for public workers), so there's no separate Requests tab.
   const navigationItems = [
-    ...(worker.access === 'public'
-      ? [
-          { label: 'Requests', href: base },
-          { label: 'Activity', href: `${base}/activity` },
-        ]
-      : [{ label: 'Activity', href: base }]),
+    { label: 'Activity', href: base },
     { label: 'Terminal', href: `${base}/terminal` },
     { label: 'Filesystem', href: `${base}/filesystem` },
-    { label: 'Container', href: `${base}/container` },
+    { label: 'Settings', href: `${base}/settings` },
   ]
 
   return (
@@ -143,8 +140,13 @@ const WorkerDetailsLayout = ({ title, children }: PropsWithChildren<WorkerDetail
             )}
           </PageContainer>
 
-          <PageHeaderNavigationTabs>
-            <NavMenu>
+        </PageHeader>
+
+        {/* Tabs live outside PageHeader so they can stick just below the
+            breadcrumb bar once the title/meta scrolls away. */}
+        <div className="sticky top-(--header-height) z-10 border-b border-default bg-dash-sidebar">
+          <PageContainer size="full">
+            <NavMenu className="border-b-0">
               {navigationItems.map((item) => {
                 const isActive = router.asPath.split('?')[0] === item.href
                 return (
@@ -154,8 +156,8 @@ const WorkerDetailsLayout = ({ title, children }: PropsWithChildren<WorkerDetail
                 )
               })}
             </NavMenu>
-          </PageHeaderNavigationTabs>
-        </PageHeader>
+          </PageContainer>
+        </div>
 
         {children}
       </div>

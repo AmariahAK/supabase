@@ -182,6 +182,7 @@ function CommandMenuTriggerInput({
     <CommandMenuTrigger>
       <button
         type="button"
+        tabIndex={0}
         className={cn(
           'group',
           'grow md:min-w-44 xl:min-w-56 h-[30px] rounded-md',

@@ -1,5 +1,5 @@
 import { Auth, Database, EdgeFunctions, Realtime, SqlEditor, Storage, TableEditor } from 'icons'
-import { Blocks, Lightbulb, List, Settings, Telescope } from 'lucide-react'
+import { Blocks, Container, Lightbulb, List, Settings, Telescope } from 'lucide-react'
 
 import { ICON_SIZE, ICON_STROKE_WIDTH } from '@/components/interfaces/Sidebar'
 import type { Route } from '@/components/ui/ui.types'
@@ -21,6 +21,7 @@ interface ProductFeatures {
   storage?: boolean
   realtime?: boolean
   authOverviewPage?: boolean
+  workers?: boolean
 }
 
 interface OtherFeatures {
@@ -75,6 +76,11 @@ export const generateProductRoutes = (
   const storageEnabled = features?.storage ?? true
   const realtimeEnabled = features?.realtime ?? true
   const authOverviewPageEnabled = features?.authOverviewPage ?? false
+  // Workers is an experimental alpha. Gate on the hosted platform (hidden in
+  // self-hosted/CLI). NOTE: this is NOT real alpha-cohort gating (~100
+  // hand-picked projects + design partners) — that needs a real feature-flag
+  // key from the flag service, which this POC doesn't wire up.
+  const workersEnabled = features?.workers ?? IS_PLATFORM
 
   return [
     {
@@ -142,6 +148,18 @@ export const generateProductRoutes = (
             icon: <Realtime size={ICON_SIZE} strokeWidth={ICON_STROKE_WIDTH} />,
             link: ref && (isProjectBuilding ? buildingUrl : `/project/${ref}/realtime/inspector`),
             shortcutId: SHORTCUT_IDS.NAV_REALTIME,
+          },
+        ]
+      : []),
+    ...(workersEnabled
+      ? [
+          {
+            key: 'workers',
+            label: 'Workers',
+            disabled: !isProjectActive,
+            icon: <Container size={ICON_SIZE} strokeWidth={ICON_STROKE_WIDTH} />,
+            link: ref && (isProjectBuilding ? buildingUrl : `/project/${ref}/workers`),
+            shortcutId: SHORTCUT_IDS.NAV_WORKERS,
           },
         ]
       : []),

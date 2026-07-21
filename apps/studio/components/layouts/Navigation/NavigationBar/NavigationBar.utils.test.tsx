@@ -45,6 +45,9 @@ describe('generateProductRoutes', () => {
       storage: true,
       edgeFunctions: true,
       realtime: true,
+      // Workers defaults to IS_PLATFORM (env-dependent) rather than `true` like
+      // the others, so pin it here to keep this baseline assertion deterministic.
+      workers: false,
     })
     expect(keys(routes)).toEqual(['database', 'auth', 'storage', 'functions', 'realtime'])
   })
@@ -77,6 +80,16 @@ describe('generateProductRoutes', () => {
     expect(keys(routes)).not.toContain('realtime')
   })
 
+  it('excludes workers when disabled', () => {
+    const routes = generateProductRoutes(REF, activeProject, { workers: false })
+    expect(keys(routes)).not.toContain('workers')
+  })
+
+  it('includes workers when enabled', () => {
+    const routes = generateProductRoutes(REF, activeProject, { workers: true })
+    expect(keys(routes)).toContain('workers')
+  })
+
   it('links auth to overview page when authOverviewPage is enabled', () => {
     const routes = generateProductRoutes(REF, activeProject, { authOverviewPage: true })
     const authRoute = routes.find((r) => r.key === 'auth')
@@ -95,6 +108,7 @@ describe('generateProductRoutes', () => {
       storage: false,
       edgeFunctions: false,
       realtime: false,
+      workers: false,
     })
     expect(keys(routes)).toEqual(['database'])
   })

@@ -183,18 +183,26 @@
 
 /*
  * Canonical keyboard focus rings. Prefer these over inventing local ring/outline
- * stacks. `outline-hidden` stays always-on so mouse click does not show the
- * browser default; the indicator is `:focus-visible` only.
+ * stacks.
  *
- * - focus-ring: default offset ring (buttons, inputs, most controls)
- * - focus-inset: dense/flush surfaces such as interactive <tr>s. Uses outline
- *   (not ring/box-shadow) because box-shadow on table-row is unreliable across
- *   browsers — especially Safari.
+ * - focus-ring: default offset ring (buttons, inputs, most controls).
+ *   `outline-hidden` stays always-on so mouse click does not show the browser
+ *   default; the ring is `:focus-visible` only.
+ * - focus-inset: dense/flush surfaces such as interactive <tr>s. Must use
+ *   outline (not ring/box-shadow) — box-shadow on table-row is unreliable,
+ *   especially in Safari. Do NOT pair with outline-hidden: that sets
+ *   outline-style: none and suppresses the focus outline.
  */
 @utility focus-ring {
   @apply outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
 }
 
 @utility focus-inset {
-  @apply outline-hidden focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring focus-visible:rounded-md;
+  &:focus-visible {
+    outline-style: solid;
+    outline-width: 2px;
+    outline-offset: -2px;
+    outline-color: var(--ring);
+    border-radius: var(--radius-md, 0.375rem);
+  }
 }

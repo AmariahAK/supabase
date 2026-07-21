@@ -2634,6 +2634,17 @@ export const Index: Record<string, any> = {
       subcategory: "undefined",
       chunks: []
     },
+    "connect-interstitial-logo-unknown": {
+      name: "connect-interstitial-logo-unknown",
+      type: "components:example",
+      registryDependencies: undefined,
+      component: React.lazy(() => import("@/registry/default/example/connect-interstitial-logo-unknown")),
+      source: "",
+      files: ["registry/default/example/connect-interstitial-logo-unknown.tsx"],
+      category: "undefined",
+      subcategory: "undefined",
+      chunks: []
+    },
     "page-layout-auth-emails": {
       name: "page-layout-auth-emails",
       type: "components:example",

@@ -81,10 +81,22 @@ project linking.
 
 ## Logos
 
-Use `LogoPair` when the user is connecting two services, and `SupabaseLogo`
-alone for first-party flows. `PartnerLogo` fills the 48px box edge-to-edge;
-`LogoBox` is for custom inset marks or logos that need their own background.
-Store new partner icons in `apps/studio/public/img/icons`.
+Use `LogoPair` when the user is connecting two known services, and
+`SupabaseLogo` alone for first-party flows or when the requester has no trusted
+mark. `PartnerLogo` fills the 48px box edge-to-edge; `LogoBox` is for custom
+inset marks or logos that need their own background. Store new partner icons in
+`apps/studio/public/img/icons`.
+
+### Pairing
+
+| Requester logo                                           | Header treatment                                     |
+| -------------------------------------------------------- | ---------------------------------------------------- |
+| Curated partner / MCP client, or a trusted uploaded icon | `LogoPair` with requester left, `SupabaseLogo` right |
+| Unknown, missing, blocked, or failed-to-load icon        | `SupabaseLogo` alone. Do not invent an initial tile. |
+
+The user is usually arriving from the third-party app. The interstitial should
+confirm they are connecting to Supabase. Put the requester name in the title and
+description; do not manufacture a letter avatar to fill the left side of a pair.
 
 <ComponentPreview
   name="connect-interstitial-logo-pair"
@@ -97,8 +109,8 @@ Store new partner icons in `apps/studio/public/img/icons`.
 />
 
 <ComponentPreview
-  name="connect-interstitial-logo-single"
-  description="SupabaseLogo alone for first-party flows"
+  name="connect-interstitial-logo-unknown"
+  description="No trusted requester mark: Supabase alone"
   align="start"
   className="p-0"
   padded={false}
@@ -106,7 +118,42 @@ Store new partner icons in `apps/studio/public/img/icons`.
   wide
 />
 
+### Assets
+
+Treat Connect logos as assets, not theme tokens.
+
+**Default to light.** Prefer a single static light mark inside `LogoBox`.
+Light assets read fine on both light and dark Studio themes. That is the
+default for Connect tiles.
+
+**Keep pairs matched.** In a `LogoPair`, both marks must use the same
+treatment: both light, or both dark. Do not mix a light partner tile with a
+dark-theme-only Supabase treatment, or the reverse. When either side is a
+static or light asset (most partner icons), keep `SupabaseLogo` on its light
+mark too. Theme-aware dark variants are fine for curated partners that already
+have them, but then both sides of the pair should use the dark set together.
+
+**What not to do**
+
+- Do not invent light/dark pairs for arbitrary remote OAuth icons.
+- Do not recolour vendor SVGs with theme CSS. Monochrome identity-provider
+  masks (for example GitHub on sign-in) stay a separate pattern.
+
+**Where logos come from on `/authorize`**
+
+- Curated partner logos resolve from allowlisted `redirect_uri` hosts only,
+  not from self-asserted `name` or `website`.
+- Published organisation OAuth app icons uploaded in Studio remain trusted
+  remote images.
+- Everything else falls back to `SupabaseLogo` alone.
+
 ```tsx
+// Trusted / curated requester: AuthorizeConnectLogo pairs with Supabase
+<AuthorizeConnectLogo icon={icon} name={name} />
+
+// Unknown or unusable requester icon: AuthorizeConnectLogo renders Supabase alone
+<AuthorizeConnectLogo icon={null} name="Acme" />
+
 const AwsLogo = () => (
   <LogoBox className="border-[#232f3e] bg-[#232f3e]">
     <img alt="AWS" src={`${BASE_PATH}/img/icons/aws-icon.svg`} className="w-8" />
@@ -149,6 +196,16 @@ secondary action that still belongs in the flow.
 Keep loading, invalid, error, and success states inside the same card when the
 route can explain them. Use `ShimmeringLoader` for loading, and `Admonition`
 for warning, error, note, and success copy.
+
+<ComponentPreview
+  name="connect-interstitial-logo-single"
+  description="Wrong-account warning inside the same interstitial card"
+  align="start"
+  className="p-0"
+  padded={false}
+  peekCode
+  wide
+/>
 
 ## Copy
 

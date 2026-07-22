@@ -72,7 +72,12 @@ export async function fetchChangelogEntryFilesFromTarball(
 }
 
 export function stripInternalBlock(body) {
-  return body.replace(/<!--\s*internal\s*-->[\s\S]*?<!--\s*\/internal\s*-->/gi, '').trim()
+  return body
+    .replace(/<!--\s*internal\s*-->[\s\S]*?<!--\s*\/internal\s*-->/gi, '')
+    // MDX doesn't support raw HTML comments (only {/* */}) — strip any that are left
+    // (e.g. author/template notes) so they can't break rendering.
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .trim()
 }
 
 /**

@@ -77,6 +77,25 @@ const getBadgeVariant = (activity: DatabaseActivity) => {
   return 'default'
 }
 
+// Walks the blocked_by chain starting from pid until it reaches a process that
+// isn't blocked by anything else (breaks on a cycle as a safety net, since that
+// shouldn't happen with real pg_stat_activity data)
+const getBlockChain = (pid: number, activities: DatabaseActivity[]) => {
+  const chain = [pid]
+  const visited = new Set([pid])
+  let current = activities.find((x) => x.pid === pid)
+
+  while (current && current.blocked_by.length > 0) {
+    const nextPid = current.blocked_by[0]
+    if (visited.has(nextPid)) break
+    chain.push(nextPid)
+    visited.add(nextPid)
+    current = activities.find((x) => x.pid === nextPid)
+  }
+
+  return chain
+}
+
 const DEFAULT_ROLES_FILTER = ['anon', 'authenticated', 'postgres']
 
 interface ActivityProps {
@@ -448,35 +467,89 @@ const ActivityRow = ({ activity }: { activity: DatabaseActivity }) => {
         <TableCell>
           {activity.blocked_by.length > 0 ? (
             activity.blocked_by.map((pid, index) => {
-              const blockedProcess = data?.find((x) => x.pid === pid)
+              const blockChain = getBlockChain(pid, data ?? [])
 
               return (
                 <Fragment key={pid}>
                   {index > 0 && ', '}
-                  <Tooltip>
-                    <TooltipTrigger
+
+                  <HoverCard openDelay={150} closeDelay={100}>
+                    <HoverCardTrigger
                       className={cn(InlineLinkClassName, 'cursor-pointer')}
                       onClick={() => setSelectedPid(pid)}
                     >
                       {pid}
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="min-w-64 max-w-80">
-                      <p className="truncate">
-                        <code className="tracking-tighter">{blockedProcess?.query}</code>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="bg-alternative w-96 p-3 text-xs">
+                      <p>
+                        Blocked via {blockChain.length} hop{blockChain.length > 1 ? 's' : ''}
                       </p>
-                      <p className="text-xs text-foreground-lighter flex items-center gap-x-0.5 mt-0.5 truncate">
-                        <span>PID: {blockedProcess?.pid}</span>
-                        <span>·</span>
-                        <span>{blockedProcess?.role_name}</span>
-                        {blockedProcess?.application_name && (
-                          <>
-                            <span>·</span>
-                            <span>{blockedProcess?.application_name}</span>
-                          </>
-                        )}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
+
+                      <div className="flex flex-col mt-2 gap-y-1.5">
+                        {blockChain.map((chainPid, chainIndex) => {
+                          const chainProcess = data?.find((x) => x.pid === chainPid)
+                          const isLastProcess = chainIndex === blockChain.length - 1
+                          return (
+                            <div
+                              key={chainPid}
+                              className="flex items-center"
+                              style={{
+                                paddingLeft:
+                                  chainIndex === 0
+                                    ? 0
+                                    : chainIndex === 1
+                                      ? 3
+                                      : (chainIndex - 1) * 20 + 4,
+                              }}
+                            >
+                              {chainIndex > 0 && (
+                                <div
+                                  className={cn(
+                                    'w-3 h-4 border-l-1 border-b-1 border-stronger rounded-bl-md shrink-0  mr-1.5',
+                                    isLastProcess ? '-mt-12' : '-mt-8'
+                                  )}
+                                />
+                              )}
+                              <div className="truncate">
+                                <div className="flex gap-x-1 items-center">
+                                  <span
+                                    role="button"
+                                    tabIndex={0}
+                                    className="cursor-pointer hover:underline"
+                                    onClick={() => setSelectedPid(chainPid)}
+                                  >
+                                    PID: {chainPid}
+                                  </span>
+                                  {isLastProcess ? (
+                                    <Badge variant="warning">Holding lock</Badge>
+                                  ) : (
+                                    <Badge variant="default">Waiting</Badge>
+                                  )}
+                                </div>
+                                <p
+                                  className={cn(
+                                    'font-mono tracking-tighter truncate',
+                                    isLastProcess ? 'text-foreground' : 'text-foreground-lighter'
+                                  )}
+                                >
+                                  {chainProcess?.query}
+                                </p>
+                                {isLastProcess && (
+                                  <div className="flex gap-x-0.5 text-foreground-lighter truncate">
+                                    <span>{chainProcess?.role_name}</span>
+                                    <span>·</span>
+                                    {chainProcess?.application_name && (
+                                      <span>{chainProcess.application_name}</span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
                 </Fragment>
               )
             })

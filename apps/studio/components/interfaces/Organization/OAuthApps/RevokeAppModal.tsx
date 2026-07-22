@@ -77,9 +77,7 @@ export const RevokeAppModal = ({
                       <li className="list-disc ml-4">
                         The application may also have a <strong>Secret API key</strong> with access.
                         Navigate to{' '}
-                        <InlineLink
-                          href={`/dashboard/project/_/integrations/${selectedApp?.id}/settings`}
-                        >
+                        <InlineLink href={`/dashboard/project/_/integrations`}>
                           Integrations
                         </InlineLink>{' '}
                         on the project this app was installed, and remove any listed Secret API key

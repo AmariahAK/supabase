@@ -27,14 +27,14 @@ The client needs your Supabase project URL and API key. Store them as environmen
 
 ```bash
 export SUPABASE_URL="https://<project-id>.supabase.co"
-export SUPABASE_KEY="<your-anon-or-service-role-key>"
+export SUPABASE_KEY="<your-publishable-key>"
 ```
 
 Or in a `.env` file:
 
 ```text name=.env
 SUPABASE_URL=https://<project-id>.supabase.co
-SUPABASE_KEY=<your-anon-or-service-role-key>
+SUPABASE_KEY=<your-publishable-key>
 ```
 
 ## Creating a client
@@ -85,10 +85,10 @@ The pattern is always the same: choose a table, build a query chain, and call `.
 
 ## Client reuse guidance
 
-- **Reuse a single client instance** within your application's lifetime. The client internally manages auth state, header propagation, and lazy service clients (PostgREST, Storage, Functions).
+- **Reuse a single client instance** for anonymous or service-role use within your application's lifetime. The client internally manages auth state, header propagation, and lazy service clients (PostgREST, Storage, Functions).
 - **Do not create a new client per request.** Client initialization is cheap but not free, and each client maintains its own session tracking and realtime connections.
 - **Multiple clients are fine** when you need separate auth contexts (for example, different user sessions). Create one client per session store.
-- **For serverless or per-request contexts**, create the client once at module level and reuse it across invocations. Pass custom `Authorization` headers via [ClientOptions](/docs/guides/getting-started/python-client/clients) if needed.
+- **For authenticated user requests**, create a fresh client per user session or per request. The client mutates its internal headers on auth state changes, so a shared client cannot isolate multiple users. For serverless or per-request environments, use per-request client instances with the user's access token.
 
 ## Next steps
 

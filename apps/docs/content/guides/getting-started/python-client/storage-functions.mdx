@@ -108,7 +108,7 @@ resp = supabase.functions.invoke(
 Two exception classes cover all failure modes:
 
 ```python
-from supabase import FunctionsHttpError, FunctionsRelayError
+from supabase_functions.errors import FunctionsHttpError, FunctionsRelayError
 
 try:
     resp = supabase.functions.invoke("my-function", invoke_options={"body": {}})

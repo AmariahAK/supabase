@@ -84,12 +84,20 @@ result = (
 
 ## Upsert
 
-Insert or update rows based on a conflict key:
+Insert or update rows based on a conflict key. If the table has a primary key on `id`, include it in the row. Otherwise, use `on_conflict` to specify the unique column:
 
 ```python
+# With primary key included
 result = (
     supabase.table("countries")
-    .upsert({"name": "Indonesia", "capital": "Jakarta"})
+    .upsert({"id": 1, "name": "Indonesia", "capital": "Jakarta"})
+    .execute()
+)
+
+# Or with an explicit conflict target
+result = (
+    supabase.table("countries")
+    .upsert({"name": "Indonesia", "capital": "Jakarta"}, on_conflict="name")
     .execute()
 )
 ```
@@ -122,7 +130,7 @@ result = (
 | `.contains("col", value)`         | JSONB / array contains              |
 | `.order("col", desc=False)`       | Order results                       |
 | `.limit(n)`                       | Limit rows                          |
-| `.range(start, end)`              | Offset-based pagination (0-indexed) |
+| `.range(start, end)`              | Offset pagination; both indexes are 0-based and inclusive |
 | `.or_("col.eq.val, col2.gt.val")` | Logical OR across fields            |
 
 ## Stored procedures (RPC)
@@ -168,10 +176,20 @@ Use `.maybe_single()` if the row might not exist — it returns `None` instead o
 
 ## Return types
 
-Every `.execute()` call returns an `APIResponse`:
+Every `.execute()` call returns an `APIResponse`. The shape of `.data` depends on the modifiers used:
 
 ```python
+# Default: list of dicts
 result = supabase.table("countries").select("*").execute()
 result.data     # list[dict] — the rows
+
+# With .single(): a single dict
+result = supabase.table("countries").select("*").eq("name", "Germany").single().execute()
+result.data     # dict — a single row
+
+# RPC calls return whatever JSON the function produces
+result = supabase.rpc("add_numbers", {"a": 3, "b": 5}).execute()
+result.data     # could be int, list, dict, etc.
+
 result.count    # int | None — row count (if `count=` was used)
 ```

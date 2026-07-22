@@ -19,18 +19,22 @@ channel = supabase.channel("room-1")
 Send and receive messages on a channel:
 
 ```python
-def on_broadcast(payload):
-    print(f"Received: {payload}")
+import asyncio
 
-channel = supabase.channel("room-1")
-channel.on_broadcast("chat", on_broadcast).subscribe()
+async def main():
+    client = await create_async_client(url, key)
 
-# Send a message
-channel.send({
-    "type": "broadcast",
-    "event": "chat",
-    "payload": {"message": "hello!"},
-})
+    def on_broadcast(payload):
+        print(f"Received: {payload}")
+
+    channel = client.channel("room-1")
+    channel.on_broadcast("chat", on_broadcast)
+    await channel.subscribe()
+
+    # Send a message
+    await channel.send_broadcast("chat", {"message": "hello!"})
+
+asyncio.run(main())
 ```
 
 ## Presence
@@ -38,35 +42,55 @@ channel.send({
 Track who is online in a channel:
 
 ```python
-channel = supabase.channel("room-1")
+import asyncio
 
-def on_presence(presence):
-    print(f"Online users: {presence}")
+async def main():
+    client = await create_async_client(url, key)
+    channel = client.channel("room-1")
 
-channel.on_presence(on_presence).subscribe()
+    def on_presence(presence):
+        print(f"Online users: {presence}")
 
-# Announce presence
-channel.track({"user": "alice", "status": "online"})
+    channel.on_presence_sync(on_presence)
+    await channel.subscribe()
+
+    # Announce presence
+    await channel.track({"user": "alice", "status": "online"})
+
+asyncio.run(main())
 ```
 
 ## Postgres changes
 
-Subscribe to database changes in realtime:
+Subscribe to database changes in realtime. First, ensure the table is added to the Realtime publication in your [Supabase Dashboard](/dashboard/project/_/database/replication) or via SQL:
+
+```sql
+alter publication supabase_realtime add table messages;
+```
+
+Then subscribe to changes:
 
 ```python
-def on_insert(payload):
-    print(f"New row: {payload.new}")
+import asyncio
 
-channel = (
-    supabase.channel("schema-db-changes")
-    .on_postgres_changes(
-        "INSERT",
-        schema="public",
-        table="messages",
-        callback=on_insert,
+async def main():
+    client = await create_async_client(url, key)
+
+    def on_insert(payload):
+        print(f"New row: {payload.new}")
+
+    await (
+        client.channel("schema-db-changes")
+        .on_postgres_changes(
+            "INSERT",
+            schema="public",
+            table="messages",
+            callback=on_insert,
+        )
+        .subscribe()
     )
-    .subscribe()
-)
+
+asyncio.run(main())
 ```
 
 The `callback` receives a payload with `.new` (the new row), `.old` (the previous row for UPDATE/DELETE), and `.event_type`.
@@ -76,16 +100,22 @@ Supported events: `INSERT`, `UPDATE`, `DELETE`, `*` (all).
 ## Channel lifecycle
 
 ```python
-channel = supabase.channel("room-1")
-channel.subscribe()        # Connect and start receiving events
-channel.unsubscribe()      # Disconnect but keep the channel
-supabase.remove_channel(channel)  # Unsubscribe and remove
+import asyncio
 
-# List all active channels
-channels = supabase.get_channels()
+async def main():
+    client = await create_async_client(url, key)
+    channel = client.channel("room-1")
+    await channel.subscribe()        # Connect and start receiving events
+    channel.unsubscribe()            # Disconnect but keep the channel
+    client.remove_channel(channel)   # Unsubscribe and remove
 
-# Remove all channels at once
-supabase.remove_all_channels()
+    # List all active channels
+    channels = client.get_channels()
+
+    # Remove all channels at once
+    client.remove_all_channels()
+
+asyncio.run(main())
 ```
 
 ## Testing patterns
@@ -117,10 +147,12 @@ def test_select(supabase: Client):
 For async tests, install `pytest-asyncio` and use `@pytest.mark.asyncio`:
 
 ```python
+import os
 import pytest
+import pytest_asyncio
 from supabase import create_async_client, AsyncClient
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(loop_scope="session")
 async def async_client() -> AsyncClient:
     url = os.environ["SUPABASE_TEST_URL"]
     key = os.environ["SUPABASE_TEST_KEY"]

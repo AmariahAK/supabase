@@ -45,6 +45,8 @@ async def create(cls, url, key, options):
 - For a typical `asyncio.run()` entry point, create the client inside the async function and pass it around:
 
 ```python
+import asyncio
+
 async def main():
     client = await create_async_client(url, key)
     result = await client.table("users").select("*").execute()

@@ -20,6 +20,7 @@ import { getExposedSchemaCounts } from './ExposedSchemaSelector.utils'
 import { useSchemasQuery } from '@/data/database/schemas-query'
 import {
   filterSchemasForHighAvailability,
+  MULTIGRES_SCHEMA_NAME,
   useHighAvailability,
 } from '@/hooks/misc/useHighAvailability'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
@@ -72,15 +73,25 @@ export const ExposedSchemaSelector = ({
     [allSchemas, isHighAvailability]
   )
 
-  const missingExposedSchema = useMemo(
-    () => selectedSchemas.filter((schema) => !schemas.some((s) => s.name === schema)),
-    [schemas, selectedSchemas]
+  // Persisted selections go through the same HA filtering as the schema list, so a
+  // multigres schema exposed in the config doesn't render as a "missing" schema row.
+  const visibleSelectedSchemas = useMemo(
+    () =>
+      isHighAvailability
+        ? selectedSchemas.filter((schema) => schema !== MULTIGRES_SCHEMA_NAME)
+        : selectedSchemas,
+    [selectedSchemas, isHighAvailability]
   )
 
-  const selectedSet = useMemo(() => new Set(selectedSchemas), [selectedSchemas])
+  const missingExposedSchema = useMemo(
+    () => visibleSelectedSchemas.filter((schema) => !schemas.some((s) => s.name === schema)),
+    [schemas, visibleSelectedSchemas]
+  )
+
+  const selectedSet = useMemo(() => new Set(visibleSelectedSchemas), [visibleSelectedSchemas])
   const { selectedCount, totalCount } = getExposedSchemaCounts({
     visibleSchemas: schemas.map((s) => s.name),
-    selectedSchemas,
+    selectedSchemas: visibleSelectedSchemas,
     protectedSchemas: internalSchemasCannotExpose,
   })
 

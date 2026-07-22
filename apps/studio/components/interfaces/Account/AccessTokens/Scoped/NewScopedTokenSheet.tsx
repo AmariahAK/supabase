@@ -66,7 +66,6 @@ export const NewScopedTokenSheet = () => {
     setIsOpen(open)
   }
 
-  console.log({ createdToken })
   return (
     <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>

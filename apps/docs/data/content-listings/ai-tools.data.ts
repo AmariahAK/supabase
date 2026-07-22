@@ -1,7 +1,6 @@
-import { MCP_CLIENT_DATA } from 'ui-patterns/McpUrlBuilder/clients.data'
-
 import { PLUGIN_CLIENTS } from '~/features/ui/AgentPluginsPanel.data'
 import type { ContentListingGroup } from '~/lib/content-listings.schema'
+import { MCP_CLIENT_DATA } from 'ui-patterns/McpUrlBuilder/clients.data'
 
 // MCP_CLIENT_DATA and PLUGIN_CLIENTS key GitHub Copilot differently — normalize before merging.
 const KEY_ALIASES: Record<string, string> = {
@@ -145,7 +144,8 @@ export const aiToolsBuildingIntoApp: ContentListingGroup = {
     {
       title: 'Vectors / Embeddings',
       href: '/guides/ai',
-      description: 'Build semantic search, RAG pipelines, and other AI-powered features using pgvector',
+      description:
+        'Build semantic search, RAG pipelines, and other AI-powered features using pgvector',
       icon: '/docs/img/icons/product-vector-icon',
       hasLightIcon: true,
     },

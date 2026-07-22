@@ -119,18 +119,16 @@ const WorkerDetailsLayout = ({ title, children }: PropsWithChildren<WorkerDetail
               edges. */}
           <PageContainer size="full">
             {worker.access === 'public' && worker.endpoint ? (
-              <Admonition type="default" title="Public endpoint">
-                <div className="mt-1 flex items-center gap-2">
-                  <code className="min-w-0 flex-1 truncate text-xs text-foreground">
-                    {worker.endpoint}
-                  </code>
-                  <CopyButton iconOnly variant="text" text={worker.endpoint} />
-                </div>
-                <p className="mt-2 flex items-center gap-1.5 text-xs text-foreground-lighter">
-                  <Lock size={12} strokeWidth={1.5} />
-                  Requests must carry a valid Supabase Auth key, validated at the API Gateway.
-                </p>
-              </Admonition>
+              <div className="flex items-center gap-2 rounded-md border border-default bg-surface-100 px-3 py-1.5">
+                <Lock size={13} strokeWidth={1.5} className="shrink-0 text-foreground-lighter" />
+                <code className="min-w-0 flex-1 truncate text-xs text-foreground-light">
+                  {worker.endpoint}
+                </code>
+                <span className="hidden shrink-0 text-xs text-foreground-lighter md:inline">
+                  Gateway auth required
+                </span>
+                <CopyButton iconOnly variant="text" size="tiny" text={worker.endpoint} />
+              </div>
             ) : (
               <Admonition
                 type="default"
@@ -144,7 +142,7 @@ const WorkerDetailsLayout = ({ title, children }: PropsWithChildren<WorkerDetail
 
         {/* Tabs live outside PageHeader so they can stick just below the
             breadcrumb bar once the title/meta scrolls away. */}
-        <div className="sticky top-(--header-height) z-10 border-b border-default bg-dash-sidebar">
+        <div className="sticky top-(--header-height) z-10 mt-4 border-b border-default bg-dash-sidebar">
           <PageContainer size="full">
             <NavMenu className="border-b-0">
               {navigationItems.map((item) => {

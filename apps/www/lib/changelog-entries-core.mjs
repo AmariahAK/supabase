@@ -72,12 +72,16 @@ export async function fetchChangelogEntryFilesFromTarball(
 }
 
 export function stripInternalBlock(body) {
-  return body
-    .replace(/<!--\s*internal\s*-->[\s\S]*?<!--\s*\/internal\s*-->/gi, '')
-    // MDX doesn't support raw HTML comments (only {/* */}) — strip any that are left
-    // (e.g. author/template notes) so they can't break rendering.
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .trim()
+  let sanitized = body.replace(/<!--\s*internal\s*-->[\s\S]*?<!--\s*\/internal\s*-->/gi, '')
+  // MDX doesn't support raw HTML comments (only {/* */}) — strip any that are left
+  // (e.g. author/template notes) so they can't break rendering. Applied repeatedly:
+  // a single pass could in principle leave a fresh `<!-- ... -->` behind.
+  let previous
+  do {
+    previous = sanitized
+    sanitized = sanitized.replace(/<!--[\s\S]*?-->/g, '')
+  } while (sanitized !== previous)
+  return sanitized.trim()
 }
 
 /**

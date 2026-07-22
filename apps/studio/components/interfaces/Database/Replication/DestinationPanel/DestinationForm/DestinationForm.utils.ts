@@ -231,9 +231,8 @@ export const getPublicationTableIds = (
 }
 
 // Drops selected table ids that are no longer in the current publication.
-// Selective table-copy ids are validated against the publication server-side
-// (etl-api rejects ids that aren't published), so stale ids must be pruned
-// before submitting rather than sent as-is.
+// Create validation rejects ids that aren't published, while edits are checked
+// against the latest loaded publication before submitting.
 export const pruneStaleSelectedTableIds = ({
   mode,
   selectedTableIds,

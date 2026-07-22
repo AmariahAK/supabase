@@ -13,7 +13,6 @@ interface ValidationWarningsDialogProps {
   open: boolean
   isLoading: boolean
   warningCount: number
-  editMode: boolean
   onOpenChange: (value: boolean) => void
   onConfirm: () => void
 }
@@ -22,12 +21,11 @@ export const ValidationWarningsDialog = ({
   open,
   isLoading,
   warningCount,
-  editMode,
   onOpenChange,
   onConfirm,
 }: ValidationWarningsDialogProps) => {
   const hasWarnings = warningCount > 0
-  const action = editMode ? 'Apply changes' : 'Create and start pipeline'
+  const action = 'Create and start pipeline'
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -41,7 +39,7 @@ export const ValidationWarningsDialog = ({
           <AlertDialogDescription>
             {hasWarnings
               ? 'Replication can start, but the warnings listed above may affect how some changes are applied downstream. Review them before proceeding.'
-              : `No validation issues were found. Confirm to ${editMode ? 'apply these changes' : 'create the pipeline and start replication to the destination'}.`}
+              : 'No validation issues were found. Confirm to create the pipeline and start replication to the destination.'}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

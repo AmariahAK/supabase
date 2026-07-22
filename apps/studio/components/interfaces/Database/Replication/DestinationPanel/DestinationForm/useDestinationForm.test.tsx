@@ -90,21 +90,17 @@ describe('useDestinationForm validation', () => {
     mocks.validatePipeline.mockResolvedValue({ validation_failures: [] })
   })
 
-  it('validates only the pipeline while editing because stored destination secrets are unreadable', async () => {
-    const { result } = renderHook(() =>
-      useDestinationForm({ selectedType: 'BigQuery', editMode: true })
-    )
+  it('validates both destination and pipeline while creating', async () => {
+    const { result } = renderHook(() => useDestinationForm({ selectedType: 'BigQuery' }))
 
-    let validationResult: Awaited<ReturnType<typeof result.current.validateConfiguration>>
     await act(async () => {
-      validationResult = await result.current.validateConfiguration({
-        data: formData,
+      await result.current.validateConfiguration({
+        data: { ...formData, serviceAccountKey: '{"type":"service_account"}' },
         onValidationFail: vi.fn(),
       })
     })
 
-    expect(validationResult!).toEqual({ canContinue: true, warnings: [] })
-    expect(mocks.validateDestination).not.toHaveBeenCalled()
+    expect(mocks.validateDestination).toHaveBeenCalledOnce()
     expect(mocks.validatePipeline).toHaveBeenCalledWith(
       expect.objectContaining({
         projectRef: 'project-ref',
@@ -115,7 +111,7 @@ describe('useDestinationForm validation', () => {
     )
   })
 
-  it('blocks an edit when pipeline validation returns a critical failure', async () => {
+  it('blocks creation when pipeline validation returns a critical failure', async () => {
     const failure = {
       failure_type: 'critical',
       name: 'Invalid table selection',
@@ -123,14 +119,12 @@ describe('useDestinationForm validation', () => {
     }
     mocks.validatePipeline.mockResolvedValue({ validation_failures: [failure] })
     const onValidationFail = vi.fn()
-    const { result } = renderHook(() =>
-      useDestinationForm({ selectedType: 'BigQuery', editMode: true })
-    )
+    const { result } = renderHook(() => useDestinationForm({ selectedType: 'BigQuery' }))
 
     let validationResult: Awaited<ReturnType<typeof result.current.validateConfiguration>>
     await act(async () => {
       validationResult = await result.current.validateConfiguration({
-        data: formData,
+        data: { ...formData, serviceAccountKey: '{"type":"service_account"}' },
         onValidationFail,
       })
     })
@@ -139,26 +133,8 @@ describe('useDestinationForm validation', () => {
     expect(onValidationFail).toHaveBeenCalledOnce()
   })
 
-  it('validates both destination and pipeline while creating', async () => {
-    const { result } = renderHook(() =>
-      useDestinationForm({ selectedType: 'BigQuery', editMode: false })
-    )
-
-    await act(async () => {
-      await result.current.validateConfiguration({
-        data: { ...formData, serviceAccountKey: '{"type":"service_account"}' },
-        onValidationFail: vi.fn(),
-      })
-    })
-
-    expect(mocks.validateDestination).toHaveBeenCalledOnce()
-    expect(mocks.validatePipeline).toHaveBeenCalledOnce()
-  })
-
   it('preserves hidden batch fields and submits the selected table-copy policy on edit', async () => {
-    const { result } = renderHook(() =>
-      useDestinationForm({ selectedType: 'BigQuery', editMode: true })
-    )
+    const { result } = renderHook(() => useDestinationForm({ selectedType: 'BigQuery' }))
 
     await act(async () => {
       await result.current.submitPipeline({
@@ -199,9 +175,7 @@ describe('useDestinationForm validation', () => {
   })
 
   it('omits an unchanged batch when editing only the table-copy policy', async () => {
-    const { result } = renderHook(() =>
-      useDestinationForm({ selectedType: 'BigQuery', editMode: true })
-    )
+    const { result } = renderHook(() => useDestinationForm({ selectedType: 'BigQuery' }))
 
     await act(async () => {
       await result.current.submitPipeline({

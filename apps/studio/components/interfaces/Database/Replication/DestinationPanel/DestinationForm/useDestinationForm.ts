@@ -33,13 +33,7 @@ import {
 } from '@/state/replication-pipeline-request-status'
 import { type ResponseError } from '@/types'
 
-export const useDestinationForm = ({
-  selectedType,
-  editMode,
-}: {
-  selectedType: DestinationType
-  editMode: boolean
-}) => {
+export const useDestinationForm = ({ selectedType }: { selectedType: DestinationType }) => {
   const { ref: projectRef } = useParams()
   const { setRequestStatus } = usePipelineRequestStatus()
 
@@ -135,26 +129,22 @@ export const useDestinationForm = ({
 
     // Call both validation endpoints in parallel and wait for both to complete
     // even if one fails - this makes the validation feel like a single operation
-    const destinationValidation = editMode
-      ? Promise.resolve({ validation_failures: [] as ValidationFailure[] })
-      : validateDestination({
-          projectRef,
-          destinationConfig: buildDestinationConfigForValidation({
-            projectRef,
-            selectedType,
-            data,
-          }),
-          sourceId,
-          publicationName: data.publicationName,
-          maxFillMs: data.maxFillMs,
-          maxTableSyncWorkers: data.maxTableSyncWorkers,
-          maxCopyConnectionsPerTable: data.maxCopyConnectionsPerTable,
-          invalidatedSlotBehavior: data.invalidatedSlotBehavior,
-          tableSyncCopy,
-        })
-
     const results = await Promise.allSettled([
-      destinationValidation,
+      validateDestination({
+        projectRef,
+        destinationConfig: buildDestinationConfigForValidation({
+          projectRef,
+          selectedType,
+          data,
+        }),
+        sourceId,
+        publicationName: data.publicationName,
+        maxFillMs: data.maxFillMs,
+        maxTableSyncWorkers: data.maxTableSyncWorkers,
+        maxCopyConnectionsPerTable: data.maxCopyConnectionsPerTable,
+        invalidatedSlotBehavior: data.invalidatedSlotBehavior,
+        tableSyncCopy,
+      }),
       validatePipeline({
         projectRef,
         sourceId,

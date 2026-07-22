@@ -183,10 +183,7 @@ export const DestinationForm = ({
     destinationValidationFailures,
     pipelineValidationFailures,
     resetValidation,
-  } = useDestinationForm({
-    selectedType,
-    editMode,
-  })
+  } = useDestinationForm({ selectedType })
 
   const defaultValues = useMemo(
     () =>
@@ -317,9 +314,8 @@ export const DestinationForm = ({
       return
     }
 
-    // Selective table-copy ids are validated against the publication
-    // server-side, so drop any previously selected id that has since fallen
-    // out of the publication before validating or submitting.
+    // Drop any previously selected id that has since fallen out of the
+    // publication before validating a create or submitting an edit.
     const data: z.infer<typeof FormSchema> = {
       ...rawData,
       tableSyncCopyTableIds: pruneStaleSelectedTableIds({
@@ -328,6 +324,20 @@ export const DestinationForm = ({
         publications,
         publicationName: rawData.publicationName,
       }),
+    }
+
+    // Pipeline prerequisite validation models a new pipeline and cannot
+    // account for resources already owned by an existing pipeline. Edits keep
+    // the established direct-update flow after pruning stale table ids.
+    if (editMode) {
+      await submitPipeline({
+        data,
+        existingDestination,
+        existingBatch: pipelineData?.config.batch,
+        onSuccess: () => form.reset(defaultValues),
+        onClose,
+      })
+      return
     }
 
     const previousValidationFailures = allValidationFailures
@@ -366,36 +376,14 @@ export const DestinationForm = ({
       return
     }
 
-    if (editMode) {
-      await submitPipeline({
-        data,
-        existingDestination,
-        existingBatch: pipelineData?.config.batch,
-        onSuccess: () => form.reset(defaultValues),
-        onClose,
-      })
-    } else {
-      openCostDialog(data)
-    }
+    openCostDialog(data)
   }
 
-  // Confirming create warnings advances to the cost dialog. Edits submit directly because an
-  // existing pipeline's prospective table-copy cost cannot be inferred from publication totals.
-  const handleValidationWarningsConfirm = async () => {
+  // Confirming create warnings advances to the cost dialog.
+  const handleValidationWarningsConfirm = () => {
     if (!pendingFormValues) return
     setShowValidationWarningsDialog(false)
-
-    if (editMode) {
-      await submitPipeline({
-        data: pendingFormValues,
-        existingDestination,
-        existingBatch: pipelineData?.config.batch,
-        onSuccess: () => form.reset(defaultValues),
-        onClose,
-      })
-    } else {
-      openCostDialog(pendingFormValues)
-    }
+    openCostDialog(pendingFormValues)
   }
 
   const handleCostConfirm = async () => {
@@ -535,7 +523,7 @@ export const DestinationForm = ({
 
                 <AdvancedSettings type={selectedType} form={form} />
 
-                {hasRunValidation && !isValidating && (
+                {!editMode && hasRunValidation && !isValidating && (
                   <>
                     <DialogSectionSeparator />
 
@@ -616,7 +604,6 @@ export const DestinationForm = ({
         onOpenChange={setShowValidationWarningsDialog}
         isLoading={isSaving}
         warningCount={validationWarnings.length}
-        editMode={editMode}
         onConfirm={handleValidationWarningsConfirm}
       />
 

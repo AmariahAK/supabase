@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import {
@@ -32,6 +33,10 @@ import { DocsButton } from '@/components/ui/DocsButton'
 import { useDatabaseExtensionEnableMutation } from '@/data/database-extensions/database-extension-enable-mutation'
 import { type DatabaseExtension } from '@/data/database-extensions/database-extensions-query'
 import { useSchemasQuery } from '@/data/database/schemas-query'
+import {
+  filterSchemasForHighAvailability,
+  useHighAvailability,
+} from '@/hooks/misc/useHighAvailability'
 import { useIsOrioleDb, useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
 import { useProtectedSchemas } from '@/hooks/useProtectedSchemas'
 import { DOCS_URL } from '@/lib/constants'
@@ -72,10 +77,15 @@ export const EnableExtensionModal = ({
     },
     { enabled: visible }
   )
-  const availableSchemas = schemas.filter(
-    (schema) =>
-      schema.name === recommendedSchema ||
-      !protectedSchemas.some((protectedSchema) => protectedSchema.name === schema.name)
+  const { isHighAvailability } = useHighAvailability()
+  const availableSchemas = useMemo(
+    () =>
+      filterSchemasForHighAvailability(schemas, isHighAvailability).filter(
+        (schema) =>
+          schema.name === recommendedSchema ||
+          !protectedSchemas.some((protectedSchema) => protectedSchema.name === schema.name)
+      ),
+    [schemas, isHighAvailability, recommendedSchema, protectedSchemas]
   )
 
   // [Joshen] Hard-coding pg_cron here as this is enforced on our end (Not via pg_available_extension_versions)

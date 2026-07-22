@@ -41,7 +41,6 @@ export function ApiAuthorizationApprovedScreen({
         />
         <AuthorizeRequesterDetails
           showOnlyScopes
-          icon={requester.icon}
           name={requester.name}
           domain={requester.domain}
           scopes={requester.scopes}

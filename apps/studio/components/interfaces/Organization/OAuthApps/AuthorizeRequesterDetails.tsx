@@ -14,7 +14,7 @@ import {
 import { InfoTooltip } from 'ui-patterns/info-tooltip'
 
 import { PERMISSIONS_DESCRIPTIONS } from './OAuthApps.constants'
-import { getRequesterLogo } from './oauthRequesterBranding'
+import { getRequesterLogo } from './OAuthApps.utils'
 import {
   CONNECT_LOGO_LIGHT_TILE_CLASSNAME,
   LogoBox,
@@ -29,7 +29,6 @@ const PERMISSION_DETAILS_TRIGGER_CLASSNAME =
   'mx-auto flex h-7 cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 text-xs text-foreground-lighter transition-colors hover:bg-surface-200 hover:text-foreground'
 
 export interface AuthorizeRequesterDetailsProps {
-  icon: string | null
   name: string
   domain: string
   scopes: OAuthScope[]

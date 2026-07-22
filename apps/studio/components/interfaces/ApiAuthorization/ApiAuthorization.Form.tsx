@@ -126,7 +126,6 @@ export function ApiAuthorizationMainView({
               {showReadyContent && (
                 <>
                   <AuthorizeRequesterDetails
-                    icon={requester.icon}
                     name={requester.name}
                     domain={requester.domain}
                     scopes={requester.scopes}

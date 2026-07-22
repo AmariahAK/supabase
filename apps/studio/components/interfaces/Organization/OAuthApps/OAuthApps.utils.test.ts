@@ -7,7 +7,7 @@ import {
   getRequesterLogo,
   hostMatchesAllowlist,
   isLocalRedirectHost,
-} from './oauthRequesterBranding'
+} from './OAuthApps.utils'
 
 describe('hostMatchesAllowlist', () => {
   test('allows exact and subdomain hosts', () => {

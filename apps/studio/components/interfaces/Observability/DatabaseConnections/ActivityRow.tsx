@@ -208,7 +208,7 @@ export const ActivityRow = ({ activity }: { activity: DatabaseActivity }) => {
                     >
                       {pid}
                     </HoverCardTrigger>
-                    <HoverCardContent className="bg-alternative w-96 p-3 text-xs">
+                    <HoverCardContent className="bg-alternative w-96 max-h-64 overflow-y-auto p-3 text-xs">
                       <p>
                         Blocked via {blockChain.length} hop{blockChain.length > 1 ? 's' : ''}
                       </p>
